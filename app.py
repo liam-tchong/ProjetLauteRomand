@@ -342,7 +342,7 @@ def render_header():
 <div><div class="app-title">LaUte <span>Romand</span> App</div><div class="app-sub">Analyse tactique · Ligue 1</div></div>
 <div class="app-header-right">
 <div class="live-badge"><span class="live-dot"></span>En direct</div>
-<div class="app-badges"><span class="app-badge">Ligue 1</span><span class="app-badge">2024/25</span><span class="app-badge">18 équipes</span></div>
+<div class="app-badges"><span class="app-badge">Ligue 1</span><span class="app-badge">2025/26</span><span class="app-badge">18 équipes</span></div>
 </div>
 </div>""", unsafe_allow_html=True)
 
@@ -418,7 +418,7 @@ def page_classement():
     team_b = st.session_state.team_b
     da = standings.get(team_a, {})
 
-    st.markdown('<div class="sec-label">Ligue 1</div><div class="sec-title">Classement 2024/25</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec-label">Ligue 1</div><div class="sec-title">Classement 2025/26</div>', unsafe_allow_html=True)
 
     # Build rows — NO indentation to avoid markdown code-block interpretation
     hdr = '<div class="standings-hdr-row"><span class="standings-pos">#</span><span style="width:20px"></span><span style="flex:1">Équipe</span><span class="standings-stat">J</span><span class="standings-stat">V</span><span class="standings-stat">N</span><span class="standings-stat">D</span><span class="standings-gd">DB</span><span class="standings-pts">Pts</span></div>'
