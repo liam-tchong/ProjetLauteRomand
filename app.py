@@ -1,12 +1,38 @@
 import streamlit as st
 import requests
 import re
+import anthropic
 
 st.set_page_config(page_title="The Football Classroom", layout="wide")
 
 # ── API ───────────────────────────────────────────────────────────────────────
 API_KEY = "911605e549af4b759c5d7d2ffa977742"
 HEADERS = {"X-Auth-Token": API_KEY}
+
+ANTHROPIC_API_KEY  = st.secrets.get("ANTHROPIC_API_KEY", "")
+API_FOOTBALL_KEY   = st.secrets.get("API_FOOTBALL_KEY", "")
+
+# IDs équipes Ligue 1 sur API-Football (league 61, saison 2025)
+API_FOOTBALL_IDS = {
+    "Paris Saint-Germain":    85,
+    "Olympique de Marseille": 81,
+    "Olympique Lyonnais":     80,
+    "AS Monaco":              91,
+    "LOSC Lille":             79,
+    "RC Lens":               116,
+    "OGC Nice":               84,
+    "Stade Rennais":          94,
+    "RC Strasbourg":          95,
+    "Toulouse FC":            96,
+    "Stade Brestois":        130,
+    "FC Nantes":              83,
+    "Angers SCO":             82,
+    "Le Havre AC":          1006,
+    "AJ Auxerre":             78,
+    "FC Metz":               112,
+    "Paris FC":              167,
+    "FC Lorient":           1041,
+}
 
 API_TO_DISPLAY = {
     "Paris Saint-Germain FC": "Paris Saint-Germain",
@@ -43,6 +69,7 @@ def fetch_standings():
             t = row["team"]
             name = API_TO_DISPLAY.get(t["name"], t["name"])
             result[name] = {
+                "id":            t["id"],
                 "crest":         t["crest"],
                 "short":         t.get("shortName") or name[:3].upper(),
                 "position":      row["position"],
@@ -58,6 +85,207 @@ def fetch_standings():
         return result
     except Exception:
         return {}
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def fetch_team_form(team_id):
+    """Derniers 5 matchs joués pour un team_id football-data.org."""
+    if not team_id:
+        return []
+    try:
+        r = requests.get(
+            f"https://api.football-data.org/v4/teams/{team_id}/matches",
+            headers=HEADERS,
+            params={"status": "FINISHED", "limit": 5},
+            timeout=10
+        )
+        r.raise_for_status()
+        matches = r.json().get("matches", [])
+        form = []
+        for m in matches:
+            home_id    = m["homeTeam"]["id"]
+            home_score = m["score"]["fullTime"]["home"]
+            away_score = m["score"]["fullTime"]["away"]
+            is_home    = (home_id == team_id)
+            gs = home_score if is_home else away_score
+            gc = away_score if is_home else home_score
+            if gs is None or gc is None:
+                continue
+            if gs > gc:   form.append("W")
+            elif gs < gc: form.append("L")
+            else:          form.append("D")
+        return form[-5:]
+    except Exception:
+        return []
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def fetch_competition_scorers():
+    """Top buteurs de Ligue 1 — retourne un dict {team_display_name: [(joueur, buts), ...]}."""
+    try:
+        r = requests.get(
+            "https://api.football-data.org/v4/competitions/FL1/scorers",
+            headers=HEADERS,
+            params={"limit": 50},
+            timeout=10
+        )
+        r.raise_for_status()
+        scorers_by_team = {}
+        for s in r.json().get("scorers", []):
+            raw_team = s["team"]["name"]
+            team = API_TO_DISPLAY.get(raw_team, raw_team)
+            player = s["player"]["name"]
+            goals  = s.get("goals", 0)
+            assists = s.get("assists") or 0
+            scorers_by_team.setdefault(team, []).append((player, goals, assists))
+        return scorers_by_team
+    except Exception:
+        return {}
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def fetch_api_football_stats(team_name):
+    """Stats avancées depuis API-Football : formation, passes, tirs, clean sheets."""
+    if not API_FOOTBALL_KEY:
+        return {}
+    team_id = API_FOOTBALL_IDS.get(team_name)
+    if not team_id:
+        return {}
+    try:
+        r = requests.get(
+            "https://v3.football.api-sports.io/teams/statistics",
+            headers={"x-apisports-key": API_FOOTBALL_KEY},
+            params={"league": 61, "season": 2025, "team": team_id},
+            timeout=10
+        )
+        r.raise_for_status()
+        data = r.json().get("response", {})
+        if not data:
+            return {}
+
+        fixtures = data.get("fixtures", {})
+        goals    = data.get("goals", {})
+        lineups  = data.get("lineups", [])
+        passes   = data.get("passes", {})
+        shots    = data.get("shots", {})
+        clean_sh = data.get("clean_sheet", {})
+        failed   = data.get("failed_to_score", {})
+
+        formation  = lineups[0]["formation"] if lineups else None
+        gf_avg     = goals.get("for",     {}).get("average", {}).get("total")
+        ga_avg     = goals.get("against", {}).get("average", {}).get("total")
+        wins_home  = fixtures.get("wins",  {}).get("home", 0)
+        wins_away  = fixtures.get("wins",  {}).get("away", 0)
+
+        # Tranche horaire où l'équipe marque le plus
+        minutes  = goals.get("for", {}).get("minute", {})
+        top_slot = max(minutes, key=lambda k: (minutes[k].get("total") or 0)) if minutes else None
+
+        # Passes & tirs
+        passes_pct     = passes.get("percentage")
+        shots_total    = shots.get("total",  {}).get("total")
+        shots_on       = shots.get("on",     {}).get("total")
+        played_total   = fixtures.get("played", {}).get("total") or 1
+        shots_pg       = round(shots_total / played_total, 1) if shots_total else None
+        shots_on_pg    = round(shots_on    / played_total, 1) if shots_on    else None
+
+        # Clean sheets & matchs sans marquer
+        clean_sheets     = clean_sh.get("total")
+        failed_to_score  = failed.get("total")
+
+        return {
+            "formation":       formation,
+            "gf_avg":          gf_avg,
+            "ga_avg":          ga_avg,
+            "wins_home":       wins_home,
+            "wins_away":       wins_away,
+            "top_scoring_slot": top_slot,
+            "passes_pct":      passes_pct,
+            "shots_pg":        shots_pg,
+            "shots_on_pg":     shots_on_pg,
+            "clean_sheets":    clean_sheets,
+            "failed_to_score": failed_to_score,
+        }
+    except Exception:
+        return {}
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def generate_team_style(team_name, pts, played, won, draw, lost,
+                        goals_for, goals_against, goal_diff, position,
+                        form_tuple, key_scorers_tuple,
+                        extra_formation, extra_gf_avg, extra_ga_avg,
+                        extra_wins_home, extra_wins_away, extra_top_slot,
+                        extra_passes_pct, extra_shots_pg, extra_shots_on_pg,
+                        extra_clean_sheets, extra_failed_to_score):
+    """Génère une analyse tactique en 3 paragraphes via Claude."""
+    if not ANTHROPIC_API_KEY:
+        return TEAM_STYLES.get(team_name, DEFAULT_STYLE)
+
+    form_str = " → ".join(form_tuple) if form_tuple else "N/A"
+    avg_gf   = round(goals_for      / max(played, 1), 2)
+    avg_ga   = round(goals_against  / max(played, 1), 2)
+
+    stats_block = f"""Équipe : {team_name}
+Classement : {position}e place — {pts} points en {played} matchs
+Bilan : {won}V / {draw}N / {lost}D
+Buts marqués : {goals_for} ({avg_gf}/match) | Buts encaissés : {goals_against} ({avg_ga}/match)
+Différence de buts : {goal_diff:+}
+Forme récente (5 derniers matchs) : {form_str}"""
+
+    if key_scorers_tuple:
+        scorers_str = ", ".join(f"{n} ({g} buts{', '+str(a)+' passes dét.' if a else ''})"
+                                for n, g, a in key_scorers_tuple)
+        stats_block += f"\nJoueurs clés (buteurs) : {scorers_str}"
+    if extra_formation:
+        stats_block += f"\nFormation principale : {extra_formation}"
+    if extra_wins_home is not None:
+        stats_block += f"\nVictoires domicile / extérieur : {extra_wins_home} / {extra_wins_away}"
+    if extra_passes_pct:
+        stats_block += f"\nPrécision des passes : {extra_passes_pct}"
+    if extra_shots_pg:
+        stats_block += f"\nTirs par match : {extra_shots_pg} (dont {extra_shots_on_pg} cadrés)"
+    if extra_clean_sheets is not None:
+        stats_block += f"\nClean sheets (matchs sans encaisser) : {extra_clean_sheets}"
+    if extra_failed_to_score is not None:
+        stats_block += f"\nMatchs sans marquer : {extra_failed_to_score}"
+    if extra_top_slot:
+        stats_block += f"\nTranche de jeu où l'équipe marque le plus : {extra_top_slot} min"
+    if extra_gf_avg:
+        stats_block += f"\nMoyenne buts pour / contre par match : {extra_gf_avg} / {extra_ga_avg}"
+
+    terms = ", ".join(TACTICAL_TERMS.keys())
+
+    prompt = f"""Tu es un commentateur football passionné qui explique le jeu à des fans de foot de tous niveaux — du débutant au supporter chevronné.
+À partir de ces statistiques de saison, rédige une analyse structurée en exactement 3 paragraphes.
+
+{stats_block}
+
+Structure obligatoire :
+§1 — VUE D'ENSEMBLE (2-3 phrases) : explique simplement comment cette équipe aime jouer. Comme si tu décrivais l'équipe à un ami qui débute dans le foot. Quelle est son identité, son état d'esprit sur le terrain ?
+§2 — CE QUE LES CHIFFRES RÉVÈLENT (3-4 phrases) : traduis les stats concrètement. Parle des joueurs clés par leur nom, de la précision des passes, du nombre de tirs, de la solidité défensive, du bilan dom/ext, de la forme récente. Chaque phrase doit s'appuyer sur une donnée réelle.
+§3 — LE PETIT PLUS (1-2 phrases) : un fun fact ou une curiosité notable sur cette équipe cette saison — quelque chose de surprenant, d'atypique, ou qui résume bien leur saison.
+
+Règles :
+- Langage simple, vivant et accessible — zéro jargon incompréhensible
+- Cite les joueurs clés par leur nom quand c'est pertinent
+- Si tu utilises un terme parmi : {terms}, mets-le en <b>terme</b>
+- Maximum 10 lignes au total
+- Sépare les 3 paragraphes par une ligne vide (\\n\\n)
+- Pas de titres, pas de tirets, pas de numérotation
+
+Réponds uniquement avec les 3 paragraphes, rien d'autre."""
+
+    try:
+        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+        msg = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=500,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return msg.content[0].text.strip()
+    except Exception:
+        return TEAM_STYLES.get(team_name, DEFAULT_STYLE)
+
 
 # ── Data ─────────────────────────────────────────────────────────────────────
 TACTICAL_TERMS = {
@@ -484,18 +712,68 @@ def page_main():
     st.markdown('<div class="div"></div>', unsafe_allow_html=True)
 
     # ── Styles de jeu ──
-    st.markdown('<div class="sec-label">Analyse</div><div class="sec-title">Style de jeu</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec-label">Analyse IA</div><div class="sec-title">Style de jeu</div>', unsafe_allow_html=True)
+
+    # Fetch enriched data for both teams
+    form_a        = tuple(fetch_team_form(da.get("id")))
+    form_b        = tuple(fetch_team_form(db.get("id")))
+    extra_a       = fetch_api_football_stats(team_a)
+    extra_b       = fetch_api_football_stats(team_b)
+    all_scorers   = fetch_competition_scorers()
+    scorers_a     = tuple(all_scorers.get(team_a, [])[:3])
+    scorers_b     = tuple(all_scorers.get(team_b, [])[:3])
+
+    def _render_form(form):
+        if not form:
+            return ""
+        colors = {"W": "var(--green)", "D": "var(--yellow-dk)", "L": "var(--red)"}
+        pills = "".join(
+            f'<span style="display:inline-block;padding:.15rem .5rem;border-radius:6px;'
+            f'background:{"var(--green-lt)" if r=="W" else ("var(--yellow-lt)" if r=="D" else "var(--red-lt)")};'
+            f'color:{colors[r]};font-size:.65rem;font-weight:900;margin-right:.25rem">{r}</span>'
+            for r in form
+        )
+        return f'<div style="margin-bottom:.6rem;font-size:.62rem;font-weight:800;color:var(--mid);letter-spacing:.1em;text-transform:uppercase;margin-top:.2rem">Forme récente &nbsp;{pills}</div>'
+
+    def _fmt_style(raw):
+        """Convertit les sauts de ligne en <br> pour l'affichage HTML, puis linkifie les termes."""
+        html = raw.replace("\n\n", "<br><br>").replace("\n", " ")
+        return linkify_terms(html)
+
+    with st.spinner("Génération de l'analyse IA…"):
+        style_a_raw = generate_team_style(
+            team_a,
+            da.get("points",0), da.get("played",1), da.get("won",0), da.get("draw",0), da.get("lost",0),
+            da.get("goals_for",0), da.get("goals_against",0), da.get("goal_diff",0), da.get("position",0),
+            form_a, scorers_a,
+            extra_a.get("formation"), extra_a.get("gf_avg"), extra_a.get("ga_avg"),
+            extra_a.get("wins_home"), extra_a.get("wins_away"), extra_a.get("top_scoring_slot"),
+            extra_a.get("passes_pct"), extra_a.get("shots_pg"), extra_a.get("shots_on_pg"),
+            extra_a.get("clean_sheets"), extra_a.get("failed_to_score"),
+        )
+        style_b_raw = generate_team_style(
+            team_b,
+            db.get("points",0), db.get("played",1), db.get("won",0), db.get("draw",0), db.get("lost",0),
+            db.get("goals_for",0), db.get("goals_against",0), db.get("goal_diff",0), db.get("position",0),
+            form_b, scorers_b,
+            extra_b.get("formation"), extra_b.get("gf_avg"), extra_b.get("ga_avg"),
+            extra_b.get("wins_home"), extra_b.get("wins_away"), extra_b.get("top_scoring_slot"),
+            extra_b.get("passes_pct"), extra_b.get("shots_pg"), extra_b.get("shots_on_pg"),
+            extra_b.get("clean_sheets"), extra_b.get("failed_to_score"),
+        )
+
+    style_a = _fmt_style(style_a_raw)
+    style_b = _fmt_style(style_b_raw)
 
     c1, c2 = st.columns(2)
     img28_a = get_crest_img(team_a, 28)
     img28_b = get_crest_img(team_b, 28)
 
     with c1:
-        style_a = linkify_terms(TEAM_STYLES.get(team_a, DEFAULT_STYLE))
         st.markdown(
             f'<div class="team-card card-a">'
             f'<div class="team-card-header">{img28_a} {team_a}<span class="badge">Équipe A</span></div>'
-            f'<div class="team-card-body">{style_a}</div>'
+            f'<div class="team-card-body">{_render_form(form_a)}{style_a}</div>'
             f'<div class="team-stats-row">'
             f'<div class="team-stat-box"><div class="team-stat-box-num">{da.get("points","—")}</div><div class="team-stat-box-lbl">Pts</div></div>'
             f'<div class="team-stat-box"><div class="team-stat-box-num">{da.get("won","—")}</div><div class="team-stat-box-lbl">V</div></div>'
@@ -506,11 +784,10 @@ def page_main():
             unsafe_allow_html=True
         )
     with c2:
-        style_b = linkify_terms(TEAM_STYLES.get(team_b, DEFAULT_STYLE))
         st.markdown(
             f'<div class="team-card card-b">'
             f'<div class="team-card-header">{img28_b} {team_b}<span class="badge">Équipe B</span></div>'
-            f'<div class="team-card-body">{style_b}</div>'
+            f'<div class="team-card-body">{_render_form(form_b)}{style_b}</div>'
             f'<div class="team-stats-row">'
             f'<div class="team-stat-box"><div class="team-stat-box-num">{db.get("points","—")}</div><div class="team-stat-box-lbl">Pts</div></div>'
             f'<div class="team-stat-box"><div class="team-stat-box-num">{db.get("won","—")}</div><div class="team-stat-box-lbl">V</div></div>'
