@@ -86,6 +86,26 @@ def fetch_standings():
     except Exception:
         return {}
 
+@st.cache_data(ttl=86400, show_spinner=False)
+def fetch_previous_standings():
+    """Classement final Ligue 1 saison 2024 (saison précédente)."""
+    try:
+        r = requests.get(
+            "https://api.football-data.org/v4/competitions/FL1/standings",
+            headers=HEADERS,
+            params={"season": 2024},
+            timeout=10
+        )
+        r.raise_for_status()
+        table = r.json()["standings"][0]["table"]
+        return {
+            API_TO_DISPLAY.get(row["team"]["name"], row["team"]["name"]): row["position"]
+            for row in table
+        }
+    except Exception:
+        return {}
+
+
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch_team_form(team_id):
     """Derniers 5 matchs joués pour un team_id football-data.org."""
@@ -212,6 +232,7 @@ def fetch_api_football_stats(team_name):
 @st.cache_data(ttl=3600, show_spinner=False)
 def generate_team_style(team_name, pts, played, won, draw, lost,
                         goals_for, goals_against, goal_diff, position,
+                        prev_position,
                         form_tuple, key_scorers_tuple,
                         extra_formation, extra_gf_avg, extra_ga_avg,
                         extra_wins_home, extra_wins_away, extra_top_slot,
@@ -225,8 +246,17 @@ def generate_team_style(team_name, pts, played, won, draw, lost,
     avg_gf   = round(goals_for      / max(played, 1), 2)
     avg_ga   = round(goals_against  / max(played, 1), 2)
 
+    prev_str = f"{prev_position}e" if prev_position else "N/A"
+    pos_delta = ""
+    if prev_position and position:
+        diff = prev_position - position
+        if diff > 0:   pos_delta = f" (↑ +{diff} vs saison dernière)"
+        elif diff < 0: pos_delta = f" (↓ {diff} vs saison dernière)"
+        else:           pos_delta = " (= même position que l'an dernier)"
+
     stats_block = f"""Équipe : {team_name}
-Classement : {position}e place — {pts} points en {played} matchs
+Classement actuel : {position}e place{pos_delta} — {pts} points en {played} matchs
+Classement saison précédente (2024/25) : {prev_str}
 Bilan : {won}V / {draw}N / {lost}D
 Buts marqués : {goals_for} ({avg_gf}/match) | Buts encaissés : {goals_against} ({avg_ga}/match)
 Différence de buts : {goal_diff:+}
@@ -256,22 +286,23 @@ Forme récente (5 derniers matchs) : {form_str}"""
     terms = ", ".join(TACTICAL_TERMS.keys())
 
     prompt = f"""Tu es un commentateur football passionné qui explique le jeu à des fans de foot de tous niveaux — du débutant au supporter chevronné.
-À partir de ces statistiques de saison, rédige une analyse structurée en exactement 3 paragraphes.
+À partir de ces statistiques et de tes connaissances sur ce club, rédige une analyse structurée en exactement 3 paragraphes.
 
 {stats_block}
 
 Structure obligatoire :
-§1 — VUE D'ENSEMBLE (2-3 phrases) : explique simplement comment cette équipe aime jouer. Comme si tu décrivais l'équipe à un ami qui débute dans le foot. Quelle est son identité, son état d'esprit sur le terrain ?
-§2 — CE QUE LES CHIFFRES RÉVÈLENT (3-4 phrases) : traduis les stats concrètement. Parle des joueurs clés par leur nom, de la précision des passes, du nombre de tirs, de la solidité défensive, du bilan dom/ext, de la forme récente. Chaque phrase doit s'appuyer sur une donnée réelle.
-§3 — LE PETIT PLUS (1-2 phrases) : un fun fact ou une curiosité notable sur cette équipe cette saison — quelque chose de surprenant, d'atypique, ou qui résume bien leur saison.
+§1 — VUE D'ENSEMBLE (2-3 phrases) : explique simplement comment cette équipe aime jouer cette saison. Quelle est son identité, son état d'esprit sur le terrain ? Mentionne si c'est une progression ou régression par rapport à la saison dernière.
+§2 — CE QUE LES CHIFFRES RÉVÈLENT (3-4 phrases) : traduis les stats concrètement. Cite les joueurs clés par leur nom, parle des tirs, de la défense, du bilan dom/ext, de la forme récente. Chaque phrase s'appuie sur une donnée réelle.
+§3 — LE FAIT MARQUANT (1-2 phrases) : utilise tes connaissances sur ce club pour mentionner quelque chose d'important et concret — un joueur vraiment décisif cette saison ou lors de la saison précédente, une remontada ou un match fou, un trophée récent, une info historique sur le club. Quelque chose que les supporters retiendraient.
 
 Règles :
 - Langage simple, vivant et accessible — zéro jargon incompréhensible
-- Cite les joueurs clés par leur nom quand c'est pertinent
+- Cite des joueurs réels par leur nom quand c'est pertinent
 - Si tu utilises un terme parmi : {terms}, mets-le en <b>terme</b>
 - Maximum 10 lignes au total
 - Sépare les 3 paragraphes par une ligne vide (\\n\\n)
 - Pas de titres, pas de tirets, pas de numérotation
+- Si tu n'es pas sûr d'un fait précis, reste vague plutôt que d'inventer
 
 Réponds uniquement avec les 3 paragraphes, rien d'autre."""
 
@@ -722,6 +753,9 @@ def page_main():
     all_scorers   = fetch_competition_scorers()
     scorers_a     = tuple(all_scorers.get(team_a, [])[:3])
     scorers_b     = tuple(all_scorers.get(team_b, [])[:3])
+    prev_standings = fetch_previous_standings()
+    prev_pos_a    = prev_standings.get(team_a)
+    prev_pos_b    = prev_standings.get(team_b)
 
     def _render_form(form):
         if not form:
@@ -745,6 +779,7 @@ def page_main():
             team_a,
             da.get("points",0), da.get("played",1), da.get("won",0), da.get("draw",0), da.get("lost",0),
             da.get("goals_for",0), da.get("goals_against",0), da.get("goal_diff",0), da.get("position",0),
+            prev_pos_a,
             form_a, scorers_a,
             extra_a.get("formation"), extra_a.get("gf_avg"), extra_a.get("ga_avg"),
             extra_a.get("wins_home"), extra_a.get("wins_away"), extra_a.get("top_scoring_slot"),
@@ -755,6 +790,7 @@ def page_main():
             team_b,
             db.get("points",0), db.get("played",1), db.get("won",0), db.get("draw",0), db.get("lost",0),
             db.get("goals_for",0), db.get("goals_against",0), db.get("goal_diff",0), db.get("position",0),
+            prev_pos_b,
             form_b, scorers_b,
             extra_b.get("formation"), extra_b.get("gf_avg"), extra_b.get("ga_avg"),
             extra_b.get("wins_home"), extra_b.get("wins_away"), extra_b.get("top_scoring_slot"),
