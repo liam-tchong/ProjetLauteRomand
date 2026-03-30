@@ -2,7 +2,7 @@ import streamlit as st
 import requests
 import re
 
-st.set_page_config(page_title="LaUte Romand App", layout="wide")
+st.set_page_config(page_title="The Football Classroom", layout="wide")
 
 # ── API ───────────────────────────────────────────────────────────────────────
 API_KEY = "911605e549af4b759c5d7d2ffa977742"
@@ -339,7 +339,7 @@ GLOS_COLORS = ["var(--yellow-lt)","var(--green-lt)","var(--red-lt)","var(--beige
 def render_header():
     st.markdown("""
 <div class="app-header">
-<div><div class="app-title">LaUte <span>Romand</span> App</div><div class="app-sub">Analyse tactique · Ligue 1</div></div>
+<div><div class="app-title">The Football <span>Classroom</span></div><div class="app-sub">Analyse tactique · Ligue 1</div></div>
 <div class="app-header-right">
 <div class="live-badge"><span class="live-dot"></span>En direct</div>
 <div class="app-badges"><span class="app-badge">Ligue 1</span><span class="app-badge">2025/26</span><span class="app-badge">18 équipes</span></div>
