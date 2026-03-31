@@ -310,10 +310,18 @@ Reply with the 3 paragraphs only, nothing else."""
         client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
         msg = client.messages.create(
             model="claude-haiku-4-5-20251001",
-            max_tokens=320,
+            max_tokens=420,
             messages=[{"role": "user", "content": prompt}]
         )
-        return msg.content[0].text.strip()
+        raw = msg.content[0].text.strip()
+        # If response was cut mid-sentence, trim to last complete sentence
+        if raw and raw[-1] not in ".!?":
+            for sep in (".", "!", "?"):
+                idx = raw.rfind(sep)
+                if idx != -1:
+                    raw = raw[:idx+1]
+                    break
+        return raw
     except Exception:
         return TEAM_STYLES.get(team_name, DEFAULT_STYLE)
 
