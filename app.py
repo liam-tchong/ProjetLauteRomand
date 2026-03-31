@@ -674,7 +674,7 @@ div[data-testid="stHorizontalBlock"] button[kind="primary"]{
 .stat-cmp-body{padding:1rem 1.2rem 1.2rem;display:flex;flex-direction:column;gap:.85rem;}
 .stat-cmp-row{display:flex;align-items:center;gap:.7rem;}
 .stat-cmp-logo{width:22px;height:22px;object-fit:contain;flex-shrink:0;}
-.stat-cmp-lbl{font-size:.72rem;font-weight:800;color:var(--dark);min-width:38px;letter-spacing:-.01em;}
+.stat-cmp-lbl{font-size:.72rem;font-weight:800;color:var(--dark);width:52px;min-width:52px;max-width:52px;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .stat-bar-track{flex:1;background:var(--beige);border-radius:100px;height:10px;overflow:hidden;}
 .stat-bar-fill{height:100%;border-radius:100px;transition:width .4s ease;}
 .stat-bar-fill-a{background:var(--green);} .stat-bar-fill-b{background:var(--red);}
