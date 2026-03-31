@@ -594,12 +594,17 @@ TEAM_STYLES = {
 DEFAULT_STYLE = "Playing style to be documented."
 WATCH_COLORS = ["#7CC99A", "#F5D06E", "#F2827F"]
 
-def linkify_terms(text, source_page="main"):
+def linkify_terms(text, source_page="main", ta=None, tb=None):
     """Replace <b>term</b> with a colored clickable link."""
+    extra = ""
+    if ta:
+        extra += f"&ta={ta}"
+    if tb:
+        extra += f"&tb={tb}"
     for term in TACTICAL_TERMS:
         text = text.replace(
             f'<b>{term}</b>',
-            f'<a href="?term={term}&from={source_page}" class="term-link">{term}</a>'
+            f'<a href="?term={term}&from={source_page}{extra}" class="term-link">{term}</a>'
         )
     return text
 
@@ -818,6 +823,10 @@ ALL_TEAMS = sorted(standings.keys(), key=lambda n: standings[n]["position"]) if 
 qp = st.query_params
 if "term" in qp and qp["term"] in TACTICAL_TERMS:
     st.session_state.prev_page = qp.get("from", "main")
+    if "ta" in qp and qp["ta"] in (ALL_TEAMS or []):
+        st.session_state.team_a = qp["ta"]
+    if "tb" in qp and qp["tb"] in (ALL_TEAMS or []):
+        st.session_state.team_b = qp["tb"]
     st.session_state.active_term = qp["term"]
     st.session_state.page = "definition"
     st.query_params.clear()
@@ -1057,7 +1066,7 @@ def page_main():
     def _fmt_style(raw):
         """Converts line breaks to <br> for HTML display, then linkifies glossary terms."""
         html = raw.replace("\n\n", "<br><br>").replace("\n", " ")
-        return linkify_terms(html, source_page="main")
+        return linkify_terms(html, source_page="main", ta=team_a, tb=team_b)
 
     with st.spinner("Generating AI analysis…"):
         style_a_raw = generate_team_style(
