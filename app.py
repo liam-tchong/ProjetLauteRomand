@@ -817,13 +817,14 @@ ALL_TEAMS = sorted(standings.keys(), key=lambda n: standings[n]["position"]) if 
 # ── Check query params (term click from style cards) ──────────────────────────
 qp = st.query_params
 if "term" in qp and qp["term"] in TACTICAL_TERMS:
+    st.session_state.prev_page = st.session_state.get("page", "main")
     st.session_state.active_term = qp["term"]
     st.session_state.page = "definition"
     st.query_params.clear()
     st.rerun()
 
 # ── Session state ─────────────────────────────────────────────────────────────
-for k, v in [("page","main"), ("active_term",None),
+for k, v in [("page","main"), ("prev_page","main"), ("active_term",None),
              ("team_a", ALL_TEAMS[0] if ALL_TEAMS else ""),
              ("team_b", ALL_TEAMS[1] if len(ALL_TEAMS)>1 else "")]:
     if k not in st.session_state:
@@ -912,7 +913,7 @@ def page_definition():
     animation       = term_data.get("animation_idea",     "") if isinstance(term_data, dict) else ""
 
     if st.button("← Back", type="primary", key="back"):
-        st.session_state.page = "main"
+        st.session_state.page = st.session_state.get("prev_page", "main")
         st.session_state.active_term = None
         st.rerun()
 
