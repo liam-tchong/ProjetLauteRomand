@@ -285,26 +285,27 @@ Forme récente (5 derniers matchs) : {form_str}"""
 
     terms = ", ".join(TACTICAL_TERMS.keys())
 
-    prompt = f"""Tu es un commentateur football passionné qui explique le jeu à des fans de foot de tous niveaux — du débutant au supporter chevronné.
-À partir de ces statistiques et de tes connaissances sur ce club, rédige une analyse structurée en exactement 3 paragraphes.
+    prompt = f"""You are a passionate football analyst explaining the game to fans of all levels — from beginners to seasoned supporters.
+Using the statistics below and your knowledge of this club, write a structured analysis in exactly 3 paragraphs, in English.
 
 {stats_block}
 
-Structure obligatoire :
-§1 — VUE D'ENSEMBLE (2-3 phrases) : explique simplement comment cette équipe aime jouer cette saison. Quelle est son identité, son état d'esprit sur le terrain ? Mentionne si c'est une progression ou régression par rapport à la saison dernière.
-§2 — CE QUE LES CHIFFRES RÉVÈLENT (3-4 phrases) : traduis les stats concrètement. Cite les joueurs clés par leur nom, parle des tirs, de la défense, du bilan dom/ext, de la forme récente. Chaque phrase s'appuie sur une donnée réelle.
-§3 — LE FAIT MARQUANT (1-2 phrases) : utilise tes connaissances sur ce club pour mentionner quelque chose d'important et concret — un joueur vraiment décisif cette saison ou lors de la saison précédente, une remontada ou un match fou, un trophée récent, une info historique sur le club. Quelque chose que les supporters retiendraient.
+Required structure:
+§1 — OVERVIEW (2-3 sentences): explain simply how this team likes to play this season. What is their identity and mentality on the pitch? Mention whether this is a progression or regression compared to last season.
+§2 — WHAT THE NUMBERS REVEAL (3-4 sentences): translate the stats concretely. Name key players, talk about shots, defence, home/away record, recent form. Every sentence must be backed by a real stat.
+§3 — THE KEY FACT (1-2 sentences): use your knowledge of this club to mention something important and concrete — a truly decisive player this season or last, an incredible comeback, a recent trophy, a historical fact. Something supporters would remember.
 
-Règles :
-- Langage simple, vivant et accessible — zéro jargon incompréhensible
-- Cite des joueurs réels par leur nom quand c'est pertinent
-- Si tu utilises un terme parmi : {terms}, mets-le en <b>terme</b>
-- Maximum 10 lignes au total
-- Sépare les 3 paragraphes par une ligne vide (\\n\\n)
-- Pas de titres, pas de tirets, pas de numérotation
-- Si tu n'es pas sûr d'un fait précis, reste vague plutôt que d'inventer
+Rules:
+- Simple, vivid, accessible language — no unexplained jargon
+- Name real players when relevant
+- You MUST use at least 4 terms from this list in your analysis: {terms}
+- Every time you use one of those terms, wrap it like this: <b>term</b> (e.g. <b>pressing</b>, <b>high press</b>, <b>counter-attack</b>)
+- Maximum 10 lines total
+- Separate the 3 paragraphs with a blank line (\\n\\n)
+- No titles, no bullet points, no numbering
+- If unsure about a specific fact, stay vague rather than inventing
 
-Réponds uniquement avec les 3 paragraphes, rien d'autre."""
+Reply with the 3 paragraphs only, nothing else."""
 
     try:
         client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
