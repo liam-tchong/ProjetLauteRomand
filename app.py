@@ -291,16 +291,15 @@ Using the statistics below and your knowledge of this club, write a structured a
 {stats_block}
 
 Required structure:
-§1 — OVERALL STRATEGY (3-4 sentences): describe how this team is set up to play — their formation, defensive and offensive philosophy, and general approach to matches. What is their tactical identity this season?
-§2 — TECHNICAL DETAILS (4-5 sentences): go deeper into the technical specifics. How do they build up play, press, defend, and create chances? Name key players and explain their role in the system. Back every claim with a stat where possible.
-§3 — FUN STRATEGIC FACT (2-3 sentences): share something memorable and distinctive about this club's tactical culture — a famous playing style they are historically known for, a legendary coach who shaped their identity, a tactical quirk that makes them unique, or a reputation that precedes them.
+§1 — OVERALL STRATEGY (2 sentences max): formation, defensive and offensive philosophy, tactical identity this season.
+§2 — TECHNICAL DETAILS (3 sentences max): key players, how they press/defend/attack, one or two stats.
+§3 — FUN STRATEGIC FACT (1-2 sentences max): something memorable — a historical style, legendary coach, or tactical reputation.
 
 Rules:
-- Simple, vivid, accessible language — no unexplained jargon
-- Name real players when relevant
+- Simple, vivid language — no unexplained jargon
+- STRICT limit: 3 paragraphs, 7 sentences total across the whole analysis
 - You MUST use at least 6 terms from this list: {terms}
-- Every time you use one of those terms, wrap it exactly like this: <b>term</b> (e.g. <b>pressing</b>, <b>high press</b>, <b>counter-attack</b>, <b>build-up play</b>)
-- Maximum 15 lines total
+- Every time you use one of those terms, wrap it exactly like this: <b>term</b> (e.g. <b>pressing</b>, <b>high press</b>, <b>counter-attack</b>)
 - Separate the 3 paragraphs with a blank line (\\n\\n)
 - No titles, no bullet points, no numbering
 - If unsure about a specific fact, stay vague rather than inventing
@@ -311,7 +310,7 @@ Reply with the 3 paragraphs only, nothing else."""
         client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
         msg = client.messages.create(
             model="claude-haiku-4-5-20251001",
-            max_tokens=500,
+            max_tokens=320,
             messages=[{"role": "user", "content": prompt}]
         )
         return msg.content[0].text.strip()
