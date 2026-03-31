@@ -246,63 +246,66 @@ def generate_team_style(team_name, pts, played, won, draw, lost,
     avg_gf   = round(goals_for      / max(played, 1), 2)
     avg_ga   = round(goals_against  / max(played, 1), 2)
 
-    prev_str = f"{prev_position}" if prev_position else "N/A"
+    prev_str = f"{prev_position}e" if prev_position else "N/A"
     pos_delta = ""
     if prev_position and position:
         diff = prev_position - position
-        if diff > 0:   pos_delta = f" (↑ +{diff} vs last season)"
-        elif diff < 0: pos_delta = f" (↓ {diff} vs last season)"
-        else:           pos_delta = " (= same position as last year)"
+        if diff > 0:   pos_delta = f" (↑ +{diff} par rapport à la saison dernière)"
+        elif diff < 0: pos_delta = f" (↓ {diff} par rapport à la saison dernière)"
+        else:           pos_delta = " (même position que la saison dernière)"
 
-    stats_block = f"""Team: {team_name}
-Current ranking: {position}th place{pos_delta} — {pts} points in {played} matches
-Previous season ranking (2024/25): {prev_str}
-Record: {won}W / {draw}D / {lost}L
-Goals scored: {goals_for} ({avg_gf}/match) | Goals conceded: {goals_against} ({avg_ga}/match)
-Goal difference: {goal_diff:+}
-Recent form (last 5 matches): {form_str}"""
+    stats_block = f"""Équipe : {team_name}
+Classement actuel : {position}e place{pos_delta} — {pts} points en {played} matchs
+Classement saison précédente (2024/25) : {prev_str}
+Bilan : {won}V / {draw}N / {lost}D
+Buts marqués : {goals_for} ({avg_gf}/match) | Buts encaissés : {goals_against} ({avg_ga}/match)
+Différence de buts : {goal_diff:+}
+Forme récente (5 derniers matchs) : {form_str}"""
 
     if key_scorers_tuple:
-        scorers_str = ", ".join(f"{n} ({g} goals{', '+str(a)+' assists' if a else ''})"
+        scorers_str = ", ".join(f"{n} ({g} buts{', '+str(a)+' passes dét.' if a else ''})"
                                 for n, g, a in key_scorers_tuple)
-        stats_block += f"\nKey players (scorers): {scorers_str}"
+        stats_block += f"\nJoueurs clés (buteurs) : {scorers_str}"
     if extra_formation:
-        stats_block += f"\nMain formation: {extra_formation}"
+        stats_block += f"\nFormation principale : {extra_formation}"
     if extra_wins_home is not None:
-        stats_block += f"\nHome / away wins: {extra_wins_home} / {extra_wins_away}"
+        stats_block += f"\nVictoires domicile / extérieur : {extra_wins_home} / {extra_wins_away}"
     if extra_passes_pct:
-        stats_block += f"\nPass accuracy: {extra_passes_pct}"
+        stats_block += f"\nPrécision des passes : {extra_passes_pct}"
     if extra_shots_pg:
-        stats_block += f"\nShots per match: {extra_shots_pg} ({extra_shots_on_pg} on target)"
+        stats_block += f"\nTirs par match : {extra_shots_pg} (dont {extra_shots_on_pg} cadrés)"
     if extra_clean_sheets is not None:
-        stats_block += f"\nClean sheets: {extra_clean_sheets}"
+        stats_block += f"\nClean sheets (matchs sans encaisser) : {extra_clean_sheets}"
     if extra_failed_to_score is not None:
-        stats_block += f"\nMatches without scoring: {extra_failed_to_score}"
+        stats_block += f"\nMatchs sans marquer : {extra_failed_to_score}"
     if extra_top_slot:
-        stats_block += f"\nTime slot where the team scores most: {extra_top_slot} min"
+        stats_block += f"\nTranche de jeu où l'équipe marque le plus : {extra_top_slot} min"
     if extra_gf_avg:
-        stats_block += f"\nAverage goals for / against per match: {extra_gf_avg} / {extra_ga_avg}"
+        stats_block += f"\nMoyenne buts pour / contre par match : {extra_gf_avg} / {extra_ga_avg}"
 
     terms = ", ".join(TACTICAL_TERMS.keys())
 
-    prompt = f"""You are a passionate football analyst explaining the game to fans of all levels — from beginners to seasoned supporters.
-Using the statistics below and your knowledge of this club, write a structured analysis in exactly 3 paragraphs, in English.
+    prompt = f"""You are a passionate football commentator writing for fans of all levels — from total beginners to die-hard supporters.
+Using the stats below AND your own knowledge of this club, write an analysis in EXACTLY 3 paragraphs in English.
 
 {stats_block}
 
-Required structure:
-§1 — OVERALL STRATEGY (2 sentences max): formation, defensive and offensive philosophy, tactical identity this season.
-§2 — TECHNICAL DETAILS (3 sentences max): key players, how they press/defend/attack, one or two stats.
-§3 — FUN STRATEGIC FACT (1-2 sentences max): something memorable — a historical style, legendary coach, or tactical reputation.
+CRITICAL: Your response must contain EXACTLY 3 paragraphs separated by a blank line. Not 2, not 4. Exactly 3.
+
+Paragraph 1 — BIG PICTURE (2 to 3 sentences MAX): Playing style, recent form, last season comparison, key players or trophies. Be concise.
+
+Paragraph 2 — HOW THEY PLAY (2 to 3 sentences MAX): Formation, strengths, how they press/build up, one or two stats translated into behaviour. Simple and accessible.
+
+Paragraph 3 — WHAT'S HAPPENING NOW (1 to 2 sentences MAX): NOT technical. One current news item — injured player, player returning from injury, transfer, record, or fun fact.
 
 Rules:
-- Simple, vivid language — no unexplained jargon
-- STRICT limit: 3 paragraphs, 7 sentences total across the whole analysis
-- You MUST use at least 6 terms from this list: {terms}
-- Every time you use one of those terms, wrap it exactly like this: <b>term</b> (e.g. <b>pressing</b>, <b>high press</b>, <b>counter-attack</b>)
+- Write in English, vivid and accessible — no unexplained jargon
+- Name real players when relevant
+- You MUST use AT LEAST 5 terms from this glossary: {terms}
+- Every time you use one of those terms, wrap it EXACTLY like this: <b>term</b>
 - Separate the 3 paragraphs with a blank line (\\n\\n)
 - No titles, no bullet points, no numbering
-- If unsure about a specific fact, stay vague rather than inventing
+- If unsure of a specific fact, stay vague rather than inventing
 
 Reply with the 3 paragraphs only, nothing else."""
 
@@ -310,7 +313,7 @@ Reply with the 3 paragraphs only, nothing else."""
         client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
         msg = client.messages.create(
             model="claude-haiku-4-5-20251001",
-            max_tokens=420,
+            max_tokens=400,
             messages=[{"role": "user", "content": prompt}]
         )
         raw = msg.content[0].text.strip()
@@ -613,18 +616,19 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
 :root {
-  --bg:#FAF6EE; --beige:#EDE4D0;
-  --green:#7CC99A; --green-lt:#D4F0E0; --green-dk:#2E7D52;
-  --red:#F2827F; --red-lt:#FCE0DF; --red-dk:#C0302E;
-  --yellow:#F5D06E; --yellow-lt:#FEF3CF; --yellow-dk:#8A6800;
-  --dark:#2A2018; --mid:#6B5A45; --white:#FFFFFF;
-  --radius:22px; --shadow:0 4px 20px rgba(42,32,24,0.08); --shadow-lg:0 8px 32px rgba(42,32,24,0.13);
+  --bg:#FFFAF3; --beige:#FFE8C8;
+  --green:#00C875; --green-lt:#CCFFE9; --green-dk:#007A47;
+  --red:#FF5C5C; --red-lt:#FFE0E0; --red-dk:#CC1F1F;
+  --yellow:#FFB800; --yellow-lt:#FFF3CC; --yellow-dk:#7A5500;
+  --purple:#8B5CF6; --purple-lt:#EDE9FE;
+  --dark:#1A1A2E; --mid:#5A5A7A; --white:#FFFFFF;
+  --radius:22px; --shadow:0 4px 20px rgba(26,26,46,0.08); --shadow-lg:0 8px 32px rgba(26,26,46,0.14);
 }
 #MainMenu,header,footer{visibility:hidden;}
 .block-container{padding-top:0!important;padding-bottom:3rem;max-width:1200px;margin:0 auto;}
 html,body,[data-testid="stAppViewContainer"],[data-testid="stMain"]{background-color:var(--bg)!important;font-family:'Nunito',sans-serif!important;}
 [data-testid="stVerticalBlock"]{background:transparent;}
-[data-testid="stMain"]::before{content:'';display:block;height:4px;background:linear-gradient(90deg,var(--green) 0%,var(--yellow) 50%,var(--red) 100%);border-radius:0 0 8px 8px;margin-bottom:1.5rem;}
+[data-testid="stMain"]::before{content:'';display:block;height:5px;background:linear-gradient(90deg,var(--green) 0%,var(--yellow) 40%,var(--red) 70%,var(--purple) 100%);border-radius:0 0 8px 8px;margin-bottom:1.5rem;}
 
 /* Live dot */
 @keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.4;transform:scale(.75);}}
@@ -632,7 +636,7 @@ html,body,[data-testid="stAppViewContainer"],[data-testid="stMain"]{background-c
 .live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0;animation:pulse-dot 1.8s ease-in-out infinite;}
 
 /* Header */
-.app-header{background:var(--dark);background-image:radial-gradient(ellipse at 80% 50%,rgba(124,201,154,.07) 0%,transparent 60%);border-radius:var(--radius);padding:1.8rem 2.5rem;margin-bottom:.8rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;}
+.app-header{background:var(--dark);background-image:radial-gradient(ellipse at 80% 50%,rgba(0,200,117,.12) 0%,transparent 60%);border-radius:var(--radius);padding:1.8rem 2.5rem;margin-bottom:.8rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;}
 .app-title{font-size:clamp(2rem,4vw,3.4rem);font-weight:900;color:var(--white);letter-spacing:-.03em;line-height:1;}
 .app-title span{color:var(--yellow);}
 .app-sub{font-size:.75rem;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:.15em;text-transform:uppercase;margin-top:.5rem;}
