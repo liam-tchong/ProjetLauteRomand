@@ -883,14 +883,16 @@ def page_glossaire():
         icon = GLOS_ICONS[i % len(GLOS_ICONS)]
         bg   = GLOS_COLORS[i % len(GLOS_COLORS)]
         st.markdown(
+            f'<a href="?term={term}" style="text-decoration:none;color:inherit">'
             f'<div class="glos-card">'
             f'<div class="glos-card-header">'
             f'<div class="glos-card-icon" style="background:{bg}">{icon}</div>'
             f'<span class="glos-card-term">{term.capitalize()}</span>'
-            f'<span class="pill pill-yellow" style="margin-left:auto">Tactical</span>'
+            f'<span class="pill pill-yellow" style="margin-left:auto">Tactical →</span>'
             f'</div>'
             f'<div class="glos-card-body">{definition}</div>'
-            f'</div>',
+            f'</div>'
+            f'</a>',
             unsafe_allow_html=True
         )
 
