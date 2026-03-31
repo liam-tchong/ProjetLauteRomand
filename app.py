@@ -318,6 +318,44 @@ Reply with the 3 paragraphs only, nothing else."""
         return TEAM_STYLES.get(team_name, DEFAULT_STYLE)
 
 
+@st.cache_data(ttl=3600, show_spinner=False)
+def generate_key_challenges(team_a, team_b, pts_a, pts_b, gf_a, gf_b, ga_a, ga_b):
+    """Generates one key challenge sentence per team for this specific matchup."""
+    if not ANTHROPIC_API_KEY:
+        return (
+            f"{team_a} must stay compact and limit space in behind.",
+            f"{team_b} must be clinical in the final third.",
+        )
+    prompt = f"""You are a concise football analyst. Given these two Ligue 1 teams and their season stats, write exactly 2 lines — one per team — describing each team's single biggest tactical challenge in this specific matchup.
+
+{team_a}: {pts_a} pts, {gf_a} goals scored, {ga_a} goals conceded this season.
+{team_b}: {pts_b} pts, {gf_b} goals scored, {ga_b} goals conceded this season.
+
+Format (reply with exactly these 2 lines, nothing else):
+{team_a}: <one sentence, max 12 words>
+{team_b}: <one sentence, max 12 words>"""
+    try:
+        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+        msg = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=80,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        lines = msg.content[0].text.strip().split("\n")
+        def _extract(line, team):
+            if ":" in line:
+                return line.split(":", 1)[1].strip()
+            return line.strip()
+        challenge_a = _extract(lines[0], team_a) if len(lines) > 0 else "Stay compact and limit space in behind."
+        challenge_b = _extract(lines[1], team_b) if len(lines) > 1 else "Be clinical in the final third."
+        return challenge_a, challenge_b
+    except Exception:
+        return (
+            f"Stay compact and limit space in behind.",
+            f"Be clinical in the final third.",
+        )
+
+
 # ── Data ─────────────────────────────────────────────────────────────────────
 TACTICAL_TERMS = {
     "pressing": {
@@ -719,6 +757,16 @@ div[data-testid="stHorizontalBlock"] button[kind="primary"]{
 .watch-num{font-size:.65rem;font-weight:900;color:rgba(255,255,255,.18);min-width:1.2rem;margin-top:.2rem;}
 .watch-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:.3rem;}
 .watch-text{font-size:.95rem;font-weight:600;color:#C8BAA0;line-height:1.6;}
+.watch-challenge-divider{height:1px;background:rgba(255,255,255,.06);margin:1rem 0 1.2rem;}
+.watch-challenge-label{font-size:.62rem;font-weight:900;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.25);margin-bottom:.9rem;}
+.watch-challenge-grid{display:flex;gap:.8rem;}
+.watch-challenge-card{flex:1;border-radius:14px;padding:.9rem 1.1rem;display:flex;flex-direction:column;gap:.35rem;}
+.watch-challenge-card-a{background:rgba(124,201,154,.1);border:1px solid rgba(124,201,154,.2);}
+.watch-challenge-card-b{background:rgba(242,130,127,.1);border:1px solid rgba(242,130,127,.2);}
+.watch-challenge-team{font-size:.62rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.watch-challenge-team-a{color:var(--green);}
+.watch-challenge-team-b{color:var(--red);}
+.watch-challenge-text{font-size:.88rem;font-weight:600;color:#C8BAA0;line-height:1.5;}
 
 /* Terrain */
 .terrain-wrap{background:#3B7A3B;background-image:repeating-linear-gradient(0deg,transparent 0px,transparent 30px,rgba(0,0,0,.05) 30px,rgba(0,0,0,.05) 60px);border-radius:var(--radius);height:300px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;border:3px solid #2A5A2A;box-shadow:var(--shadow-lg);}
@@ -1109,12 +1157,24 @@ def page_main():
 
     # ── Watch card ──
     points = watch_points(team_a, team_b)
+    challenge_a, challenge_b = generate_key_challenges(
+        team_a, team_b,
+        da.get("points",0), db.get("points",0),
+        da.get("goals_for",0), db.get("goals_for",0),
+        da.get("goals_against",0), db.get("goals_against",0),
+    )
     st.markdown(
         f'<div class="watch-card">'
         f'<div class="watch-header"><div class="watch-icon">👁</div><div><div class="watch-title">Key points to watch</div><div class="watch-subtitle">{team_a} vs {team_b}</div></div></div>'
         f'<div class="watch-item"><div class="watch-num">01</div><div class="watch-dot" style="background:{WATCH_COLORS[0]}"></div><div class="watch-text">{points[0]}</div></div>'
         f'<div class="watch-item"><div class="watch-num">02</div><div class="watch-dot" style="background:{WATCH_COLORS[1]}"></div><div class="watch-text">{points[1]}</div></div>'
         f'<div class="watch-item"><div class="watch-num">03</div><div class="watch-dot" style="background:{WATCH_COLORS[2]}"></div><div class="watch-text">{points[2]}</div></div>'
+        f'<div class="watch-challenge-divider"></div>'
+        f'<div class="watch-challenge-label">⚡ Key challenge for each team</div>'
+        f'<div class="watch-challenge-grid">'
+        f'<div class="watch-challenge-card watch-challenge-card-a"><span class="watch-challenge-team watch-challenge-team-a">{team_a}</span><span class="watch-challenge-text">{challenge_a}</span></div>'
+        f'<div class="watch-challenge-card watch-challenge-card-b"><span class="watch-challenge-team watch-challenge-team-b">{team_b}</span><span class="watch-challenge-text">{challenge_b}</span></div>'
+        f'</div>'
         f'</div>',
         unsafe_allow_html=True
     )
