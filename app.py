@@ -594,12 +594,12 @@ TEAM_STYLES = {
 DEFAULT_STYLE = "Playing style to be documented."
 WATCH_COLORS = ["#7CC99A", "#F5D06E", "#F2827F"]
 
-def linkify_terms(text):
+def linkify_terms(text, source_page="main"):
     """Replace <b>term</b> with a colored clickable link."""
     for term in TACTICAL_TERMS:
         text = text.replace(
             f'<b>{term}</b>',
-            f'<a href="?term={term}" class="term-link">{term}</a>'
+            f'<a href="?term={term}&from={source_page}" class="term-link">{term}</a>'
         )
     return text
 
@@ -817,7 +817,7 @@ ALL_TEAMS = sorted(standings.keys(), key=lambda n: standings[n]["position"]) if 
 # ── Check query params (term click from style cards) ──────────────────────────
 qp = st.query_params
 if "term" in qp and qp["term"] in TACTICAL_TERMS:
-    st.session_state.prev_page = st.session_state.get("page", "main")
+    st.session_state.prev_page = qp.get("from", "main")
     st.session_state.active_term = qp["term"]
     st.session_state.page = "definition"
     st.query_params.clear()
@@ -940,7 +940,7 @@ def page_glossaire():
         icon = GLOS_ICONS[i % len(GLOS_ICONS)]
         bg   = GLOS_COLORS[i % len(GLOS_COLORS)]
         st.markdown(
-            f'<a href="?term={term}" style="text-decoration:none;color:inherit">'
+            f'<a href="?term={term}&from=glossaire" style="text-decoration:none;color:inherit">'
             f'<div class="glos-card">'
             f'<div class="glos-card-header">'
             f'<div class="glos-card-icon" style="background:{bg}">{icon}</div>'
@@ -1057,7 +1057,7 @@ def page_main():
     def _fmt_style(raw):
         """Converts line breaks to <br> for HTML display, then linkifies glossary terms."""
         html = raw.replace("\n\n", "<br><br>").replace("\n", " ")
-        return linkify_terms(html)
+        return linkify_terms(html, source_page="main")
 
     with st.spinner("Generating AI analysis…"):
         style_a_raw = generate_team_style(
