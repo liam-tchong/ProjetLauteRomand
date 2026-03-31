@@ -291,16 +291,16 @@ Using the statistics below and your knowledge of this club, write a structured a
 {stats_block}
 
 Required structure:
-§1 — OVERVIEW (2-3 sentences): explain simply how this team likes to play this season. What is their identity and mentality on the pitch? Mention whether this is a progression or regression compared to last season.
-§2 — WHAT THE NUMBERS REVEAL (3-4 sentences): translate the stats concretely. Name key players, talk about shots, defence, home/away record, recent form. Every sentence must be backed by a real stat.
-§3 — THE KEY FACT (1-2 sentences): use your knowledge of this club to mention something important and concrete — a truly decisive player this season or last, an incredible comeback, a recent trophy, a historical fact. Something supporters would remember.
+§1 — OVERALL STRATEGY (3-4 sentences): describe how this team is set up to play — their formation, defensive and offensive philosophy, and general approach to matches. What is their tactical identity this season?
+§2 — TECHNICAL DETAILS (4-5 sentences): go deeper into the technical specifics. How do they build up play, press, defend, and create chances? Name key players and explain their role in the system. Back every claim with a stat where possible.
+§3 — FUN STRATEGIC FACT (2-3 sentences): share something memorable and distinctive about this club's tactical culture — a famous playing style they are historically known for, a legendary coach who shaped their identity, a tactical quirk that makes them unique, or a reputation that precedes them.
 
 Rules:
 - Simple, vivid, accessible language — no unexplained jargon
 - Name real players when relevant
-- You MUST use at least 4 terms from this list in your analysis: {terms}
-- Every time you use one of those terms, wrap it like this: <b>term</b> (e.g. <b>pressing</b>, <b>high press</b>, <b>counter-attack</b>)
-- Maximum 10 lines total
+- You MUST use at least 6 terms from this list: {terms}
+- Every time you use one of those terms, wrap it exactly like this: <b>term</b> (e.g. <b>pressing</b>, <b>high press</b>, <b>counter-attack</b>, <b>build-up play</b>)
+- Maximum 15 lines total
 - Separate the 3 paragraphs with a blank line (\\n\\n)
 - No titles, no bullet points, no numbering
 - If unsure about a specific fact, stay vague rather than inventing
