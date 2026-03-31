@@ -12,7 +12,7 @@ HEADERS = {"X-Auth-Token": API_KEY}
 ANTHROPIC_API_KEY  = st.secrets.get("ANTHROPIC_API_KEY", "")
 API_FOOTBALL_KEY   = st.secrets.get("API_FOOTBALL_KEY", "")
 
-# IDs équipes Ligue 1 sur API-Football (league 61, saison 2025)
+# Ligue 1 team IDs on API-Football (league 61, season 2025)
 API_FOOTBALL_IDS = {
     "Paris Saint-Germain":    85,
     "Olympique de Marseille": 81,
@@ -88,7 +88,7 @@ def fetch_standings():
 
 @st.cache_data(ttl=86400, show_spinner=False)
 def fetch_previous_standings():
-    """Classement final Ligue 1 saison 2024 (saison précédente)."""
+    """Final Ligue 1 standings for the 2024 season (previous season)."""
     try:
         r = requests.get(
             "https://api.football-data.org/v4/competitions/FL1/standings",
@@ -108,7 +108,7 @@ def fetch_previous_standings():
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch_team_form(team_id):
-    """Derniers 5 matchs joués pour un team_id football-data.org."""
+    """Last 5 played matches for a football-data.org team_id."""
     if not team_id:
         return []
     try:
@@ -140,7 +140,7 @@ def fetch_team_form(team_id):
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch_competition_scorers():
-    """Top buteurs de Ligue 1 — retourne un dict {team_display_name: [(joueur, buts), ...]}."""
+    """Ligue 1 top scorers — returns a dict {team_display_name: [(player, goals), ...]}."""
     try:
         r = requests.get(
             "https://api.football-data.org/v4/competitions/FL1/scorers",
@@ -164,7 +164,7 @@ def fetch_competition_scorers():
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch_api_football_stats(team_name):
-    """Stats avancées depuis API-Football : formation, passes, tirs, clean sheets."""
+    """Advanced stats from API-Football: formation, passes, shots, clean sheets."""
     if not API_FOOTBALL_KEY:
         return {}
     team_id = API_FOOTBALL_IDS.get(team_name)
@@ -196,11 +196,11 @@ def fetch_api_football_stats(team_name):
         wins_home  = fixtures.get("wins",  {}).get("home", 0)
         wins_away  = fixtures.get("wins",  {}).get("away", 0)
 
-        # Tranche horaire où l'équipe marque le plus
+        # Time slot when the team scores most
         minutes  = goals.get("for", {}).get("minute", {})
         top_slot = max(minutes, key=lambda k: (minutes[k].get("total") or 0)) if minutes else None
 
-        # Passes & tirs
+        # Passes & shots
         passes_pct     = passes.get("percentage")
         shots_total    = shots.get("total",  {}).get("total")
         shots_on       = shots.get("on",     {}).get("total")
@@ -208,7 +208,7 @@ def fetch_api_football_stats(team_name):
         shots_pg       = round(shots_total / played_total, 1) if shots_total else None
         shots_on_pg    = round(shots_on    / played_total, 1) if shots_on    else None
 
-        # Clean sheets & matchs sans marquer
+        # Clean sheets & matches without scoring
         clean_sheets     = clean_sh.get("total")
         failed_to_score  = failed.get("total")
 
@@ -238,7 +238,7 @@ def generate_team_style(team_name, pts, played, won, draw, lost,
                         extra_wins_home, extra_wins_away, extra_top_slot,
                         extra_passes_pct, extra_shots_pg, extra_shots_on_pg,
                         extra_clean_sheets, extra_failed_to_score):
-    """Génère une analyse tactique en 3 paragraphes via Claude."""
+    """Generates a 3-paragraph tactical analysis via Claude."""
     if not ANTHROPIC_API_KEY:
         return TEAM_STYLES.get(team_name, DEFAULT_STYLE)
 
@@ -246,42 +246,42 @@ def generate_team_style(team_name, pts, played, won, draw, lost,
     avg_gf   = round(goals_for      / max(played, 1), 2)
     avg_ga   = round(goals_against  / max(played, 1), 2)
 
-    prev_str = f"{prev_position}e" if prev_position else "N/A"
+    prev_str = f"{prev_position}" if prev_position else "N/A"
     pos_delta = ""
     if prev_position and position:
         diff = prev_position - position
-        if diff > 0:   pos_delta = f" (↑ +{diff} vs saison dernière)"
-        elif diff < 0: pos_delta = f" (↓ {diff} vs saison dernière)"
-        else:           pos_delta = " (= même position que l'an dernier)"
+        if diff > 0:   pos_delta = f" (↑ +{diff} vs last season)"
+        elif diff < 0: pos_delta = f" (↓ {diff} vs last season)"
+        else:           pos_delta = " (= same position as last year)"
 
-    stats_block = f"""Équipe : {team_name}
-Classement actuel : {position}e place{pos_delta} — {pts} points en {played} matchs
-Classement saison précédente (2024/25) : {prev_str}
-Bilan : {won}V / {draw}N / {lost}D
-Buts marqués : {goals_for} ({avg_gf}/match) | Buts encaissés : {goals_against} ({avg_ga}/match)
-Différence de buts : {goal_diff:+}
-Forme récente (5 derniers matchs) : {form_str}"""
+    stats_block = f"""Team: {team_name}
+Current ranking: {position}th place{pos_delta} — {pts} points in {played} matches
+Previous season ranking (2024/25): {prev_str}
+Record: {won}W / {draw}D / {lost}L
+Goals scored: {goals_for} ({avg_gf}/match) | Goals conceded: {goals_against} ({avg_ga}/match)
+Goal difference: {goal_diff:+}
+Recent form (last 5 matches): {form_str}"""
 
     if key_scorers_tuple:
-        scorers_str = ", ".join(f"{n} ({g} buts{', '+str(a)+' passes dét.' if a else ''})"
+        scorers_str = ", ".join(f"{n} ({g} goals{', '+str(a)+' assists' if a else ''})"
                                 for n, g, a in key_scorers_tuple)
-        stats_block += f"\nJoueurs clés (buteurs) : {scorers_str}"
+        stats_block += f"\nKey players (scorers): {scorers_str}"
     if extra_formation:
-        stats_block += f"\nFormation principale : {extra_formation}"
+        stats_block += f"\nMain formation: {extra_formation}"
     if extra_wins_home is not None:
-        stats_block += f"\nVictoires domicile / extérieur : {extra_wins_home} / {extra_wins_away}"
+        stats_block += f"\nHome / away wins: {extra_wins_home} / {extra_wins_away}"
     if extra_passes_pct:
-        stats_block += f"\nPrécision des passes : {extra_passes_pct}"
+        stats_block += f"\nPass accuracy: {extra_passes_pct}"
     if extra_shots_pg:
-        stats_block += f"\nTirs par match : {extra_shots_pg} (dont {extra_shots_on_pg} cadrés)"
+        stats_block += f"\nShots per match: {extra_shots_pg} ({extra_shots_on_pg} on target)"
     if extra_clean_sheets is not None:
-        stats_block += f"\nClean sheets (matchs sans encaisser) : {extra_clean_sheets}"
+        stats_block += f"\nClean sheets: {extra_clean_sheets}"
     if extra_failed_to_score is not None:
-        stats_block += f"\nMatchs sans marquer : {extra_failed_to_score}"
+        stats_block += f"\nMatches without scoring: {extra_failed_to_score}"
     if extra_top_slot:
-        stats_block += f"\nTranche de jeu où l'équipe marque le plus : {extra_top_slot} min"
+        stats_block += f"\nTime slot where the team scores most: {extra_top_slot} min"
     if extra_gf_avg:
-        stats_block += f"\nMoyenne buts pour / contre par match : {extra_gf_avg} / {extra_ga_avg}"
+        stats_block += f"\nAverage goals for / against per match: {extra_gf_avg} / {extra_ga_avg}"
 
     terms = ", ".join(TACTICAL_TERMS.keys())
 
@@ -321,34 +321,34 @@ Reply with the 3 paragraphs only, nothing else."""
 # ── Data ─────────────────────────────────────────────────────────────────────
 TACTICAL_TERMS = {
     "pressing": {
-        "definition":        "Technique collective consistant à exercer une pression immédiate sur le porteur du ballon dès la perte de balle, afin de récupérer rapidement la possession.",
-        "simple_explanation":"Au lieu d'attendre, les joueurs courent vers l'adversaire pour lui forcer des erreurs.",
-        "example":           "Liverpool presse si haut que les gardiens adverses font régulièrement des erreurs sous pression.",
-        "animation_idea":    "Plusieurs joueurs convergeant rapidement vers le porteur du ballon.",
+        "definition":        "A collective tactic where players immediately pressure the ball carrier upon losing possession, aiming to quickly win the ball back.",
+        "simple_explanation":"Instead of waiting, players run at the opponent to force mistakes and recover the ball fast.",
+        "example":           "Liverpool press so high that opposition goalkeepers regularly make errors under pressure.",
+        "animation_idea":    "Multiple players converging rapidly toward the ball carrier.",
     },
     "pivot": {
-        "definition":        "Joueur central servant de point d'appui dans le jeu offensif, capable de recevoir dos au but, protéger le ballon et redistribuer.",
-        "simple_explanation":"Un joueur costaud qui reçoit le ballon dos au but et le redistribue à ses coéquipiers.",
-        "example":           "Ibrahimovic était un pivot parfait : il contrôlait, protégeait et relançait le jeu.",
-        "animation_idea":    "Joueur dos au but recevant le ballon, puis le déviant vers des coéquipiers qui arrivent.",
+        "definition":        "A central striker who acts as a target man in the attacking phase, able to receive with their back to goal, hold the ball, and redistribute.",
+        "simple_explanation":"A strong player who receives the ball with their back to goal and lays it off to teammates.",
+        "example":           "Ibrahimovic was a perfect pivot: he controlled, shielded, and relaunched play effortlessly.",
+        "animation_idea":    "Player receiving the ball with back to goal, then laying it off to arriving teammates.",
     },
     "faux neuf": {
-        "definition":        "Attaquant axial qui décroche vers le milieu plutôt que de rester en pointe, créant de la confusion dans la défense adverse.",
-        "simple_explanation":"Un attaquant qui s'éloigne du but pour perturber les défenseurs qui ne savent plus s'ils doivent le suivre.",
-        "example":           "Messi au Barça jouait faux neuf sous Guardiola, laissant les défenseurs centraux désorientés.",
-        "animation_idea":    "L'attaquant décroche vers le milieu, laissant un espace dans lequel les milieux s'engouffrent.",
+        "definition":        "A centre-forward who drops into midfield rather than staying as a traditional striker, creating confusion in the opposition's defence.",
+        "simple_explanation":"An attacker who drifts away from goal to confuse defenders who don't know whether to follow.",
+        "example":           "Messi played as a faux neuf under Guardiola at Barcelona, leaving centre-backs disoriented.",
+        "animation_idea":    "The striker drops into midfield, leaving space that midfielders run into behind.",
     },
     "contre-attaque": {
-        "definition":        "Transition offensive rapide dès la récupération du ballon, exploitant le déséquilibre défensif adverse avant réorganisation.",
-        "simple_explanation":"Dès que tu récupères le ballon, attaque vite avant que les adversaires ne se replacent.",
-        "example":           "Le PSG récupère le ballon au milieu et trois joueurs sprintent pour marquer en quelques secondes.",
-        "animation_idea":    "Flèches montrant un mouvement rapide de joueurs depuis la défense vers le but adverse.",
+        "definition":        "A rapid offensive transition immediately after winning the ball, exploiting the opposition's defensive imbalance before they can reorganize.",
+        "simple_explanation":"The moment you win the ball, attack quickly before opponents can get back into position.",
+        "example":           "PSG wins the ball in midfield and three players sprint forward to score within seconds.",
+        "animation_idea":    "Arrows showing rapid player movement from defence toward the opponent's goal.",
     },
     "bloc bas": {
-        "definition":        "Organisation défensive dans laquelle l'équipe se replie profondément dans sa moitié de terrain pour réduire les espaces.",
-        "simple_explanation":"Toute l'équipe se place près de son propre but pour ne laisser aucun espace à l'adversaire.",
-        "example":           "L'Atletico Madrid défend avec 8 ou 9 joueurs derrière le ballon dans un bloc bas organisé.",
-        "animation_idea":    "Tous les joueurs de champ serrés dans la moitié défensive formant un mur compact.",
+        "definition":        "A defensive organization in which the whole team drops very deep into their own half to reduce space and absorb pressure.",
+        "simple_explanation":"The entire team sits close to their own goal, leaving no space for the opposition to attack.",
+        "example":           "Atletico Madrid defends with 8 or 9 players behind the ball in an organized bloc bas.",
+        "animation_idea":    "All outfield players tightly packed in the defensive half forming a compact wall.",
     },
     "build-up play": {
         "definition":        "The phase of play when a team in possession tries to move the ball forward from defence into attack against an organized opposition.",
@@ -521,43 +521,43 @@ TACTICAL_TERMS = {
 }
 
 TEAM_STYLES = {
-    "Paris Saint-Germain": "Le PSG pratique un <b>high press</b> intense pour récupérer le ballon dans la moitié adverse, soutenu par un <b>counter-pressing</b> immédiat à chaque perte. En phase de <b>build-up play</b>, le jeu repose sur le <b>positional play</b> avec des milieux qui s'infiltrent dans le <b>half-space</b> pour créer des décalages. Un <b>faux neuf</b> décroche entre les <b>lines</b> pour déclencher des <b>line-breaking pass</b>es vers les attaquants lancés en profondeur. Les ailiers exploitent la <b>width</b> du terrain pour étirer la défense, et en <b>transition</b> offensive, la vitesse collective est l'arme principale.",
+    "Paris Saint-Germain": "PSG applies an intense <b>high press</b> to win the ball back in the opposition's half, backed by immediate <b>counter-pressing</b> on every loss. In <b>build-up play</b>, the team relies on <b>positional play</b> with midfielders infiltrating the <b>half-space</b> to create openings. A <b>faux neuf</b> drops between the <b>lines</b> to trigger <b>line-breaking pass</b>es toward runners in behind. Wingers provide <b>width</b> to stretch the defence, and in <b>transition</b> the collective speed is the main weapon.",
 
-    "Olympique de Marseille": "L'OM impose un <b>pressing</b> collectif agressif et un <b>counter-pressing</b> immédiat dès la perte de balle. La <b>shape</b> défensive alterne entre <b>man marking</b> ciblé sur les relanceurs et <b>zonal marking</b> sur les couloirs latéraux. La <b>transition</b> offensive est l'arme principale : le ballon remonte vite vers les attaquants en <b>contre-attaque</b>. Un <b>switch of play</b> rapide libère un ailier côté faible pour un <b>cross</b> dans le <b>final third</b>.",
+    "Olympique de Marseille": "Marseille impose aggressive collective <b>pressing</b> and immediate <b>counter-pressing</b> on every loss of possession. The defensive <b>shape</b> alternates between <b>man marking</b> on ball carriers and <b>zonal marking</b> across the channels. The offensive <b>transition</b> is their main weapon — the ball travels quickly to attackers via a <b>contre-attaque</b>. A quick <b>switch of play</b> frees a winger on the weak side for a <b>cross</b> into the <b>final third</b>.",
 
-    "AS Monaco": "Monaco construit avec un <b>build-up play</b> patient depuis l'arrière, exploitant le <b>depth</b> du terrain pour avancer par étapes. Les latéraux réalisent des <b>overlap</b>s constants pour créer des surnombres sur les ailes, tandis que les milieux proposent des <b>underlap</b>s dans le <b>half-space</b>. Des <b>third man run</b>s bien coordonnés désorganisent la défense après des échanges rapides, et un <b>through ball</b> précis brise les <b>lines</b> pour libérer les attaquants. En cas de perte, un <b>counter-pressing</b> immédiat tente de récupérer la possession avant la réorganisation adverse.",
+    "AS Monaco": "Monaco builds patiently through <b>build-up play</b> from the back, using <b>depth</b> to progress in stages. Full-backs make constant <b>overlap</b>s to create overloads on the wings, while midfielders offer <b>underlap</b>s through the <b>half-space</b>. Well-timed <b>third man run</b>s disorganize defences after quick combinations, and a precise <b>through ball</b> breaks the <b>lines</b> to release attackers. On every loss, immediate <b>counter-pressing</b> aims to recover possession before the opposition can settle.",
 
-    "LOSC Lille": "Lille est reconnu pour son <b>high press</b> collectif et son <b>counter-pressing</b> immédiat — chaque perte déclenche une réaction groupée. La <b>formation</b> en 4-4-2 impose une <b>shape</b> très serrée qui compresse les espaces entre les <b>lines</b> adverses. Des <b>line-breaking pass</b>es rapides libèrent les attaquants en <b>transition</b> après récupération haute. Un <b>overload</b> côté balle crée le surnombre, avant un <b>switch of play</b> vers le côté libéré pour atteindre le <b>final third</b>.",
+    "LOSC Lille": "Lille are renowned for their collective <b>high press</b> and immediate <b>counter-pressing</b> — every loss triggers a group reaction. A 4-4-2 <b>formation</b> creates a tight <b>shape</b> that compresses the spaces between the opposition's <b>lines</b>. Quick <b>line-breaking pass</b>es release attackers in <b>transition</b> after high recoveries. An <b>overload</b> on the ball side creates the numerical advantage, before a <b>switch of play</b> finds the freed side to reach the <b>final third</b>.",
 
-    "Olympique Lyonnais": "L'OL adopte un style proche du <b>tiki-taka</b>, avec un <b>positional play</b> rigoureux et un <b>build-up play</b> soigné depuis les défenseurs. Les milieux se glissent dans les <b>half-space</b>s pour recevoir entre les <b>lines</b>, exploitant à la fois le <b>depth</b> et la <b>width</b> du terrain. Un <b>overload</b> côté balle est suivi d'un <b>switch of play</b> rapide pour exploiter l'espace libéré. En phase défensive, un <b>zonal marking</b> bien organisé et un <b>low block</b> discipliné protègent les espaces, avec une <b>formation</b> 4-3-3 adaptable.",
+    "Olympique Lyonnais": "Lyon play a style close to <b>tiki-taka</b>, with rigorous <b>positional play</b> and careful <b>build-up play</b> from the defenders. Midfielders slip into the <b>half-space</b>s to receive between the <b>lines</b>, exploiting both <b>depth</b> and <b>width</b> simultaneously. An <b>overload</b> on the ball side is followed by a quick <b>switch of play</b> to exploit the freed space. Defensively, organised <b>zonal marking</b> and a disciplined <b>low block</b> protect space in their adaptable 4-3-3 <b>formation</b>.",
 
-    "RC Lens": "Lens se distingue par un <b>pressing</b> collectif intense et une <b>shape</b> très organisée en <b>formation</b> 3-4-3. Les pistons offrent une grande <b>width</b> et combinent <b>overlap</b>s et <b>cross</b>es vers le <b>pivot</b> dans la surface. En récupération, l'équipe déclenche immédiatement une <b>counter-attack</b> verticale. Des <b>tackle</b>s bien placés et des <b>interception</b>s dans l'entrejeu alimentent la <b>transition</b> offensive, et des <b>third man run</b>s permettent de trouver le joueur libre dans les espaces.",
+    "RC Lens": "Lens stand out with intense collective <b>pressing</b> and a well-organised <b>shape</b> in a 3-4-3 <b>formation</b>. The wing-backs provide huge <b>width</b>, combining <b>overlap</b>s and <b>cross</b>es toward the <b>pivot</b> in the box. On recovery, the team immediately launches a vertical <b>counter-attack</b>. Well-timed <b>tackle</b>s and <b>interception</b>s in midfield fuel the offensive <b>transition</b>, while <b>third man run</b>s find the free player in behind.",
 
-    "OGC Nice": "Nice pratique un <b>positional play</b> structuré avec un <b>build-up play</b> méthodique depuis les défenseurs centraux. La <b>shape</b> défensive repose sur un <b>zonal marking</b> strict et un <b>bloc bas</b> organisé quand l'adversaire possède. Des <b>line-breaking pass</b>es cherchent à pénétrer dans le <b>final third</b> en exploitant le <b>depth</b> et les <b>half-space</b>s. Un <b>switch of play</b> rapide après une <b>interception</b> libère les ailiers côté faible pour un <b>cross</b> dans la surface.",
+    "OGC Nice": "Nice play structured <b>positional play</b> with methodical <b>build-up play</b> from the centre-backs. The defensive <b>shape</b> relies on strict <b>zonal marking</b> and an organised <b>bloc bas</b> when opponents have the ball. <b>Line-breaking pass</b>es target the <b>final third</b> by exploiting <b>depth</b> and the <b>half-space</b>s. A quick <b>switch of play</b> after an <b>interception</b> releases a winger on the weak side for a <b>cross</b> into the box.",
 
-    "Stade Rennais": "Rennes adopte une philosophie proche du <b>total football</b>, avec des rotations permanentes entre les lignes. Le <b>positional play</b> impose une grande <b>depth</b> et de la <b>width</b> pour occuper tout le terrain simultanément. Des <b>third man run</b>s fréquents désorganisent les défenses adverses, et des <b>overlap</b>s des latéraux créent les surnombres sur les côtés. En <b>transition</b>, le <b>counter-pressing</b> empêche l'adversaire de relancer proprement, avant de chercher un <b>through ball</b> vers un attaquant lancé dans le <b>half-space</b>.",
+    "Stade Rennais": "Rennes embrace a philosophy close to <b>total football</b>, with constant rotations across all positions. Their <b>positional play</b> demands great <b>depth</b> and <b>width</b> to occupy the full pitch simultaneously. Frequent <b>third man run</b>s disorganize opposition defences, while full-back <b>overlap</b>s create overloads on the flanks. In <b>transition</b>, immediate <b>counter-pressing</b> prevents clean restarts, before a <b>through ball</b> finds an attacker running into the <b>half-space</b>.",
 
-    "RC Strasbourg": "Strasbourg privilégie un jeu direct avec un <b>pressing</b> haut pour forcer les erreurs adverses. Les ailiers cherchent constamment la <b>width</b> pour effectuer des <b>cross</b>es vers le <b>pivot</b> ou les milieux arrivant en retard. En phase défensive, une <b>shape</b> compacte avec un <b>low block</b> bien organisé absorbe la pression. Des <b>tackle</b>s et des <b>interception</b>s dans l'entrejeu alimentent des <b>counter-attack</b>s directes, profitant des espaces laissés en <b>transition</b>. Un <b>switch of play</b> rapide permet de changer d'axe d'attaque.",
+    "RC Strasbourg": "Strasbourg favour a direct game with a high <b>pressing</b> approach to force opposition errors. Wingers constantly seek <b>width</b> to deliver <b>cross</b>es toward the <b>pivot</b> or late-arriving midfielders. Defensively, a compact <b>shape</b> with an organised <b>low block</b> absorbs pressure well. <b>Tackle</b>s and <b>interception</b>s in midfield fuel direct <b>counter-attack</b>s, taking advantage of space left behind in <b>transition</b>. A quick <b>switch of play</b> allows them to change the axis of attack.",
 
-    "Toulouse FC": "Toulouse construit patiemment avec un <b>build-up play</b> propre et un <b>positional play</b> rigoureux depuis l'arrière. Les milieux se glissent dans les <b>half-space</b>s pour recevoir entre les <b>lines</b> adverses et proposer des <b>through ball</b>s aux attaquants. La <b>formation</b> est flexible : en défense, un <b>zonal marking</b> strict couvre les couloirs et les zones centrales. Des <b>line-breaking pass</b>es déclenchent les courses en profondeur vers le <b>final third</b>, et en <b>transition</b> négative, l'équipe se replace rapidement.",
+    "Toulouse FC": "Toulouse build patiently with clean <b>build-up play</b> and rigorous <b>positional play</b> from the back. Midfielders drift into the <b>half-space</b>s to receive between the opposition's <b>lines</b> and play <b>through ball</b>s to attackers. The <b>formation</b> is flexible — defensively, strict <b>zonal marking</b> covers the channels and central zones. <b>Line-breaking pass</b>es trigger runs in behind toward the <b>final third</b>, and in negative <b>transition</b> the team reorganises quickly.",
 
-    "Stade Brestois": "Brest repose sur un <b>bloc bas</b> très compact qui limite l'espace dans son propre <b>final third</b> en resserrant les <b>lines</b>. La <b>shape</b> défensive combine <b>man marking</b> strict sur les porteurs et <b>zonal marking</b> sur les zones dangereuses. Des <b>tackle</b>s et <b>interception</b>s fréquents alimentent des <b>counter-attack</b>s rapides sur les flancs. En <b>transition</b> offensive, le <b>pivot</b> sert de relais pour distribuer en <b>width</b> et exploiter les espaces. Un <b>pressing</b> ponctuel peut surprendre l'adversaire dans ses relances.",
+    "Stade Brestois": "Brest rely on a very compact <b>bloc bas</b> that limits space in their own <b>final third</b> by tightening the <b>lines</b>. The defensive <b>shape</b> combines strict <b>man marking</b> on ball carriers with <b>zonal marking</b> across dangerous zones. Frequent <b>tackle</b>s and <b>interception</b>s fuel rapid <b>counter-attack</b>s on the flanks. In offensive <b>transition</b>, the <b>pivot</b> acts as a relay to distribute in <b>width</b> and exploit open space. Targeted <b>pressing</b> can surprise opponents in their own build-up.",
 
-    "FC Nantes": "Nantes mise sur un jeu de <b>cross</b>es depuis les ailes, avec des latéraux pratiquant des <b>overlap</b>s réguliers pour centrer dans la surface. Le <b>pivot</b> est au cœur du dispositif offensif dans le <b>final third</b>, servant de point d'appui pour les milieux arrivant en retard. En phase défensive, un <b>pressing</b> collectif couvre tout le terrain avec un <b>man marking</b> ciblant les joueurs clés adverses. Un <b>switch of play</b> rapide libère le côté faible, et des <b>tackle</b>s robustes alimentent les <b>transition</b>s offensives.",
+    "FC Nantes": "Nantes build around a <b>cross</b>-heavy game from the flanks, with full-backs making regular <b>overlap</b>s to deliver into the box. The <b>pivot</b> is central to the attacking system in the <b>final third</b>, acting as a target for late-arriving midfielders. Defensively, collective <b>pressing</b> covers the whole pitch with <b>man marking</b> targeting the opposition's key players. A quick <b>switch of play</b> frees the weak side, while robust <b>tackle</b>s feed offensive <b>transition</b>s.",
 
-    "Angers SCO": "Angers adopte un <b>low block</b> défensif qui resserre les espaces entre les <b>lines</b> et prive l'adversaire d'espace dans le <b>final third</b>. La <b>shape</b> compacte s'appuie sur un <b>zonal marking</b> organisé sur l'ensemble du terrain. Des <b>interception</b>s bien placées et des <b>tackle</b>s propres alimentent des <b>counter-attack</b>s en <b>transition</b>. Le <b>pressing</b> est ciblé et non systématique, utilisé uniquement lorsque l'adversaire est en difficulté. En possession, un <b>build-up play</b> prudent maintient la balle et évite les risques.",
+    "Angers SCO": "Angers employ a defensive <b>low block</b> that tightens space between the <b>lines</b> and denies the opposition room in the <b>final third</b>. The compact <b>shape</b> is built on organised <b>zonal marking</b> across the whole pitch. Well-placed <b>interception</b>s and clean <b>tackle</b>s trigger <b>counter-attack</b>s in <b>transition</b>. <b>Pressing</b> is targeted rather than systematic — used only when the opponent is under pressure. In possession, cautious <b>build-up play</b> keeps the ball and avoids risk.",
 
-    "Le Havre AC": "Le Havre repose sur un <b>bloc bas</b> rigoureux pour protéger son but et limiter les espaces en profondeur. La <b>shape</b> défensive combine <b>man marking</b> sur les attaquants et <b>zonal marking</b> sur les couloirs, en maintenant une grande <b>depth</b> défensive pour réduire l'espace derrière les <b>lines</b>. En <b>transition</b> offensive, les joueurs cherchent rapidement une <b>counter-attack</b> via un jeu direct vers l'avant. Un <b>pressing</b> collectif ponctuel peut être déclenché pour récupérer dans l'entrejeu.",
+    "Le Havre AC": "Le Havre rely on a rigorous <b>bloc bas</b> to protect their goal and limit space in behind. The defensive <b>shape</b> combines <b>man marking</b> on attackers with <b>zonal marking</b> across the channels, maintaining strong <b>depth</b> to reduce space behind the <b>lines</b>. In offensive <b>transition</b>, players quickly seek a <b>counter-attack</b> through direct play forward. Targeted collective <b>pressing</b> can be triggered to win back possession in midfield.",
 
-    "AJ Auxerre": "Auxerre pratique un <b>high press</b> dynamique pour reprendre le ballon haut sur le terrain, suivi d'un <b>counter-pressing</b> immédiat. En possession, l'équipe crée des <b>overload</b>s sur un côté avant d'utiliser un <b>switch of play</b> pour exploiter l'espace libéré. Des <b>line-breaking pass</b>es et des <b>through ball</b>s permettent d'atteindre rapidement le <b>final third</b> adverse. Des <b>third man run</b>s bien coordonnés brisent les <b>lines</b> défensives adverses, et un <b>build-up play</b> propre depuis l'arrière permet de repartir sereinement.",
+    "AJ Auxerre": "Auxerre use a dynamic <b>high press</b> to win the ball high up the pitch, backed by immediate <b>counter-pressing</b>. In possession, they create <b>overload</b>s on one side before using a <b>switch of play</b> to exploit the freed space. <b>Line-breaking pass</b>es and <b>through ball</b>s quickly reach the opposition's <b>final third</b>. Well-coordinated <b>third man run</b>s break opposition <b>lines</b>, and clean <b>build-up play</b> from the back allows them to restart calmly.",
 
-    "FC Metz": "Metz s'appuie sur un <b>low block</b> très compact pour absorber la pression et protéger les espaces dans son <b>final third</b>. La <b>shape</b> défensive repose sur un <b>man marking</b> strict pour neutraliser les joueurs clés adverses. Des <b>tackle</b>s bien placés et des <b>interception</b>s alimentent des <b>counter-attack</b>s directes en <b>transition</b>. Le <b>pressing</b> est utilisé de manière ciblée dans les zones de récupération prioritaires. En phase offensive, un jeu de <b>cross</b>es depuis les ailes cherche à exploiter le <b>pivot</b> dans la surface.",
+    "FC Metz": "Metz rely on a very compact <b>low block</b> to absorb pressure and protect space in their <b>final third</b>. The defensive <b>shape</b> features strict <b>man marking</b> to neutralise the opposition's key players. Well-placed <b>tackle</b>s and <b>interception</b>s feed direct <b>counter-attack</b>s in <b>transition</b>. <b>Pressing</b> is used selectively in priority recovery zones. Offensively, a <b>cross</b>-based game from the wings looks to exploit the <b>pivot</b> in the box.",
 
-    "Paris FC": "Le Paris FC construit son jeu sur un <b>build-up play</b> soigné, avec des milieux se positionnant dans les <b>half-space</b>s pour progresser entre les <b>lines</b> adverses. La philosophie de <b>positional play</b> s'appuie sur une grande <b>width</b> et un <b>depth</b> bien maîtrisé pour occuper tout l'espace. Des <b>line-breaking pass</b>es atteignent les attaquants dans le <b>final third</b>, suivies de <b>through ball</b>s vers les coureurs en profondeur. En défense, une <b>shape</b> compacte et un <b>pressing</b> bien calibré maintiennent l'organisation, et la <b>transition</b> est rapide dans les deux sens.",
+    "Paris FC": "Paris FC build their game on careful <b>build-up play</b>, with midfielders positioning in the <b>half-space</b>s to progress between opposition <b>lines</b>. Their <b>positional play</b> philosophy relies on great <b>width</b> and controlled <b>depth</b> to occupy all available space. <b>Line-breaking pass</b>es reach attackers in the <b>final third</b>, followed by <b>through ball</b>s to runners in behind. A compact <b>shape</b> and well-calibrated <b>pressing</b> maintain defensive organisation, with quick <b>transition</b> in both directions.",
 
-    "FC Lorient": "Lorient s'appuie sur un <b>pressing</b> collectif pour récupérer le ballon dans l'entrejeu, avec une <b>shape</b> défensive très organisée. La <b>counter-attack</b> est la principale arme offensive : après une <b>interception</b> ou un <b>tackle</b>, le ballon remonte vite vers les attaquants. Un <b>switch of play</b> rapide exploite les espaces laissés par l'adversaire en <b>transition</b>. Des <b>overlap</b>s des latéraux suivis de <b>cross</b>es dans la surface sont la combinaison offensive privilégiée. En défense profonde, un <b>bloc bas</b> bien en place protège les espaces dans le <b>final third</b>.",
+    "FC Lorient": "Lorient rely on collective <b>pressing</b> to win the ball back in midfield, with a well-organised defensive <b>shape</b>. The <b>counter-attack</b> is their main offensive weapon — after an <b>interception</b> or <b>tackle</b>, the ball moves quickly to the attackers. A rapid <b>switch of play</b> exploits the space left by the opposition in <b>transition</b>. Full-back <b>overlap</b>s followed by <b>cross</b>es into the box are the favourite attacking combination. In deep defence, a solid <b>bloc bas</b> protects space in the <b>final third</b>.",
 }
-DEFAULT_STYLE = "Style de jeu à documenter."
+DEFAULT_STYLE = "Playing style to be documented."
 WATCH_COLORS = ["#7CC99A", "#F5D06E", "#F2827F"]
 
 def linkify_terms(text):
@@ -805,15 +805,15 @@ def bar_pct(v, max_v):
 def watch_points(a, b):
     da, db = standings.get(a,{}), standings.get(b,{})
     if not da or not db:
-        return ["Données non disponibles."]*3
+        return ["Data not available."]*3
     played = da.get("played",1) or 1
     gf_a, gf_b = da["goals_for"], db["goals_for"]
     ga_a, ga_b = da["goals_against"], db["goals_against"]
     pts_a, pts_b = da["points"], db["points"]
     return [
-        f"<b>{a if gf_a>=gf_b else b}</b> mène offensivement : {gf_a} buts pour {a} vs {gf_b} pour {b} ({gf_a/played:.1f} vs {gf_b/played:.1f} par match).",
-        f"Solidité défensive : <b>{a if ga_a<=ga_b else b}</b> encaisse moins ({ga_a} vs {ga_b} buts encaissés). Écart de {abs(ga_a-ga_b)} buts.",
-        f"Au classement, <b>{a if pts_a>=pts_b else b}</b> devance ({pts_a} pts vs {pts_b} pts). Diff. de buts : {da['goal_diff']:+} vs {db['goal_diff']:+}.",
+        f"<b>{a if gf_a>=gf_b else b}</b> leads offensively: {gf_a} goals for {a} vs {gf_b} for {b} ({gf_a/played:.1f} vs {gf_b/played:.1f} per match).",
+        f"Defensive solidity: <b>{a if ga_a<=ga_b else b}</b> concedes less ({ga_a} vs {ga_b} goals conceded). Gap of {abs(ga_a-ga_b)} goals.",
+        f"In the standings, <b>{a if pts_a>=pts_b else b}</b> is ahead ({pts_a} pts vs {pts_b} pts). Goal difference: {da['goal_diff']:+} vs {db['goal_diff']:+}.",
     ]
 
 GLOS_ICONS = ["⚡","🎯","🔄","💨","🛡️"]
@@ -826,10 +826,10 @@ GLOS_COLORS = ["var(--yellow-lt)","var(--green-lt)","var(--red-lt)","var(--beige
 def render_header():
     st.markdown("""
 <div class="app-header">
-<div><div class="app-title">The Football <span>Classroom</span></div><div class="app-sub">Analyse tactique · Ligue 1</div></div>
+<div><div class="app-title">The Football <span>Classroom</span></div><div class="app-sub">Tactical analysis · Ligue 1</div></div>
 <div class="app-header-right">
-<div class="live-badge"><span class="live-dot"></span>En direct</div>
-<div class="app-badges"><span class="app-badge">Ligue 1</span><span class="app-badge">2025/26</span><span class="app-badge">18 équipes</span></div>
+<div class="live-badge"><span class="live-dot"></span>Live</div>
+<div class="app-badges"><span class="app-badge">Ligue 1</span><span class="app-badge">2025/26</span><span class="app-badge">18 teams</span></div>
 </div>
 </div>""", unsafe_allow_html=True)
 
@@ -843,15 +843,15 @@ def render_nav():
     c1, c2, c3 = st.columns(3)
     with c1:
         t = "primary" if page == "main" else "secondary"
-        if st.button("⚽  Analyse", type=t, use_container_width=True, key="nav_main"):
+        if st.button("⚽  Analysis", type=t, use_container_width=True, key="nav_main"):
             st.session_state.page = "main"; st.rerun()
     with c2:
         t = "primary" if page == "classement" else "secondary"
-        if st.button("📊  Classement", type=t, use_container_width=True, key="nav_class"):
+        if st.button("📊  Standings", type=t, use_container_width=True, key="nav_class"):
             st.session_state.page = "classement"; st.rerun()
     with c3:
         t = "primary" if page == "glossaire" else "secondary"
-        if st.button("📖  Glossaire", type=t, use_container_width=True, key="nav_glos"):
+        if st.button("📖  Glossary", type=t, use_container_width=True, key="nav_glos"):
             st.session_state.page = "glossaire"; st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -862,25 +862,25 @@ def render_nav():
 def page_definition():
     term = st.session_state.active_term
     term_data = TACTICAL_TERMS.get(term, {})
-    definition      = term_data.get("definition",        "Définition à venir.") if isinstance(term_data, dict) else term_data
+    definition      = term_data.get("definition",        "Definition coming soon.") if isinstance(term_data, dict) else term_data
     simple          = term_data.get("simple_explanation", "") if isinstance(term_data, dict) else ""
     example         = term_data.get("example",            "") if isinstance(term_data, dict) else ""
     animation       = term_data.get("animation_idea",     "") if isinstance(term_data, dict) else ""
 
-    if st.button("← Retour", type="primary", key="back"):
+    if st.button("← Back", type="primary", key="back"):
         st.session_state.page = "main"
         st.session_state.active_term = None
         st.rerun()
 
-    st.markdown(f"""<div class="def-hero"><span class="pill pill-yellow">Terme tactique</span><div class="def-title">{term.capitalize()}</div><div class="def-category">Glossaire · Ligue 1</div></div>""", unsafe_allow_html=True)
+    st.markdown(f"""<div class="def-hero"><span class="pill pill-yellow">Tactical term</span><div class="def-title">{term.capitalize()}</div><div class="def-category">Glossary · Ligue 1</div></div>""", unsafe_allow_html=True)
     st.markdown(f'<div class="def-text">{definition}</div>', unsafe_allow_html=True)
     if simple:
         st.markdown(f'<div class="def-simple"><span class="def-tag def-tag-green">💡 In simple terms</span><p>{simple}</p></div>', unsafe_allow_html=True)
     if example:
         st.markdown(f'<div class="def-example"><span class="def-tag def-tag-yellow">⚽ Example</span><p>{example}</p></div>', unsafe_allow_html=True)
     st.markdown('<div class="div"></div>', unsafe_allow_html=True)
-    st.markdown('<div class="sec-label">Visualisation</div><div class="sec-title">Illustration tactique</div>', unsafe_allow_html=True)
-    terrain_label = animation if animation else "Visualisation — à venir"
+    st.markdown('<div class="sec-label">Visualization</div><div class="sec-title">Tactical illustration</div>', unsafe_allow_html=True)
+    terrain_label = animation if animation else "Visualization — coming soon"
     st.markdown(f"""<div class="terrain-wrap"><div class="terrain-border"></div><div class="terrain-center"></div><div class="terrain-center-dot"></div><div class="terrain-box-top"></div><div class="terrain-box-bot"></div><div class="terrain-small-top"></div><div class="terrain-small-bot"></div><span class="terrain-label">{terrain_label}</span></div>""", unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -889,7 +889,7 @@ def page_definition():
 # PAGE GLOSSAIRE
 # ══════════════════════════════════════════════════════════════════════════════
 def page_glossaire():
-    st.markdown('<div class="sec-label">Vocabulaire</div><div class="sec-title">Glossaire tactique</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec-label">Vocabulary</div><div class="sec-title">Tactical Glossary</div>', unsafe_allow_html=True)
     for i, (term, term_data) in enumerate(TACTICAL_TERMS.items()):
         definition = term_data.get("definition", "") if isinstance(term_data, dict) else term_data
         icon = GLOS_ICONS[i % len(GLOS_ICONS)]
@@ -899,7 +899,7 @@ def page_glossaire():
             f'<div class="glos-card-header">'
             f'<div class="glos-card-icon" style="background:{bg}">{icon}</div>'
             f'<span class="glos-card-term">{term.capitalize()}</span>'
-            f'<span class="pill pill-yellow" style="margin-left:auto">Tactique</span>'
+            f'<span class="pill pill-yellow" style="margin-left:auto">Tactical</span>'
             f'</div>'
             f'<div class="glos-card-body">{definition}</div>'
             f'</div>',
@@ -915,10 +915,10 @@ def page_classement():
     team_b = st.session_state.team_b
     da = standings.get(team_a, {})
 
-    st.markdown('<div class="sec-label">Ligue 1</div><div class="sec-title">Classement 2025/26</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec-label">Ligue 1</div><div class="sec-title">Standings 2025/26</div>', unsafe_allow_html=True)
 
     # Build rows — NO indentation to avoid markdown code-block interpretation
-    hdr = '<div class="standings-hdr-row"><span class="standings-pos">#</span><span style="width:20px"></span><span style="flex:1">Équipe</span><span class="standings-stat">J</span><span class="standings-stat">V</span><span class="standings-stat">N</span><span class="standings-stat">D</span><span class="standings-gd">DB</span><span class="standings-pts">Pts</span></div>'
+    hdr = '<div class="standings-hdr-row"><span class="standings-pos">#</span><span style="width:20px"></span><span style="flex:1">Team</span><span class="standings-stat">P</span><span class="standings-stat">W</span><span class="standings-stat">D</span><span class="standings-stat">L</span><span class="standings-gd">GD</span><span class="standings-pts">Pts</span></div>'
 
     rows = ""
     for name in ALL_TEAMS:
@@ -931,7 +931,7 @@ def page_classement():
 
     st.markdown(
         f'<div class="standings-card">'
-        f'<div class="standings-header"><span class="standings-header-title">Classement général — Journée {da.get("played","?")}</span></div>'
+        f'<div class="standings-header"><span class="standings-header-title">Full standings — Matchday {da.get("played","?")}</span></div>'
         f'{hdr}{rows}'
         f'</div>',
         unsafe_allow_html=True
@@ -947,16 +947,16 @@ def page_main():
     team_b = st.session_state.team_b
 
     # ── Sélecteurs ──
-    st.markdown('<div class="match-card"><span class="match-card-label">Choisir le match à analyser</span><span class="match-vs-badge">VS</span></div>', unsafe_allow_html=True)
+    st.markdown('<div class="match-card"><span class="match-card-label">Choose the match to analyse</span><span class="match-vs-badge">VS</span></div>', unsafe_allow_html=True)
     col_a, col_b = st.columns(2)
     with col_a:
         idx_a = ALL_TEAMS.index(team_a) if team_a in ALL_TEAMS else 0
-        st.session_state.team_a = st.selectbox("Équipe A", ALL_TEAMS, index=idx_a, key="sel_a")
+        st.session_state.team_a = st.selectbox("Team A", ALL_TEAMS, index=idx_a, key="sel_a")
     with col_b:
         remaining = [t for t in ALL_TEAMS if t != st.session_state.team_a]
         if st.session_state.team_b not in remaining:
             st.session_state.team_b = remaining[0]
-        st.session_state.team_b = st.selectbox("Équipe B", remaining, index=remaining.index(st.session_state.team_b), key="sel_b")
+        st.session_state.team_b = st.selectbox("Team B", remaining, index=remaining.index(st.session_state.team_b), key="sel_b")
 
     team_a, team_b = st.session_state.team_a, st.session_state.team_b
     da, db = standings.get(team_a, {}), standings.get(team_b, {})
@@ -967,11 +967,11 @@ def page_main():
     # ── VS Banner ──
     st.markdown(
         f'<div class="vs-banner">'
-        f'<div class="vs-team"><span class="vs-team-label vs-team-label-a">Équipe A</span>'
+        f'<div class="vs-team"><span class="vs-team-label vs-team-label-a">Team A</span>'
         f'<div class="vs-team-crest">{img_a}<span class="vs-team-name">{team_a}</span></div>'
         f'<span class="vs-team-stat">#{da.get("position","—")} · {da.get("points","—")} pts</span></div>'
         f'<div class="vs-sep"><span class="vs-sep-dot"></span><span class="vs-sep-text">VS</span><span class="vs-sep-dot"></span></div>'
-        f'<div class="vs-team"><span class="vs-team-label vs-team-label-b">Équipe B</span>'
+        f'<div class="vs-team"><span class="vs-team-label vs-team-label-b">Team B</span>'
         f'<div class="vs-team-crest">{img_b}<span class="vs-team-name">{team_b}</span></div>'
         f'<span class="vs-team-stat">#{db.get("position","—")} · {db.get("points","—")} pts</span></div>'
         f'</div>',
@@ -981,7 +981,7 @@ def page_main():
     st.markdown('<div class="div"></div>', unsafe_allow_html=True)
 
     # ── Styles de jeu ──
-    st.markdown('<div class="sec-label">Analyse IA</div><div class="sec-title">Style de jeu</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec-label">AI Analysis</div><div class="sec-title">Playing Style</div>', unsafe_allow_html=True)
 
     # Fetch enriched data for both teams
     form_a        = tuple(fetch_team_form(da.get("id")))
@@ -1005,14 +1005,14 @@ def page_main():
             f'color:{colors[r]};font-size:.65rem;font-weight:900;margin-right:.25rem">{r}</span>'
             for r in form
         )
-        return f'<div style="margin-bottom:.6rem;font-size:.62rem;font-weight:800;color:var(--mid);letter-spacing:.1em;text-transform:uppercase;margin-top:.2rem">Forme récente &nbsp;{pills}</div>'
+        return f'<div style="margin-bottom:.6rem;font-size:.62rem;font-weight:800;color:var(--mid);letter-spacing:.1em;text-transform:uppercase;margin-top:.2rem">Recent form &nbsp;{pills}</div>'
 
     def _fmt_style(raw):
-        """Convertit les sauts de ligne en <br> pour l'affichage HTML, puis linkifie les termes."""
+        """Converts line breaks to <br> for HTML display, then linkifies glossary terms."""
         html = raw.replace("\n\n", "<br><br>").replace("\n", " ")
         return linkify_terms(html)
 
-    with st.spinner("Génération de l'analyse IA…"):
+    with st.spinner("Generating AI analysis…"):
         style_a_raw = generate_team_style(
             team_a,
             da.get("points",0), da.get("played",1), da.get("won",0), da.get("draw",0), da.get("lost",0),
@@ -1046,28 +1046,28 @@ def page_main():
     with c1:
         st.markdown(
             f'<div class="team-card card-a">'
-            f'<div class="team-card-header">{img28_a} {team_a}<span class="badge">Équipe A</span></div>'
+            f'<div class="team-card-header">{img28_a} {team_a}<span class="badge">Team A</span></div>'
             f'<div class="team-card-body">{_render_form(form_a)}{style_a}</div>'
             f'<div class="team-stats-row">'
             f'<div class="team-stat-box"><div class="team-stat-box-num">{da.get("points","—")}</div><div class="team-stat-box-lbl">Pts</div></div>'
-            f'<div class="team-stat-box"><div class="team-stat-box-num">{da.get("won","—")}</div><div class="team-stat-box-lbl">V</div></div>'
-            f'<div class="team-stat-box"><div class="team-stat-box-num">{da.get("draw","—")}</div><div class="team-stat-box-lbl">N</div></div>'
-            f'<div class="team-stat-box"><div class="team-stat-box-num">{da.get("lost","—")}</div><div class="team-stat-box-lbl">D</div></div>'
-            f'<div class="team-stat-box"><div class="team-stat-box-num">{da.get("goals_for","—")}</div><div class="team-stat-box-lbl">Buts</div></div>'
+            f'<div class="team-stat-box"><div class="team-stat-box-num">{da.get("won","—")}</div><div class="team-stat-box-lbl">W</div></div>'
+            f'<div class="team-stat-box"><div class="team-stat-box-num">{da.get("draw","—")}</div><div class="team-stat-box-lbl">D</div></div>'
+            f'<div class="team-stat-box"><div class="team-stat-box-num">{da.get("lost","—")}</div><div class="team-stat-box-lbl">L</div></div>'
+            f'<div class="team-stat-box"><div class="team-stat-box-num">{da.get("goals_for","—")}</div><div class="team-stat-box-lbl">Goals</div></div>'
             f'</div></div>',
             unsafe_allow_html=True
         )
     with c2:
         st.markdown(
             f'<div class="team-card card-b">'
-            f'<div class="team-card-header">{img28_b} {team_b}<span class="badge">Équipe B</span></div>'
+            f'<div class="team-card-header">{img28_b} {team_b}<span class="badge">Team B</span></div>'
             f'<div class="team-card-body">{_render_form(form_b)}{style_b}</div>'
             f'<div class="team-stats-row">'
             f'<div class="team-stat-box"><div class="team-stat-box-num">{db.get("points","—")}</div><div class="team-stat-box-lbl">Pts</div></div>'
-            f'<div class="team-stat-box"><div class="team-stat-box-num">{db.get("won","—")}</div><div class="team-stat-box-lbl">V</div></div>'
-            f'<div class="team-stat-box"><div class="team-stat-box-num">{db.get("draw","—")}</div><div class="team-stat-box-lbl">N</div></div>'
-            f'<div class="team-stat-box"><div class="team-stat-box-num">{db.get("lost","—")}</div><div class="team-stat-box-lbl">D</div></div>'
-            f'<div class="team-stat-box"><div class="team-stat-box-num">{db.get("goals_for","—")}</div><div class="team-stat-box-lbl">Buts</div></div>'
+            f'<div class="team-stat-box"><div class="team-stat-box-num">{db.get("won","—")}</div><div class="team-stat-box-lbl">W</div></div>'
+            f'<div class="team-stat-box"><div class="team-stat-box-num">{db.get("draw","—")}</div><div class="team-stat-box-lbl">D</div></div>'
+            f'<div class="team-stat-box"><div class="team-stat-box-num">{db.get("lost","—")}</div><div class="team-stat-box-lbl">L</div></div>'
+            f'<div class="team-stat-box"><div class="team-stat-box-num">{db.get("goals_for","—")}</div><div class="team-stat-box-lbl">Goals</div></div>'
             f'</div></div>',
             unsafe_allow_html=True
         )
@@ -1075,13 +1075,13 @@ def page_main():
     st.markdown('<div class="div"></div>', unsafe_allow_html=True)
 
     # ── Terrain ──
-    st.markdown('<div class="sec-label">Tactique</div><div class="sec-title">Terrain tactique</div>', unsafe_allow_html=True)
-    st.markdown('<div class="terrain-wrap"><div class="terrain-border"></div><div class="terrain-center"></div><div class="terrain-center-dot"></div><div class="terrain-box-top"></div><div class="terrain-box-bot"></div><div class="terrain-small-top"></div><div class="terrain-small-bot"></div><span class="terrain-label">Terrain tactique — à venir</span></div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec-label">Tactics</div><div class="sec-title">Tactical pitch</div>', unsafe_allow_html=True)
+    st.markdown('<div class="terrain-wrap"><div class="terrain-border"></div><div class="terrain-center"></div><div class="terrain-center-dot"></div><div class="terrain-box-top"></div><div class="terrain-box-bot"></div><div class="terrain-small-top"></div><div class="terrain-small-bot"></div><span class="terrain-label">Tactical pitch — coming soon</span></div>', unsafe_allow_html=True)
 
     st.markdown('<div class="div"></div>', unsafe_allow_html=True)
 
-    # ── Comparaison stats ──
-    st.markdown('<div class="sec-label">Statistiques</div><div class="sec-title">Comparaison directe</div>', unsafe_allow_html=True)
+    # ── Stats comparison ──
+    st.markdown('<div class="sec-label">Statistics</div><div class="sec-title">Head to head</div>', unsafe_allow_html=True)
 
     all_gf  = [v["goals_for"]     for v in standings.values()] or [1]
     all_ga  = [v["goals_against"] for v in standings.values()] or [1]
@@ -1109,11 +1109,11 @@ def page_main():
 
     r1, r2, r3 = st.columns(3)
     with r1:
-        st.markdown(cmp_card("stat-cmp-hdr-1","stat-cmp-dot-1","Efficacité offensive",gf_a,gf_b,max_gf,f"Moy. {gf_a/played_a:.1f} vs {gf_b/played_a:.1f} buts / match"), unsafe_allow_html=True)
+        st.markdown(cmp_card("stat-cmp-hdr-1","stat-cmp-dot-1","Offensive efficiency",gf_a,gf_b,max_gf,f"Avg. {gf_a/played_a:.1f} vs {gf_b/played_a:.1f} goals / match"), unsafe_allow_html=True)
     with r2:
-        st.markdown(cmp_card("stat-cmp-hdr-2","stat-cmp-dot-2","Points au classement",pts_a,pts_b,max_pts,f"#{da.get('position','—')} vs #{db.get('position','—')} au classement"), unsafe_allow_html=True)
+        st.markdown(cmp_card("stat-cmp-hdr-2","stat-cmp-dot-2","Points in standings",pts_a,pts_b,max_pts,f"#{da.get('position','—')} vs #{db.get('position','—')} in the standings"), unsafe_allow_html=True)
     with r3:
-        st.markdown(cmp_card("stat-cmp-hdr-3","stat-cmp-dot-3","Solidité défensive",ga_a,ga_b,max_ga,"Buts encaissés — moins = meilleure défense",inverted=True), unsafe_allow_html=True)
+        st.markdown(cmp_card("stat-cmp-hdr-3","stat-cmp-dot-3","Defensive solidity",ga_a,ga_b,max_ga,"Goals conceded — lower is better",inverted=True), unsafe_allow_html=True)
 
     st.markdown('<div class="div"></div>', unsafe_allow_html=True)
 
@@ -1121,7 +1121,7 @@ def page_main():
     points = watch_points(team_a, team_b)
     st.markdown(
         f'<div class="watch-card">'
-        f'<div class="watch-header"><div class="watch-icon">👁</div><div><div class="watch-title">Points clés à surveiller</div><div class="watch-subtitle">{team_a} vs {team_b}</div></div></div>'
+        f'<div class="watch-header"><div class="watch-icon">👁</div><div><div class="watch-title">Key points to watch</div><div class="watch-subtitle">{team_a} vs {team_b}</div></div></div>'
         f'<div class="watch-item"><div class="watch-num">01</div><div class="watch-dot" style="background:{WATCH_COLORS[0]}"></div><div class="watch-text">{points[0]}</div></div>'
         f'<div class="watch-item"><div class="watch-num">02</div><div class="watch-dot" style="background:{WATCH_COLORS[1]}"></div><div class="watch-text">{points[1]}</div></div>'
         f'<div class="watch-item"><div class="watch-num">03</div><div class="watch-dot" style="background:{WATCH_COLORS[2]}"></div><div class="watch-text">{points[2]}</div></div>'
