@@ -12,7 +12,15 @@ HEADERS = {"X-Auth-Token": API_KEY}
 ANTHROPIC_API_KEY  = st.secrets.get("ANTHROPIC_API_KEY", "")
 API_FOOTBALL_KEY   = st.secrets.get("API_FOOTBALL_KEY", "")
 
-# Ligue 1 team IDs on API-Football (league 61, season 2025)
+LEAGUES = {
+    "Ligue 1":        {"code": "FL1",  "flag": "🇫🇷", "country": "France"},
+    "La Liga":        {"code": "PD",   "flag": "🇪🇸", "country": "Spain"},
+    "Serie A":        {"code": "SA",   "flag": "🇮🇹", "country": "Italy"},
+    "Premier League": {"code": "PL",   "flag": "🇬🇧", "country": "England"},
+    "Bundesliga":     {"code": "BL1",  "flag": "🇩🇪", "country": "Germany"},
+}
+
+# Ligue 1 team IDs on API-Football (only used for advanced stats)
 API_FOOTBALL_IDS = {
     "Paris Saint-Germain":    85,
     "Olympique de Marseille": 81,
@@ -34,7 +42,8 @@ API_FOOTBALL_IDS = {
     "FC Lorient":           1041,
 }
 
-API_TO_DISPLAY = {
+# Name normalization for Ligue 1 (football-data.org names → display names)
+FL1_NAME_MAP = {
     "Paris Saint-Germain FC": "Paris Saint-Germain",
     "Racing Club de Lens":    "RC Lens",
     "Olympique de Marseille": "Olympique de Marseille",
@@ -56,10 +65,11 @@ API_TO_DISPLAY = {
 }
 
 @st.cache_data(ttl=3600, show_spinner=False)
-def fetch_standings():
+def fetch_standings(league_code):
+    name_map = FL1_NAME_MAP if league_code == "FL1" else {}
     try:
         r = requests.get(
-            "https://api.football-data.org/v4/competitions/FL1/standings",
+            f"https://api.football-data.org/v4/competitions/{league_code}/standings",
             headers=HEADERS, timeout=10
         )
         r.raise_for_status()
@@ -67,7 +77,7 @@ def fetch_standings():
         result = {}
         for row in table:
             t = row["team"]
-            name = API_TO_DISPLAY.get(t["name"], t["name"])
+            name = name_map.get(t["name"], t["name"])
             result[name] = {
                 "id":            t["id"],
                 "crest":         t["crest"],
@@ -87,11 +97,11 @@ def fetch_standings():
         return {}
 
 @st.cache_data(ttl=86400, show_spinner=False)
-def fetch_previous_standings():
-    """Final Ligue 1 standings for the 2024 season (previous season)."""
+def fetch_previous_standings(league_code):
+    name_map = FL1_NAME_MAP if league_code == "FL1" else {}
     try:
         r = requests.get(
-            "https://api.football-data.org/v4/competitions/FL1/standings",
+            f"https://api.football-data.org/v4/competitions/{league_code}/standings",
             headers=HEADERS,
             params={"season": 2024},
             timeout=10
@@ -99,7 +109,7 @@ def fetch_previous_standings():
         r.raise_for_status()
         table = r.json()["standings"][0]["table"]
         return {
-            API_TO_DISPLAY.get(row["team"]["name"], row["team"]["name"]): row["position"]
+            name_map.get(row["team"]["name"], row["team"]["name"]): row["position"]
             for row in table
         }
     except Exception:
@@ -139,11 +149,11 @@ def fetch_team_form(team_id):
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
-def fetch_competition_scorers():
-    """Ligue 1 top scorers — returns a dict {team_display_name: [(player, goals), ...]}."""
+def fetch_competition_scorers(league_code):
+    name_map = FL1_NAME_MAP if league_code == "FL1" else {}
     try:
         r = requests.get(
-            "https://api.football-data.org/v4/competitions/FL1/scorers",
+            f"https://api.football-data.org/v4/competitions/{league_code}/scorers",
             headers=HEADERS,
             params={"limit": 50},
             timeout=10
@@ -152,7 +162,7 @@ def fetch_competition_scorers():
         scorers_by_team = {}
         for s in r.json().get("scorers", []):
             raw_team = s["team"]["name"]
-            team = API_TO_DISPLAY.get(raw_team, raw_team)
+            team = name_map.get(raw_team, raw_team)
             player = s["player"]["name"]
             goals  = s.get("goals", 0)
             assists = s.get("assists") or 0
@@ -163,9 +173,9 @@ def fetch_competition_scorers():
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
-def fetch_api_football_stats(team_name):
+def fetch_api_football_stats(team_name, league_code="FL1"):
     """Advanced stats from API-Football: formation, passes, shots, clean sheets."""
-    if not API_FOOTBALL_KEY:
+    if league_code != "FL1" or not API_FOOTBALL_KEY:
         return {}
     team_id = API_FOOTBALL_IDS.get(team_name)
     if not team_id:
@@ -246,42 +256,46 @@ def generate_team_style(team_name, pts, played, won, draw, lost,
     avg_gf   = round(goals_for      / max(played, 1), 2)
     avg_ga   = round(goals_against  / max(played, 1), 2)
 
-    prev_str = f"{prev_position}e" if prev_position else "N/A"
+    def ordinal(n):
+        if 11 <= n % 100 <= 13: return f"{n}th"
+        return f"{n}" + {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    prev_str = ordinal(prev_position) if prev_position else "N/A"
+    ord_suffix = {1: "st", 2: "nd", 3: "rd"}.get(position % 10, "th") if (position and not (11 <= position % 100 <= 13)) else "th"
     pos_delta = ""
     if prev_position and position:
         diff = prev_position - position
-        if diff > 0:   pos_delta = f" (↑ +{diff} par rapport à la saison dernière)"
-        elif diff < 0: pos_delta = f" (↓ {diff} par rapport à la saison dernière)"
-        else:           pos_delta = " (même position que la saison dernière)"
+        if diff > 0:   pos_delta = f" (↑ +{diff} vs last season)"
+        elif diff < 0: pos_delta = f" (↓ {diff} vs last season)"
+        else:           pos_delta = " (same position as last season)"
 
-    stats_block = f"""Équipe : {team_name}
-Classement actuel : {position}e place{pos_delta} — {pts} points en {played} matchs
-Classement saison précédente (2024/25) : {prev_str}
-Bilan : {won}V / {draw}N / {lost}D
-Buts marqués : {goals_for} ({avg_gf}/match) | Buts encaissés : {goals_against} ({avg_ga}/match)
-Différence de buts : {goal_diff:+}
-Forme récente (5 derniers matchs) : {form_str}"""
+    stats_block = f"""Team: {team_name}
+Current ranking: {position}{ord_suffix} place{pos_delta} — {pts} points in {played} matches
+Previous season ranking (2024/25): {prev_str}
+Record: {won}W / {draw}D / {lost}L
+Goals scored: {goals_for} ({avg_gf}/match) | Goals conceded: {goals_against} ({avg_ga}/match)
+Goal difference: {goal_diff:+}
+Recent form (last 5 matches): {form_str}"""
 
     if key_scorers_tuple:
-        scorers_str = ", ".join(f"{n} ({g} buts{', '+str(a)+' passes dét.' if a else ''})"
+        scorers_str = ", ".join(f"{n} ({g} goals{', '+str(a)+' assists' if a else ''})"
                                 for n, g, a in key_scorers_tuple)
-        stats_block += f"\nJoueurs clés (buteurs) : {scorers_str}"
+        stats_block += f"\nKey players (scorers): {scorers_str}"
     if extra_formation:
-        stats_block += f"\nFormation principale : {extra_formation}"
+        stats_block += f"\nMain formation: {extra_formation}"
     if extra_wins_home is not None:
-        stats_block += f"\nVictoires domicile / extérieur : {extra_wins_home} / {extra_wins_away}"
+        stats_block += f"\nHome / away wins: {extra_wins_home} / {extra_wins_away}"
     if extra_passes_pct:
-        stats_block += f"\nPrécision des passes : {extra_passes_pct}"
+        stats_block += f"\nPass accuracy: {extra_passes_pct}"
     if extra_shots_pg:
-        stats_block += f"\nTirs par match : {extra_shots_pg} (dont {extra_shots_on_pg} cadrés)"
+        stats_block += f"\nShots per match: {extra_shots_pg} (of which {extra_shots_on_pg} on target)"
     if extra_clean_sheets is not None:
-        stats_block += f"\nClean sheets (matchs sans encaisser) : {extra_clean_sheets}"
+        stats_block += f"\nClean sheets: {extra_clean_sheets}"
     if extra_failed_to_score is not None:
-        stats_block += f"\nMatchs sans marquer : {extra_failed_to_score}"
+        stats_block += f"\nMatches without scoring: {extra_failed_to_score}"
     if extra_top_slot:
-        stats_block += f"\nTranche de jeu où l'équipe marque le plus : {extra_top_slot} min"
+        stats_block += f"\nPeriod when team scores most: {extra_top_slot} min"
     if extra_gf_avg:
-        stats_block += f"\nMoyenne buts pour / contre par match : {extra_gf_avg} / {extra_ga_avg}"
+        stats_block += f"\nAverage goals for / against per match: {extra_gf_avg} / {extra_ga_avg}"
 
     terms = ", ".join(TACTICAL_TERMS.keys())
 
@@ -337,7 +351,7 @@ def generate_key_challenges(team_a, team_b, pts_a, pts_b, gf_a, gf_b, ga_a, ga_b
             f"{team_a} must stay compact and limit space in behind.",
             f"{team_b} must be clinical in the final third.",
         )
-    prompt = f"""You are a concise football analyst. Given these two Ligue 1 teams and their season stats, write exactly 2 lines — one per team — describing each team's single biggest tactical challenge in this specific matchup.
+    prompt = f"""You are a concise football analyst. Given these two teams and their season stats, write exactly 2 lines — one per team — describing each team's single biggest tactical challenge in this specific matchup.
 
 {team_a}: {pts_a} pts, {gf_a} goals scored, {ga_a} goals conceded this season.
 {team_b}: {pts_b} pts, {gf_b} goals scored, {ga_b} goals conceded this season.
@@ -819,9 +833,14 @@ button[kind="primary"],[data-testid="stBaseButton-primary"]{background:var(--dar
 </style>
 """, unsafe_allow_html=True)
 
-# ── Load data ──────────────────────────────────────────────────────────────────
-standings = fetch_standings()
-ALL_TEAMS = sorted(standings.keys(), key=lambda n: standings[n]["position"]) if standings else list(TEAM_STYLES.keys())
+# ── League init (must happen before standings fetch) ─────────────────────────
+if "league" not in st.session_state:
+    st.session_state.league = "Ligue 1"
+
+# ── Load data ─────────────────────────────────────────────────────────────────
+_league_code = LEAGUES[st.session_state.league]["code"]
+standings = fetch_standings(_league_code)
+ALL_TEAMS = sorted(standings.keys(), key=lambda n: standings[n]["position"]) if standings else []
 
 # ── Check query params (term click from style cards) ──────────────────────────
 qp = st.query_params
@@ -882,12 +901,16 @@ GLOS_COLORS = ["var(--yellow-lt)","var(--green-lt)","var(--red-lt)","var(--beige
 # HEADER (shown on all pages except definition)
 # ══════════════════════════════════════════════════════════════════════════════
 def render_header():
-    st.markdown("""
+    league = st.session_state.get("league", "Ligue 1")
+    league_info = LEAGUES.get(league, {})
+    flag = league_info.get("flag", "⚽")
+    n_teams = len(ALL_TEAMS)
+    st.markdown(f"""
 <div class="app-header">
-<div><div class="app-title">The Football <span>Classroom</span></div><div class="app-sub">Tactical analysis · Ligue 1</div></div>
+<div><div class="app-title">The Football <span>Classroom</span></div><div class="app-sub">Tactical analysis · 5 Leagues</div></div>
 <div class="app-header-right">
 <div class="live-badge"><span class="live-dot"></span>Live</div>
-<div class="app-badges"><span class="app-badge">Ligue 1</span><span class="app-badge">2025/26</span><span class="app-badge">18 teams</span></div>
+<div class="app-badges"><span class="app-badge">{flag} {league}</span><span class="app-badge">2025/26</span><span class="app-badge">{n_teams} teams</span></div>
 </div>
 </div>""", unsafe_allow_html=True)
 
@@ -971,31 +994,51 @@ def page_glossaire():
 # PAGE CLASSEMENT
 # ══════════════════════════════════════════════════════════════════════════════
 def page_classement():
+    selected_league = st.session_state.get("league", "Ligue 1")
     team_a = st.session_state.team_a
     team_b = st.session_state.team_b
-    da = standings.get(team_a, {})
 
-    st.markdown('<div class="sec-label">Ligue 1</div><div class="sec-title">Standings 2025/26</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec-label">5 Leagues</div><div class="sec-title">Standings 2025/26</div>', unsafe_allow_html=True)
 
-    # Build rows — NO indentation to avoid markdown code-block interpretation
-    hdr = '<div class="standings-hdr-row"><span class="standings-pos">#</span><span style="width:20px"></span><span style="flex:1">Team</span><span class="standings-stat">P</span><span class="standings-stat">W</span><span class="standings-stat">D</span><span class="standings-stat">L</span><span class="standings-gd">GD</span><span class="standings-pts">Pts</span></div>'
+    tab_labels = [f"{LEAGUES[l]['flag']} {l}" for l in LEAGUES]
+    tabs = st.tabs(tab_labels)
 
-    rows = ""
-    for name in ALL_TEAMS:
-        d = standings[name]
-        gd = d["goal_diff"]
-        gd_str = f"{gd:+}" if gd != 0 else "0"
-        cls = "highlighted-a" if name == team_a else ("highlighted-b" if name == team_b else "")
-        img = f'<img class="standings-crest" src="{d["crest"]}">' if d.get("crest") else '<span style="width:20px"></span>'
-        rows += f'<div class="standings-row {cls}"><span class="standings-pos">{d["position"]}</span>{img}<span class="standings-name">{name}</span><span class="standings-stat">{d["played"]}</span><span class="standings-stat">{d["won"]}</span><span class="standings-stat">{d["draw"]}</span><span class="standings-stat">{d["lost"]}</span><span class="standings-gd {gd_class(gd)}">{gd_str}</span><span class="standings-pts">{d["points"]}</span></div>'
+    for (league_name, league_info), tab in zip(LEAGUES.items(), tabs):
+        with tab:
+            league_standings = fetch_standings(league_info["code"])
+            league_teams = sorted(league_standings.keys(), key=lambda n: league_standings[n]["position"]) if league_standings else []
+            if not league_standings:
+                st.markdown("<p>Data not available.</p>", unsafe_allow_html=True)
+                continue
 
-    st.markdown(
-        f'<div class="standings-card">'
-        f'<div class="standings-header"><span class="standings-header-title">Full standings — Matchday {da.get("played","?")}</span></div>'
-        f'{hdr}{rows}'
-        f'</div>',
-        unsafe_allow_html=True
-    )
+            # Only highlight team_a / team_b when viewing the currently selected league
+            def _row_cls(name):
+                if league_name != selected_league:
+                    return ""
+                if name == team_a: return "highlighted-a"
+                if name == team_b: return "highlighted-b"
+                return ""
+
+            first_team_data = league_standings[league_teams[0]] if league_teams else {}
+
+            hdr = '<div class="standings-hdr-row"><span class="standings-pos">#</span><span style="width:20px"></span><span style="flex:1">Team</span><span class="standings-stat">P</span><span class="standings-stat">W</span><span class="standings-stat">D</span><span class="standings-stat">L</span><span class="standings-gd">GD</span><span class="standings-pts">Pts</span></div>'
+
+            rows = ""
+            for name in league_teams:
+                d = league_standings[name]
+                gd = d["goal_diff"]
+                gd_str = f"{gd:+}" if gd != 0 else "0"
+                cls = _row_cls(name)
+                img = f'<img class="standings-crest" src="{d["crest"]}">' if d.get("crest") else '<span style="width:20px"></span>'
+                rows += f'<div class="standings-row {cls}"><span class="standings-pos">{d["position"]}</span>{img}<span class="standings-name">{name}</span><span class="standings-stat">{d["played"]}</span><span class="standings-stat">{d["won"]}</span><span class="standings-stat">{d["draw"]}</span><span class="standings-stat">{d["lost"]}</span><span class="standings-gd {gd_class(gd)}">{gd_str}</span><span class="standings-pts">{d["points"]}</span></div>'
+
+            st.markdown(
+                f'<div class="standings-card">'
+                f'<div class="standings-header"><span class="standings-header-title">Full standings — Matchday {first_team_data.get("played","?")}</span></div>'
+                f'{hdr}{rows}'
+                f'</div>',
+                unsafe_allow_html=True
+            )
     st.markdown("<br>", unsafe_allow_html=True)
 
 
@@ -1006,7 +1049,25 @@ def page_main():
     team_a = st.session_state.team_a
     team_b = st.session_state.team_b
 
-    # ── Sélecteurs ──
+    # ── League selector ──
+    league_names = list(LEAGUES.keys())
+    cur_league = st.session_state.get("league", "Ligue 1")
+    cur_league_idx = league_names.index(cur_league) if cur_league in league_names else 0
+    selected_league = st.selectbox(
+        "Championship",
+        league_names,
+        index=cur_league_idx,
+        key="sel_league",
+        format_func=lambda l: f"{LEAGUES[l]['flag']}  {l}",
+    )
+    if selected_league != st.session_state.league:
+        st.session_state.league = selected_league
+        for k in ["team_a", "team_b"]:
+            if k in st.session_state:
+                del st.session_state[k]
+        st.rerun()
+
+    # ── Team selectors ──
     st.markdown('<div class="match-card"><span class="match-card-label">Choose the match to analyse</span><span class="match-vs-badge">VS</span></div>', unsafe_allow_html=True)
     col_a, col_b = st.columns(2)
     with col_a:
@@ -1015,8 +1076,8 @@ def page_main():
     with col_b:
         remaining = [t for t in ALL_TEAMS if t != st.session_state.team_a]
         if st.session_state.team_b not in remaining:
-            st.session_state.team_b = remaining[0]
-        st.session_state.team_b = st.selectbox("Team B", remaining, index=remaining.index(st.session_state.team_b), key="sel_b")
+            st.session_state.team_b = remaining[0] if remaining else ""
+        st.session_state.team_b = st.selectbox("Team B", remaining, index=remaining.index(st.session_state.team_b) if st.session_state.team_b in remaining else 0, key="sel_b")
 
     team_a, team_b = st.session_state.team_a, st.session_state.team_b
     da, db = standings.get(team_a, {}), standings.get(team_b, {})
@@ -1046,12 +1107,12 @@ def page_main():
     # Fetch enriched data for both teams
     form_a        = tuple(fetch_team_form(da.get("id")))
     form_b        = tuple(fetch_team_form(db.get("id")))
-    extra_a       = fetch_api_football_stats(team_a)
-    extra_b       = fetch_api_football_stats(team_b)
-    all_scorers   = fetch_competition_scorers()
+    extra_a       = fetch_api_football_stats(team_a, _league_code)
+    extra_b       = fetch_api_football_stats(team_b, _league_code)
+    all_scorers   = fetch_competition_scorers(_league_code)
     scorers_a     = tuple(all_scorers.get(team_a, [])[:3])
     scorers_b     = tuple(all_scorers.get(team_b, [])[:3])
-    prev_standings = fetch_previous_standings()
+    prev_standings = fetch_previous_standings(_league_code)
     prev_pos_a    = prev_standings.get(team_a)
     prev_pos_b    = prev_standings.get(team_b)
 
