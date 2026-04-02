@@ -1298,6 +1298,16 @@ label[data-testid="stWidgetLabel"] p{font-family:'Nunito',sans-serif!important;f
 
 /* Back button */
 button[kind="primary"],[data-testid="stBaseButton-primary"]{background:var(--dark)!important;color:var(--white)!important;border:none!important;border-radius:100px!important;font-family:'Nunito',sans-serif!important;font-weight:800!important;}
+
+/* Glossary accordion */
+details.glos-acc{margin-bottom:1rem;}
+details.glos-acc summary{list-style:none;cursor:pointer;display:block;}
+details.glos-acc summary::-webkit-details-marker{display:none;}
+details.glos-acc summary .glos-card{margin-bottom:0;border-radius:var(--radius);transition:border-radius .15s;}
+details.glos-acc[open] summary .glos-card{border-radius:var(--radius) var(--radius) 0 0!important;}
+.glos-acc-body{background:var(--white);border:2px solid var(--beige);border-top:none;border-radius:0 0 var(--radius) var(--radius);padding:1.2rem 1.4rem 1.4rem;box-shadow:var(--shadow);}
+.pill-tac::after{content:'Tactical →';}
+details.glos-acc[open] .pill-tac::after{content:'Close ↑';}
 </style>
 """, unsafe_allow_html=True)
 
@@ -1406,6 +1416,584 @@ def render_nav():
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# PITCH ANIMATIONS
+# ══════════════════════════════════════════════════════════════════════════════
+def build_pitch_animation(term):
+    import math
+    PAD, PW, PH = 14, 252, 360
+    SW, SH = PW + 2*PAD, PH + 2*PAD
+    def sx(p): return PAD + p/100*PW
+    def sy(p): return PAD + p/100*PH
+
+    GLOS_SCENARIOS = {
+        "pressing": {
+            "label": "Pressing",
+            "subtitle": "Ball Recovery",
+            "tags": ["High Press", "Intensity", "Collective"],
+            "zones": [(50, 28, 28, 18, 0.30)],
+            # groups: (color, [(x%, y%, label)], {player_idx: (to_x%, to_y%)})
+            "groups": [
+                ("#E05555", [(50, 22, "O")],  {}),
+                ("#F5D06E", [(28, 42, "P"), (50, 46, "P"), (72, 42, "P")],
+                            {0: (44, 27), 1: (50, 27), 2: (56, 27)}),
+            ],
+        },
+        "pivot": {
+            "label": "Pivot",
+            "subtitle": "Hold-Up Play",
+            "tags": ["Target Man", "Link Play", "Hold-Up"],
+            "zones": [(50, 42, 24, 14, 0.22)],
+            "groups": [
+                ("#4CAF85", [(50, 60, "8")],  {0: (50, 44)}),
+                ("#F5D06E", [(50, 44, "9")],  {}),
+                ("#4CAF85", [(28, 28, "10"), (72, 28, "7")], {0: (28, 20), 1: (72, 20)}),
+            ],
+        },
+        "false nine": {
+            "label": "False Nine",
+            "subtitle": "Space Creation",
+            "tags": ["False 9", "Space Creation", "Confusion"],
+            "zones": [(50, 24, 26, 14, 0.28)],
+            "groups": [
+                ("#E05555", [(50, 32, "CB")], {0: (50, 46)}),
+                ("#F5D06E", [(50, 20, "9")],  {0: (50, 44)}),
+                ("#4CAF85", [(36, 52, "8")],  {0: (44, 26)}),
+            ],
+        },
+        "build-up play": {
+            "label": "Build-Up Play",
+            "subtitle": "Ball Progression",
+            "tags": ["Structure", "Patience", "Circulation"],
+            "zones": [(50, 78, 30, 10, 0.16), (50, 58, 26, 10, 0.12)],
+            "groups": [
+                ("#4CAF85", [
+                    (50, 88, "GK"),
+                    (30, 76, "CB"), (70, 76, "CB"),
+                    (36, 60, "DM"), (64, 60, "DM"),
+                    (50, 42, "CAM"),
+                ], {0: (30, 76), 1: (36, 60), 3: (50, 42)}),
+            ],
+        },
+        "through ball": {
+            "label": "Through Ball",
+            "subtitle": "Line Breaker",
+            "tags": ["Penetration", "Timing", "Space"],
+            "zones": [(62, 18, 18, 12, 0.30)],
+            "groups": [
+                ("#E05555", [(25,34,"CB"),(42,34,"CB"),(58,34,"CB"),(75,34,"CB")], {}),
+                ("#4CAF85", [(35, 50, "8")], {0: (62, 18)}),
+                ("#4CAF85", [(62, 30, "9")], {0: (62, 14)}),
+            ],
+        },
+        "switch of play": {
+            "label": "Switch of Play",
+            "subtitle": "Width Exploitation",
+            "tags": ["Width", "Diagonal", "Space"],
+            "zones": [(82, 36, 14, 20, 0.25)],
+            "groups": [
+                ("#4CAF85", [
+                    (18, 36, "LB"), (32, 46, "CM"), (50, 44, "CM"),
+                    (82, 36, "RB"),
+                ], {2: (82, 36)}),
+                ("#E05555", [(40,34,"CB"),(60,34,"CB"),(40,48,"DM"),(60,48,"DM")], {}),
+            ],
+        },
+        "overlap": {
+            "label": "Overlap",
+            "subtitle": "Attacking Run",
+            "tags": ["Full-Back", "Width", "Overload"],
+            "zones": [(88, 22, 12, 20, 0.28)],
+            "groups": [
+                ("#4CAF85", [(78, 32, "RW")], {}),
+                ("#F5D06E", [(84, 54, "RB")], {0: (92, 20)}),
+                ("#E05555", [(72, 38, "LB")], {}),
+            ],
+        },
+        "underlap": {
+            "label": "Underlap",
+            "subtitle": "Inside Run",
+            "tags": ["Half-Space", "Cut Inside", "Diagonal"],
+            "zones": [(64, 26, 16, 14, 0.26)],
+            "groups": [
+                ("#4CAF85", [(80, 30, "RW")], {}),
+                ("#F5D06E", [(68, 50, "RM")], {0: (62, 24)}),
+                ("#E05555", [(76, 38, "LB"),(62, 38, "CB")], {}),
+            ],
+        },
+        "cross": {
+            "label": "Cross",
+            "subtitle": "Wide Delivery",
+            "tags": ["Crossing", "Width", "Aerial"],
+            "zones": [(40, 14, 20, 12, 0.28)],
+            "groups": [
+                ("#F5D06E", [(84, 28, "RB")], {0: (84, 20)}),
+                ("#4CAF85", [(36, 18, "9"), (52, 22, "10")], {0: (36, 12), 1: (52, 14)}),
+                ("#E05555", [(40, 30, "CB"),(56, 30, "CB")], {}),
+            ],
+        },
+        "final third": {
+            "label": "Final Third",
+            "subtitle": "Danger Zone",
+            "tags": ["Attacking Zone", "Chance Creation", "Pressure"],
+            "zones": [(50, 20, 46, 22, 0.22)],
+            "groups": [
+                ("#F5D06E", [(30, 28, "LW"), (50, 18, "9"), (70, 28, "RW")], {1: (50, 12)}),
+                ("#4CAF85", [(36, 44, "LCM"), (64, 44, "RCM")], {0: (36, 30), 1: (64, 30)}),
+                ("#E05555", [(28,32,"LB"),(44,34,"CB"),(56,34,"CB"),(72,32,"RB")], {}),
+            ],
+        },
+        "counter-attack": {
+            "label": "Counter-Attack",
+            "subtitle": "Fast Transition",
+            "tags": ["Speed", "Transition", "Vertical"],
+            "zones": [(50, 20, 36, 16, 0.26)],
+            "groups": [
+                ("#4CAF85", [
+                    (26, 62, "LW"), (50, 66, "ST"), (74, 62, "RW"),
+                ], {0: (18, 24), 1: (50, 18), 2: (82, 24)}),
+                ("#E05555", [(38,36,"CB"),(62,36,"CB"),(44,46,"DM"),(56,46,"DM")], {}),
+            ],
+        },
+        "high press": {
+            "label": "High Press",
+            "subtitle": "Aggressive Pressure",
+            "tags": ["Gegenpressing", "High Line", "Intensity"],
+            "zones": [(50, 20, 36, 18, 0.28)],
+            "groups": [
+                ("#E05555", [(30,18,"CB"),(70,18,"CB"),(50,28,"DM")], {}),
+                ("#F5D06E", [
+                    (22, 32, "LW"), (50, 34, "ST"), (78, 32, "RW"),
+                    (38, 42, "LCM"), (62, 42, "RCM"),
+                ], {0: (26, 22), 1: (50, 24), 2: (74, 22)}),
+            ],
+        },
+        "low block": {
+            "label": "Low Block",
+            "subtitle": "Deep Defense",
+            "tags": ["Defensive", "Compact", "Resilience"],
+            "zones": [(50, 74, 46, 16, 0.20), (50, 86, 36, 10, 0.18)],
+            "groups": [
+                ("#4CAF85", [
+                    (18,66,"LM"),(36,66,"CM"),(64,66,"CM"),(82,66,"RM"),
+                    (22,76,"LB"),(38,78,"CB"),(62,78,"CB"),(78,76,"RB"),
+                    (50, 88, "GK"),
+                ], {}),
+                ("#E05555", [(30,52,"LW"),(50,48,"ST"),(70,52,"RW")], {0:(30,60),1:(50,58),2:(70,60)}),
+            ],
+        },
+        "man marking": {
+            "label": "Man Marking",
+            "subtitle": "Individual Defense",
+            "tags": ["Tracking", "1v1", "Discipline"],
+            "zones": [],
+            "groups": [
+                ("#E05555", [(22,30,"LW"),(50,22,"ST"),(78,30,"RW"),(38,44,"CM")], {}),
+                ("#4CAF85", [(22,40,"LB"),(50,32,"CB"),(78,40,"RB"),(38,54,"DM")],
+                            {0:(22,30), 1:(50,22), 2:(78,30), 3:(38,44)}),
+            ],
+        },
+        "zonal marking": {
+            "label": "Zonal Marking",
+            "subtitle": "Area Defense",
+            "tags": ["Structure", "Zones", "Collective"],
+            "zones": [(22,42,16,22,0.18),(50,38,16,22,0.18),(78,42,16,22,0.18),(36,62,16,18,0.14),(64,62,16,18,0.14)],
+            "groups": [
+                ("#4CAF85", [(22,42,"LB"),(50,38,"CB"),(78,42,"RB"),(36,62,"LM"),(64,62,"RM")], {}),
+                ("#E05555", [(28,34,"LW"),(50,26,"ST"),(72,34,"RW")], {0:(22,42),1:(50,38),2:(78,42)}),
+            ],
+        },
+        "tackle": {
+            "label": "Tackle",
+            "subtitle": "Ball Challenge",
+            "tags": ["Duel", "Physicality", "Defense"],
+            "zones": [(50, 44, 18, 12, 0.20)],
+            "groups": [
+                ("#E05555", [(50, 38, "O")], {0: (50, 46)}),
+                ("#4CAF85", [(50, 56, "D")], {0: (50, 44)}),
+            ],
+        },
+        "interception": {
+            "label": "Interception",
+            "subtitle": "Pass Reading",
+            "tags": ["Anticipation", "Reading", "Positioning"],
+            "zones": [(52, 46, 14, 10, 0.22)],
+            "groups": [
+                ("#E05555", [(24, 50, "O1"), (80, 42, "O2")], {0: (52, 46)}),
+                ("#4CAF85", [(52, 52, "D")], {0: (52, 46)}),
+            ],
+        },
+        "counter-pressing": {
+            "label": "Counter-Pressing",
+            "subtitle": "Immediate Recovery",
+            "tags": ["Gegenpressing", "Urgency", "Collective"],
+            "zones": [(50, 46, 24, 14, 0.28)],
+            "groups": [
+                ("#E05555", [(50, 46, "O")], {}),
+                ("#F5D06E", [
+                    (30, 56, "P"), (50, 60, "P"), (70, 56, "P"), (40, 50, "P"),
+                ], {0:(40,48), 1:(50,48), 2:(60,48), 3:(46,46)}),
+            ],
+        },
+        "transition": {
+            "label": "Transition",
+            "subtitle": "Phase Change",
+            "tags": ["Speed", "Switching", "Vertical"],
+            "zones": [(50, 32, 36, 14, 0.20)],
+            "groups": [
+                ("#4CAF85", [
+                    (22, 62, "LW"), (50, 68, "ST"), (78, 62, "RW"),
+                    (38, 74, "CM"), (62, 74, "CM"),
+                ], {0:(18,28), 1:(50,22), 2:(82,28), 3:(36,38), 4:(64,38)}),
+            ],
+        },
+        "formation": {
+            "label": "Formation",
+            "subtitle": "Team Structure",
+            "tags": ["4-3-3", "Organisation", "Spacing"],
+            "zones": [],
+            "groups": [
+                ("#4CAF85", [
+                    (50, 88, "GK"),
+                    (18,72,"LB"),(38,74,"CB"),(62,74,"CB"),(82,72,"RB"),
+                    (28,54,"LCM"),(50,50,"CM"),(72,54,"RCM"),
+                    (16,28,"LW"),(50,22,"ST"),(84,28,"RW"),
+                ], {}),
+            ],
+        },
+        "shape": {
+            "label": "Shape",
+            "subtitle": "Team Compactness",
+            "tags": ["Organisation", "Compact", "Unit"],
+            "zones": [(62, 54, 36, 26, 0.16)],
+            "groups": [
+                ("#4CAF85", [
+                    (40,46,"LM"),(56,46,"CM"),(72,46,"RM"),
+                    (36,58,"LB"),(52,60,"CB"),(68,60,"CB"),(84,58,"RB"),
+                ], {0:(56,46), 1:(72,46), 2:(88,46), 3:(52,60), 4:(68,60), 5:(84,60), 6:(100,58)}),
+            ],
+        },
+        "width": {
+            "label": "Width",
+            "subtitle": "Pitch Stretching",
+            "tags": ["Wide Play", "Space", "Stretch"],
+            "zones": [(14, 38, 12, 28, 0.22), (86, 38, 12, 28, 0.22)],
+            "groups": [
+                ("#F5D06E", [(12, 38, "LW"), (88, 38, "RW")], {}),
+                ("#4CAF85", [(50, 42, "CM"), (34, 56, "LB"), (66, 56, "RB")], {0:(50,38)}),
+                ("#E05555", [(36,42,"CB"),(50,38,"CB"),(64,42,"CB")], {}),
+            ],
+        },
+        "depth": {
+            "label": "Depth",
+            "subtitle": "Vertical Spacing",
+            "tags": ["Staggering", "Options", "Layers"],
+            "zones": [(50, 42, 20, 30, 0.16)],
+            "groups": [
+                ("#4CAF85", [
+                    (50, 24, "ST"),
+                    (38, 40, "LCM"), (62, 40, "RCM"),
+                    (50, 58, "DM"),
+                    (34, 72, "LB"), (66, 72, "RB"),
+                ], {3:(50,48), 1:(38,32), 2:(62,32)}),
+            ],
+        },
+        "half-space": {
+            "label": "Half-Space",
+            "subtitle": "Channel Exploitation",
+            "tags": ["Half-Space", "Diagonal", "Danger Zone"],
+            "zones": [(30, 36, 12, 32, 0.26), (70, 36, 12, 32, 0.26)],
+            "groups": [
+                ("#F5D06E", [(30, 50, "10"), (70, 50, "8")], {0:(30,28), 1:(70,28)}),
+                ("#4CAF85", [(12,36,"LW"),(50,30,"ST"),(88,36,"RW")], {}),
+                ("#E05555", [(22,34,"LB"),(40,32,"CB"),(60,32,"CB"),(78,34,"RB")], {}),
+            ],
+        },
+        "lines": {
+            "label": "Lines",
+            "subtitle": "Defensive Structure",
+            "tags": ["Block", "Compactness", "Defense"],
+            "zones": [(50, 38, 46, 8, 0.16), (50, 52, 46, 8, 0.16), (50, 66, 46, 8, 0.16)],
+            "groups": [
+                ("#E05555", [(28,32,"LW"),(50,26,"ST"),(72,32,"RW")], {}),
+                ("#4CAF85", [
+                    (22,38,"LM"),(40,38,"CM"),(60,38,"CM"),(78,38,"RM"),
+                    (24,52,"LB"),(40,52,"CB"),(60,52,"CB"),(76,52,"RB"),
+                ], {}),
+                ("#F5D06E", [(50, 60, "DM")], {0:(50,40)}),
+            ],
+        },
+        "tiki-taka": {
+            "label": "Tiki-Taka",
+            "subtitle": "Short Passing",
+            "tags": ["Possession", "Triangles", "Control"],
+            "zones": [(50, 42, 36, 28, 0.14)],
+            "groups": [
+                ("#4CAF85", [
+                    (36,30,"10"),(50,22,"9"),(64,30,"8"),
+                    (30,46,"LM"),(50,50,"CM"),(70,46,"RM"),
+                ], {0:(50,22), 1:(64,30), 2:(50,50), 3:(36,30), 4:(30,46), 5:(64,30)}),
+            ],
+        },
+        "total football": {
+            "label": "Total Football",
+            "subtitle": "Universal Roles",
+            "tags": ["Rotations", "Flexibility", "Ajax Style"],
+            "zones": [(50, 44, 40, 30, 0.14)],
+            "groups": [
+                ("#F5D06E", [
+                    (22,30,"LW"),(50,22,"9"),(78,30,"RW"),
+                    (30,48,"LCM"),(50,50,"CM"),(70,48,"RCM"),
+                    (18,62,"LB"),(50,66,"CB"),(82,62,"RB"),
+                ], {0:(30,48), 2:(70,48), 3:(22,30), 5:(78,30), 6:(30,48), 8:(70,48)}),
+            ],
+        },
+        "positional play": {
+            "label": "Positional Play",
+            "subtitle": "Space Control",
+            "tags": ["Triangles", "Diamonds", "Pep Style"],
+            "zones": [(50, 38, 40, 32, 0.16)],
+            "groups": [
+                ("#4CAF85", [
+                    (50,20,"9"),
+                    (28,30,"LW"),(72,30,"RW"),
+                    (36,44,"LCM"),(64,44,"RCM"),
+                    (50,50,"DM"),
+                    (22,56,"LB"),(78,56,"RB"),
+                ], {3:(36,36), 4:(64,36), 5:(50,40)}),
+            ],
+        },
+        "overload": {
+            "label": "Overload",
+            "subtitle": "Numerical Superiority",
+            "tags": ["3v2", "Overload", "Combination"],
+            "zones": [(22, 32, 18, 22, 0.28)],
+            "groups": [
+                ("#E05555", [(30, 36, "D1"), (18, 44, "D2")], {}),
+                ("#F5D06E", [(14, 28, "LW"), (22, 22, "ST"), (32, 28, "10")],
+                            {0:(14,36), 1:(22,32), 2:(30,28)}),
+            ],
+        },
+        "third man run": {
+            "label": "Third Man Run",
+            "subtitle": "Combination Play",
+            "tags": ["One-Two", "Run", "Timing"],
+            "zones": [(62, 26, 16, 14, 0.26)],
+            "groups": [
+                ("#4CAF85", [(38, 52, "A")], {0: (50, 40)}),
+                ("#F5D06E", [(50, 40, "B")], {0: (62, 28)}),
+                ("#4CAF85", [(64, 50, "C")], {0: (64, 22)}),
+            ],
+        },
+        "line-breaking pass": {
+            "label": "Line-Breaking Pass",
+            "subtitle": "Bypassing Defense",
+            "tags": ["Penetration", "Vision", "Key Pass"],
+            "zones": [(50, 22, 28, 14, 0.28)],
+            "groups": [
+                ("#E05555", [
+                    (22,36,"D"),(40,36,"D"),(60,36,"D"),(78,36,"D"),
+                    (30,50,"D"),(50,50,"D"),(70,50,"D"),
+                ], {}),
+                ("#4CAF85", [(50, 62, "8")], {0: (50, 22)}),
+                ("#F5D06E", [(50, 28, "9")], {0: (50, 16)}),
+            ],
+        },
+    }
+
+    t = GLOS_SCENARIOS.get(term)
+    if not t:
+        return ('<div style="background:#0F1C0F;border-radius:20px;height:260px;'
+                'display:flex;align-items:center;justify-content:center;">'
+                '<span style="color:rgba(255,255,255,.4);font-size:.78rem;font-weight:700;'
+                'letter-spacing:.12em;text-transform:uppercase;">Visualization — coming soon</span></div>')
+
+    slug = re.sub(r'[^a-z0-9]', '_', term)
+    cx, cy = PAD + PW//2, PAD + PH//2
+    stripe_h = 40
+
+    # ── Defs ──
+    defs = (
+        f'<defs>'
+        f'<pattern id="g_{slug}" x="0" y="0" width="{PW}" height="{stripe_h}" patternUnits="userSpaceOnUse">'
+        f'<rect x="0" y="0" width="{PW}" height="{stripe_h//2}" fill="rgba(0,0,0,0.045)"/>'
+        f'</pattern>'
+        f'<radialGradient id="vig_{slug}" cx="50%" cy="50%" r="70%">'
+        f'<stop offset="0%" stop-color="transparent"/>'
+        f'<stop offset="100%" stop-color="rgba(0,0,0,0.25)"/>'
+        f'</radialGradient>'
+        f'<filter id="pshadow_{slug}" x="-30%" y="-30%" width="160%" height="160%">'
+        f'<feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="rgba(0,0,0,0.5)"/>'
+        f'</filter>'
+        f'<filter id="pglow_{slug}" x="-40%" y="-40%" width="180%" height="180%">'
+        f'<feGaussianBlur stdDeviation="3" result="blur"/>'
+        f'<feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>'
+        f'</filter>'
+        f'<marker id="arr_{slug}" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">'
+        f'<polygon points="0 0, 7 3.5, 0 7" fill="rgba(255,255,255,0.9)"/>'
+        f'</marker>'
+    )
+    for gi, (color, _, _) in enumerate(t["groups"]):
+        for zi, (zcx, zcy, zrx, zry, op) in enumerate(t.get("zones", [])):
+            defs += (
+                f'<radialGradient id="hz_{slug}_{gi}_{zi}" cx="50%" cy="50%" r="50%">'
+                f'<stop offset="0%" stop-color="{color}" stop-opacity="{min(op*2.2, 0.55):.2f}"/>'
+                f'<stop offset="100%" stop-color="{color}" stop-opacity="0"/>'
+                f'</radialGradient>'
+            )
+    defs += '</defs>'
+
+    # ── Background ──
+    pitch_bg = (
+        f'<rect x="0" y="0" width="{SW}" height="{SH}" fill="url(#g_{slug})"/>'
+        f'<rect x="0" y="0" width="{SW}" height="{SH}" fill="url(#vig_{slug})"/>'
+    )
+
+    # ── Markings ──
+    markings = (
+        f'<rect x="{PAD}" y="{PAD}" width="{PW}" height="{PH}" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="1.5"/>'
+        f'<line x1="{PAD}" y1="{cy}" x2="{PAD+PW}" y2="{cy}" stroke="rgba(255,255,255,.45)" stroke-width="1"/>'
+        f'<circle cx="{cx}" cy="{cy}" r="32" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="1"/>'
+        f'<circle cx="{cx}" cy="{cy}" r="3.5" fill="rgba(255,255,255,.6)"/>'
+        f'<rect x="{PAD+58}" y="{PAD}" width="136" height="66" fill="rgba(255,255,255,.03)" stroke="rgba(255,255,255,.38)" stroke-width="1"/>'
+        f'<rect x="{PAD+96}" y="{PAD}" width="60" height="23" fill="rgba(255,255,255,.02)" stroke="rgba(255,255,255,.28)" stroke-width="1"/>'
+        f'<circle cx="{cx}" cy="{PAD+52}" r="2" fill="rgba(255,255,255,.45)"/>'
+        f'<path d="M {PAD+80} {PAD+66} A 32 32 0 0 0 {PAD+172} {PAD+66}" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1"/>'
+        f'<rect x="{PAD+58}" y="{PAD+PH-66}" width="136" height="66" fill="rgba(255,255,255,.03)" stroke="rgba(255,255,255,.38)" stroke-width="1"/>'
+        f'<rect x="{PAD+96}" y="{PAD+PH-23}" width="60" height="23" fill="rgba(255,255,255,.02)" stroke="rgba(255,255,255,.28)" stroke-width="1"/>'
+        f'<circle cx="{cx}" cy="{PAD+PH-52}" r="2" fill="rgba(255,255,255,.45)"/>'
+        f'<path d="M {PAD+80} {PAD+PH-66} A 32 32 0 0 1 {PAD+172} {PAD+PH-66}" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1"/>'
+        f'<rect x="{PAD+102}" y="{PAD-8}" width="48" height="8" fill="rgba(255,255,255,.12)" stroke="rgba(255,255,255,.45)" stroke-width="1"/>'
+        f'<rect x="{PAD+102}" y="{PAD+PH}" width="48" height="8" fill="rgba(255,255,255,.12)" stroke="rgba(255,255,255,.45)" stroke-width="1"/>'
+        f'<path d="M {PAD} {PAD+9} A 9 9 0 0 1 {PAD+9} {PAD}" fill="none" stroke="rgba(255,255,255,.32)" stroke-width="1"/>'
+        f'<path d="M {PAD+PW-9} {PAD} A 9 9 0 0 1 {PAD+PW} {PAD+9}" fill="none" stroke="rgba(255,255,255,.32)" stroke-width="1"/>'
+        f'<path d="M {PAD} {PAD+PH-9} A 9 9 0 0 1 {PAD+9} {PAD+PH}" fill="none" stroke="rgba(255,255,255,.32)" stroke-width="1"/>'
+        f'<path d="M {PAD+PW-9} {PAD+PH} A 9 9 0 0 1 {PAD+PW} {PAD+PH-9}" fill="none" stroke="rgba(255,255,255,.32)" stroke-width="1"/>'
+    )
+
+    # ── Heat zones ──
+    zones_svg = ""
+    for gi, (color, _, _) in enumerate(t["groups"]):
+        for zi, (zcx, zcy, zrx, zry, op) in enumerate(t.get("zones", [])):
+            zones_svg += (
+                f'<ellipse cx="{sx(zcx):.1f}" cy="{sy(zcy):.1f}" '
+                f'rx="{zrx/100*PW:.1f}" ry="{zry/100*PH:.1f}" '
+                f'fill="url(#hz_{slug}_{gi}_{zi})" class="hz_{slug}"/>\n'
+            )
+
+    # ── Players + arrows ──
+    css_lines = [
+        f"@keyframes hz_p_{slug}{{0%,100%{{opacity:.75}}50%{{opacity:1}}}}",
+        f".hz_{slug}{{animation:hz_p_{slug} 4.5s ease-in-out infinite;}}",
+    ]
+    players_svg = ""
+    arrows_svg  = ""
+    global_idx  = 0
+    global_seq  = 0
+
+    for gi, (color, players, moves_dict) in enumerate(t["groups"]):
+        for pi, (ppx, ppy, abbr) in enumerate(players):
+            x0, y0 = sx(ppx), sy(ppy)
+            cls    = f"pl_{slug}_{gi}_{pi}"
+            delay  = f"{global_idx * 0.22:.2f}s"
+            is_mover = pi in moves_dict
+            filt = f'filter="url(#pglow_{slug})"' if is_mover else f'filter="url(#pshadow_{slug})"'
+
+            if is_mover:
+                tx, ty   = moves_dict[pi]
+                ddx, ddy = sx(tx) - x0, sy(ty) - y0
+                an = f"pm_{slug}_{gi}_{pi}"
+                css_lines.append(
+                    f"@keyframes {an}{{"
+                    f"0%,18%{{transform:translate(0px,0px)}}"
+                    f"38%,62%{{transform:translate({ddx:.1f}px,{ddy:.1f}px)}}"
+                    f"82%,100%{{transform:translate(0px,0px)}}}}"
+                    f".{cls}{{animation:{an} 9s ease-in-out infinite;animation-delay:{delay};}}"
+                )
+                L      = math.hypot(ddx, ddy) or 1
+                perp_x, perp_y = -ddy/L, ddx/L
+                offset = min(L * 0.22, 18)
+                cpx    = (x0 + sx(tx))/2 + perp_x * offset
+                cpy    = (y0 + sy(ty))/2 + perp_y * offset
+                path_d = f"M {x0:.1f} {y0:.1f} Q {cpx:.1f} {cpy:.1f} {sx(tx):.1f} {sy(ty):.1f}"
+                path_len = int(L * 1.18) + 10
+                d_s    = global_seq * 1.8
+                arr_an  = f"aw_{slug}_{gi}_{pi}"
+                arr_cls = f"ac_{slug}_{gi}_{pi}"
+                css_lines.append(
+                    f"@keyframes {arr_an}{{"
+                    f"0%,{int(d_s/9*100)}%{{stroke-dashoffset:{path_len};opacity:0}}"
+                    f"{int((d_s+0.5)/9*100)}%,{int((d_s+2.2)/9*100)}%{{stroke-dashoffset:0;opacity:.92}}"
+                    f"{int((d_s+2.8)/9*100)}%,100%{{stroke-dashoffset:-{path_len};opacity:0}}}}"
+                    f".{arr_cls}{{stroke-dasharray:{path_len};stroke-dashoffset:{path_len};"
+                    f"animation:{arr_an} 9s ease-in-out infinite;}}"
+                )
+                arrows_svg += (
+                    f'<path class="{arr_cls}" d="{path_d}" fill="none" stroke="{color}" '
+                    f'stroke-width="2.2" marker-end="url(#arr_{slug})"/>\n'
+                )
+                global_seq += 1
+                ring = f'<circle cx="{x0:.1f}" cy="{y0:.1f}" r="15" fill="none" stroke="{color}" stroke-width="1" opacity="0.4" stroke-dasharray="3 3"/>'
+            else:
+                an = f"ps_{slug}_{gi}_{pi}"
+                css_lines.append(
+                    f"@keyframes {an}{{0%,100%{{opacity:1}}50%{{opacity:.82}}}}"
+                    f".{cls}{{animation:{an} 3.8s ease-in-out infinite;animation-delay:{delay};}}"
+                )
+                ring = ""
+
+            players_svg += (
+                f'<g class="{cls}" {filt}>'
+                f'{ring}'
+                f'<circle cx="{x0:.1f}" cy="{y0:.1f}" r="11.5" fill="{color}" stroke="rgba(255,255,255,.9)" stroke-width="1.8"/>'
+                f'<circle cx="{x0:.1f}" cy="{y0:.1f}" r="11.5" fill="rgba(255,255,255,.08)"/>'
+                f'<text x="{x0:.1f}" y="{y0:.1f}" text-anchor="middle" dominant-baseline="central" '
+                f'font-size="6.2" font-weight="900" fill="white" font-family="Nunito,sans-serif" letter-spacing="-.3">{abbr}</text>'
+                f'</g>\n'
+            )
+            global_idx += 1
+
+    pills = "".join(
+        f'<span style="display:inline-flex;align-items:center;gap:.3rem;padding:.25rem .72rem;'
+        f'border-radius:100px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.75);'
+        f'font-size:.6rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;'
+        f'border:1px solid rgba(255,255,255,.12);margin:.15rem .15rem 0 0">'
+        f'<span style="width:5px;height:5px;border-radius:50%;background:#F5D06E;display:inline-block;flex-shrink:0"></span>'
+        f'{s}</span>'
+        for s in t.get("tags", [])
+    )
+
+    css_block = "<style>" + "".join(css_lines) + "</style>"
+    svg = (
+        f'<svg viewBox="0 0 {SW} {SH}" xmlns="http://www.w3.org/2000/svg" '
+        f'style="display:block;width:100%;background:#1e5c1e;">'
+        f'{defs}{pitch_bg}{markings}{zones_svg}{arrows_svg}{players_svg}'
+        f'</svg>'
+    )
+
+    return (
+        f'{css_block}'
+        f'<div style="background:#0F1C0F;border-radius:20px;overflow:hidden;'
+        f'box-shadow:0 8px 32px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.06);">'
+        f'<div style="padding:.9rem 1.1rem .6rem;display:flex;align-items:center;'
+        f'justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.07);">'
+        f'<div>'
+        f'<div style="font-size:.64rem;font-weight:800;letter-spacing:.18em;text-transform:uppercase;'
+        f'color:#F5D06E;margin-bottom:.18rem;">Tactical Animation</div>'
+        f'<div style="font-size:.95rem;font-weight:900;color:rgba(255,255,255,.92);letter-spacing:-.02em;">{t["label"]}</div>'
+        f'</div>'
+        f'<span style="background:#F5D06E;color:#1A1A2E;font-size:.72rem;font-weight:900;'
+        f'padding:.3rem .9rem;border-radius:100px;letter-spacing:.06em;">{t["subtitle"]}</span>'
+        f'</div>'
+        f'<div style="position:relative;">{svg}</div>'
+        f'<div style="padding:.6rem 1rem .8rem;border-top:1px solid rgba(255,255,255,.06);">'
+        f'<div style="font-size:.56rem;font-weight:800;letter-spacing:.16em;color:rgba(255,255,255,.3);'
+        f'text-transform:uppercase;margin-bottom:.3rem;">Key concepts</div>'
+        f'{pills}</div>'
+        f'</div>'
+    )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # PAGE DÉFINITION
 # ══════════════════════════════════════════════════════════════════════════════
 def page_definition():
@@ -1429,8 +2017,7 @@ def page_definition():
         st.markdown(f'<div class="def-example"><span class="def-tag def-tag-yellow">⚽ Example</span><p>{example}</p></div>', unsafe_allow_html=True)
     st.markdown('<div class="div"></div>', unsafe_allow_html=True)
     st.markdown('<div class="sec-label">Visualization</div><div class="sec-title">Tactical illustration</div>', unsafe_allow_html=True)
-    terrain_label = animation if animation else "Visualization — coming soon"
-    st.markdown(f"""<div class="terrain-wrap"><div class="terrain-border"></div><div class="terrain-center"></div><div class="terrain-center-dot"></div><div class="terrain-box-top"></div><div class="terrain-box-bot"></div><div class="terrain-small-top"></div><div class="terrain-small-bot"></div><span class="terrain-label">{terrain_label}</span></div>""", unsafe_allow_html=True)
+    st.markdown(build_pitch_animation(term), unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
 
 
@@ -1441,19 +2028,31 @@ def page_glossaire():
     st.markdown('<div class="sec-label">Vocabulary</div><div class="sec-title">Tactical Glossary</div>', unsafe_allow_html=True)
     for i, (term, term_data) in enumerate(TACTICAL_TERMS.items()):
         definition = term_data.get("definition", "") if isinstance(term_data, dict) else term_data
+        simple     = term_data.get("simple_explanation", "") if isinstance(term_data, dict) else ""
+        example    = term_data.get("example", "") if isinstance(term_data, dict) else ""
         icon = GLOS_ICONS[i % len(GLOS_ICONS)]
         bg   = GLOS_COLORS[i % len(GLOS_COLORS)]
+
+        simple_html  = f'<div class="def-simple"><span class="def-tag def-tag-green">💡 In simple terms</span><p>{simple}</p></div>' if simple else ""
+        example_html = f'<div class="def-example"><span class="def-tag def-tag-yellow">⚽ Example</span><p>{example}</p></div>' if example else ""
+        anim_html    = build_pitch_animation(term)
+
         st.markdown(
-            f'<a href="?term={term}&from=glossaire" style="text-decoration:none;color:inherit">'
+            f'<details class="glos-acc">'
+            f'<summary>'
             f'<div class="glos-card">'
             f'<div class="glos-card-header">'
             f'<div class="glos-card-icon" style="background:{bg}">{icon}</div>'
             f'<span class="glos-card-term">{term.capitalize()}</span>'
-            f'<span class="pill pill-yellow" style="margin-left:auto">Tactical →</span>'
+            f'<span class="pill pill-yellow pill-tac" style="margin-left:auto"></span>'
             f'</div>'
             f'<div class="glos-card-body">{definition}</div>'
             f'</div>'
-            f'</a>',
+            f'</summary>'
+            f'<div class="glos-acc-body">'
+            f'{simple_html}{example_html}{anim_html}'
+            f'</div>'
+            f'</details>',
             unsafe_allow_html=True
         )
 
