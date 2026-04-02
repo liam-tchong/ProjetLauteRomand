@@ -611,6 +611,474 @@ TEAM_STYLES = {
 DEFAULT_STYLE = "Playing style to be documented."
 WATCH_COLORS = ["#7CC99A", "#F5D06E", "#F2827F"]
 
+# ── Tactical pitch data ───────────────────────────────────────────────────────
+# Each team: formation, color, style_tags, players [(x%, y%, label)],
+# moves [(player_idx, to_x%, to_y%)], zones [(cx%, cy%, rx%, ry%, opacity)]
+TEAM_TACTICS = {
+    "Paris Saint-Germain": {
+        "formation": "4-3-3", "color": "#004E9A",
+        "style_tags": ["High Press", "False 9", "Possession"],
+        "players": [
+            (50,93,"GK"),(18,75,"LB"),(38,78,"CB"),(62,78,"CB"),(82,75,"RB"),
+            (28,55,"LCM"),(50,50,"CM"),(72,55,"RCM"),
+            (16,24,"LW"),(50,18,"CF"),(84,24,"RW"),
+        ],
+        "moves": [(1,12,42),(9,50,34),(5,22,38),(10,72,18)],
+        "zones": [(50,22,35,16,0.18),(16,42,14,22,0.12),(84,42,14,22,0.12),(50,52,22,12,0.10)],
+    },
+    "Olympique de Marseille": {
+        "formation": "4-2-3-1", "color": "#2490D8",
+        "style_tags": ["High Press", "Aggressive", "Direct"],
+        "players": [
+            (50,93,"GK"),(18,75,"LB"),(38,78,"CB"),(62,78,"CB"),(82,75,"RB"),
+            (35,62,"DM"),(65,62,"DM"),
+            (20,42,"LAM"),(50,38,"CAM"),(80,42,"RAM"),(50,18,"CF"),
+        ],
+        "moves": [(10,50,28),(7,14,58),(9,86,58),(1,16,52)],
+        "zones": [(50,18,30,14,0.18),(50,42,40,16,0.12),(50,62,30,12,0.10)],
+    },
+    "AS Monaco": {
+        "formation": "4-4-2", "color": "#E5273D",
+        "style_tags": ["Overlaps", "Fluid", "Counter"],
+        "players": [
+            (50,93,"GK"),(15,74,"LB"),(38,78,"CB"),(62,78,"CB"),(85,74,"RB"),
+            (18,52,"LM"),(38,52,"CM"),(62,52,"CM"),(82,52,"RM"),
+            (35,22,"ST"),(65,22,"ST"),
+        ],
+        "moves": [(1,10,40),(4,88,40),(7,72,32),(9,28,32)],
+        "zones": [(14,44,12,28,0.14),(86,44,12,28,0.14),(50,22,32,16,0.16)],
+    },
+    "LOSC Lille": {
+        "formation": "4-4-2", "color": "#CC0000",
+        "style_tags": ["Collective Press", "Compact", "Physical"],
+        "players": [
+            (50,93,"GK"),(18,75,"LB"),(38,78,"CB"),(62,78,"CB"),(82,75,"RB"),
+            (18,54,"LM"),(38,54,"CM"),(62,54,"CM"),(82,54,"RM"),
+            (36,22,"ST"),(64,22,"ST"),
+        ],
+        "moves": [(9,38,34),(10,62,34),(5,32,38),(6,68,38)],
+        "zones": [(50,54,42,14,0.14),(50,22,36,18,0.16),(50,72,50,14,0.10)],
+    },
+    "Olympique Lyonnais": {
+        "formation": "4-3-3", "color": "#1357BE",
+        "style_tags": ["Tiki-Taka", "Positional", "Technical"],
+        "players": [
+            (50,93,"GK"),(18,75,"LB"),(38,78,"CB"),(62,78,"CB"),(82,75,"RB"),
+            (28,56,"LCM"),(50,50,"CM"),(72,56,"RCM"),
+            (16,26,"LW"),(50,20,"CF"),(84,26,"RW"),
+        ],
+        "moves": [(5,20,40),(7,80,40),(8,26,38),(10,74,38)],
+        "zones": [(26,46,14,20,0.14),(74,46,14,20,0.14),(50,52,20,12,0.12),(50,22,38,16,0.14)],
+    },
+    "RC Lens": {
+        "formation": "3-4-3", "color": "#D4AF37",
+        "style_tags": ["Wing-Backs", "High Press", "Vertical"],
+        "players": [
+            (50,93,"GK"),(28,80,"CB"),(50,82,"CB"),(72,80,"CB"),
+            (10,54,"LWB"),(35,54,"CM"),(65,54,"CM"),(90,54,"RWB"),
+            (22,24,"LW"),(50,18,"CF"),(78,24,"RW"),
+        ],
+        "moves": [(4,8,34),(7,92,34),(8,16,34),(10,84,34)],
+        "zones": [(10,40,10,30,0.16),(90,40,10,30,0.16),(50,20,36,16,0.16)],
+    },
+    "OGC Nice": {
+        "formation": "4-3-3", "color": "#CC0000",
+        "style_tags": ["Positional", "Structured", "Patient"],
+        "players": [
+            (50,93,"GK"),(18,75,"LB"),(38,78,"CB"),(62,78,"CB"),(82,75,"RB"),
+            (28,58,"LCM"),(50,52,"CM"),(72,58,"RCM"),
+            (18,28,"LW"),(50,22,"CF"),(82,28,"RW"),
+        ],
+        "moves": [(6,50,44),(9,50,32),(3,84,62),(1,14,62)],
+        "zones": [(50,58,40,14,0.12),(50,76,55,12,0.10),(50,26,34,16,0.14)],
+    },
+    "Stade Rennais": {
+        "formation": "4-3-3", "color": "#CC0000",
+        "style_tags": ["Total Football", "Rotations", "Overlaps"],
+        "players": [
+            (50,93,"GK"),(16,74,"LB"),(36,78,"CB"),(64,78,"CB"),(84,74,"RB"),
+            (26,56,"LCM"),(50,50,"CM"),(74,56,"RCM"),
+            (16,26,"LW"),(50,20,"CF"),(84,26,"RW"),
+        ],
+        "moves": [(1,12,38),(8,28,38),(4,88,38),(10,72,38)],
+        "zones": [(50,24,40,18,0.14),(16,44,14,24,0.12),(84,44,14,24,0.12)],
+    },
+    "RC Strasbourg": {
+        "formation": "4-2-3-1", "color": "#003F8A",
+        "style_tags": ["Direct", "Cross-Heavy", "Physical"],
+        "players": [
+            (50,93,"GK"),(16,74,"LB"),(38,78,"CB"),(62,78,"CB"),(84,74,"RB"),
+            (36,62,"DM"),(64,62,"DM"),
+            (16,40,"LW"),(50,36,"AM"),(84,40,"RW"),(50,18,"CF"),
+        ],
+        "moves": [(1,10,42),(4,90,42),(7,12,52),(9,88,52)],
+        "zones": [(14,42,12,28,0.14),(86,42,12,28,0.14),(50,20,36,16,0.16)],
+    },
+    "Toulouse FC": {
+        "formation": "4-3-3", "color": "#7C1C6A",
+        "style_tags": ["Patient Build-Up", "Technical", "Positional"],
+        "players": [
+            (50,93,"GK"),(18,76,"LB"),(38,79,"CB"),(62,79,"CB"),(82,76,"RB"),
+            (28,57,"LCM"),(50,51,"CM"),(72,57,"RCM"),
+            (18,27,"LW"),(50,21,"CF"),(82,27,"RW"),
+        ],
+        "moves": [(5,22,40),(7,78,40),(6,50,36),(9,50,30)],
+        "zones": [(26,48,14,20,0.14),(74,48,14,20,0.14),(50,60,38,12,0.10),(50,24,36,16,0.14)],
+    },
+    "Stade Brestois": {
+        "formation": "3-5-2", "color": "#CC0000",
+        "style_tags": ["Low Block", "Counter", "Compact"],
+        "players": [
+            (50,93,"GK"),(28,80,"CB"),(50,82,"CB"),(72,80,"CB"),
+            (10,58,"LWB"),(32,58,"CM"),(50,54,"CM"),(68,58,"CM"),(90,58,"RWB"),
+            (36,24,"ST"),(64,24,"ST"),
+        ],
+        "moves": [(4,12,42),(8,88,42),(9,40,34),(10,60,34)],
+        "zones": [(50,62,50,16,0.14),(50,78,55,10,0.10),(50,24,32,14,0.12)],
+    },
+    "FC Nantes": {
+        "formation": "4-4-2", "color": "#F0A500",
+        "style_tags": ["Cross-Based", "Physical", "Flanks"],
+        "players": [
+            (50,93,"GK"),(15,74,"LB"),(38,78,"CB"),(62,78,"CB"),(85,74,"RB"),
+            (15,52,"LM"),(38,52,"CM"),(62,52,"CM"),(85,52,"RM"),
+            (36,22,"ST"),(64,22,"ST"),
+        ],
+        "moves": [(1,10,36),(4,90,36),(5,10,42),(8,90,42)],
+        "zones": [(12,46,12,30,0.14),(88,46,12,30,0.14),(50,20,36,16,0.14)],
+    },
+    "Angers SCO": {
+        "formation": "4-4-2", "color": "#1A1A1A",
+        "style_tags": ["Low Block", "Counter", "Defensive"],
+        "players": [
+            (50,93,"GK"),(18,76,"LB"),(38,79,"CB"),(62,79,"CB"),(82,76,"RB"),
+            (18,56,"LM"),(38,56,"CM"),(62,56,"CM"),(82,56,"RM"),
+            (36,24,"ST"),(64,24,"ST"),
+        ],
+        "moves": [(9,40,34),(10,60,34),(5,32,44),(6,68,44)],
+        "zones": [(50,60,50,16,0.14),(50,78,55,10,0.10),(50,24,34,14,0.10)],
+    },
+    "Le Havre AC": {
+        "formation": "4-4-2", "color": "#0050A0",
+        "style_tags": ["Low Block", "Defensive", "Compact"],
+        "players": [
+            (50,93,"GK"),(18,76,"LB"),(38,79,"CB"),(62,79,"CB"),(82,76,"RB"),
+            (18,57,"LM"),(38,57,"CM"),(62,57,"CM"),(82,57,"RM"),
+            (36,24,"ST"),(64,24,"ST"),
+        ],
+        "moves": [(5,34,44),(6,66,44),(9,36,32),(10,64,32)],
+        "zones": [(50,62,52,16,0.14),(50,78,55,10,0.12),(50,26,30,12,0.10)],
+    },
+    "AJ Auxerre": {
+        "formation": "4-3-3", "color": "#0050A0",
+        "style_tags": ["High Press", "Vertical", "Dynamic"],
+        "players": [
+            (50,93,"GK"),(18,75,"LB"),(38,78,"CB"),(62,78,"CB"),(82,75,"RB"),
+            (28,56,"LCM"),(50,50,"CM"),(72,56,"RCM"),
+            (18,26,"LW"),(50,20,"CF"),(82,26,"RW"),
+        ],
+        "moves": [(8,20,38),(9,50,32),(10,80,38),(6,50,36)],
+        "zones": [(50,22,38,18,0.18),(50,50,38,14,0.10)],
+    },
+    "FC Metz": {
+        "formation": "4-4-2", "color": "#8B0000",
+        "style_tags": ["Low Block", "Cross-Based", "Physical"],
+        "players": [
+            (50,93,"GK"),(18,76,"LB"),(38,79,"CB"),(62,79,"CB"),(82,76,"RB"),
+            (18,57,"LM"),(38,57,"CM"),(62,57,"CM"),(82,57,"RM"),
+            (36,24,"ST"),(64,24,"ST"),
+        ],
+        "moves": [(1,12,42),(4,88,42),(9,36,32),(10,64,32)],
+        "zones": [(50,62,52,14,0.14),(12,48,12,26,0.12),(88,48,12,26,0.12),(50,26,34,14,0.12)],
+    },
+    "Paris FC": {
+        "formation": "4-3-3", "color": "#003F8A",
+        "style_tags": ["Build-Up", "Positional", "Technical"],
+        "players": [
+            (50,93,"GK"),(18,75,"LB"),(38,78,"CB"),(62,78,"CB"),(82,75,"RB"),
+            (28,56,"LCM"),(50,50,"CM"),(72,56,"RCM"),
+            (18,26,"LW"),(50,20,"CF"),(82,26,"RW"),
+        ],
+        "moves": [(5,22,40),(7,78,40),(9,50,30),(6,50,36)],
+        "zones": [(26,48,14,20,0.12),(74,48,14,20,0.12),(50,24,36,16,0.14)],
+    },
+    "FC Lorient": {
+        "formation": "4-4-2", "color": "#FF6600",
+        "style_tags": ["Counter-Attack", "Flanks", "Low Block"],
+        "players": [
+            (50,93,"GK"),(15,74,"LB"),(38,78,"CB"),(62,78,"CB"),(85,74,"RB"),
+            (15,53,"LM"),(38,53,"CM"),(62,53,"CM"),(85,53,"RM"),
+            (36,22,"ST"),(64,22,"ST"),
+        ],
+        "moves": [(1,10,40),(4,90,40),(9,34,30),(10,66,30)],
+        "zones": [(12,46,12,28,0.14),(88,46,12,28,0.14),(50,22,34,14,0.14)],
+    },
+}
+
+def render_tactical_pitch_html(team_name):
+    """Generate a premium animated SVG tactical pitch for a given team."""
+    import math
+    PAD, PW, PH = 14, 252, 360
+    SW, SH = PW + 2 * PAD, PH + 2 * PAD
+
+    def sx(p): return PAD + p / 100 * PW
+    def sy(p): return PAD + p / 100 * PH
+
+    t = TEAM_TACTICS.get(team_name)
+    if not t:
+        return (f'<div style="background:#1a2e1a;border-radius:18px;height:260px;'
+                f'display:flex;align-items:center;justify-content:center;">'
+                f'<span style="color:rgba(255,255,255,.4);font-size:.78rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;">'
+                f'No tactical data</span></div>')
+
+    color = t["color"]
+    slug = re.sub(r'[^a-z0-9]', '_', team_name.lower())
+    cx, cy = PAD + PW // 2, PAD + PH // 2
+
+    # ── SVG defs (pattern, gradients, filters, marker) ──
+    stripe_h = 40
+    defs = (
+        f'<defs>'
+        # Grass stripes
+        f'<pattern id="g_{slug}" x="0" y="0" width="{PW}" height="{stripe_h}" patternUnits="userSpaceOnUse">'
+        f'<rect x="0" y="0" width="{PW}" height="{stripe_h//2}" fill="rgba(0,0,0,0.045)"/>'
+        f'</pattern>'
+        # Pitch vignette
+        f'<radialGradient id="vig_{slug}" cx="50%" cy="50%" r="70%">'
+        f'<stop offset="0%" stop-color="transparent"/>'
+        f'<stop offset="100%" stop-color="rgba(0,0,0,0.25)"/>'
+        f'</radialGradient>'
+        # Player drop shadow
+        f'<filter id="pshadow_{slug}" x="-30%" y="-30%" width="160%" height="160%">'
+        f'<feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="rgba(0,0,0,0.5)"/>'
+        f'</filter>'
+        # Player glow (for moving players)
+        f'<filter id="pglow_{slug}" x="-40%" y="-40%" width="180%" height="180%">'
+        f'<feGaussianBlur stdDeviation="3" result="blur"/>'
+        f'<feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>'
+        f'</filter>'
+        # Arrowhead marker
+        f'<marker id="arr_{slug}" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">'
+        f'<polygon points="0 0, 7 3.5, 0 7" fill="rgba(255,255,255,0.9)"/>'
+        f'</marker>'
+    )
+    # Radial gradient per zone
+    for i, (zcx, zcy, zrx, zry, op) in enumerate(t.get("zones", [])):
+        defs += (
+            f'<radialGradient id="hz_{slug}_{i}" cx="50%" cy="50%" r="50%">'
+            f'<stop offset="0%" stop-color="{color}" stop-opacity="{min(op*2.2, 0.55):.2f}"/>'
+            f'<stop offset="100%" stop-color="{color}" stop-opacity="0"/>'
+            f'</radialGradient>'
+        )
+    defs += '</defs>'
+
+    # ── Pitch background ──
+    pitch_bg = (
+        f'<rect x="0" y="0" width="{SW}" height="{SH}" '
+        f'fill="url(#g_{slug})" rx="0"/>'
+        f'<rect x="0" y="0" width="{SW}" height="{SH}" '
+        f'fill="url(#vig_{slug})"/>'
+    )
+
+    # ── Pitch markings ──
+    m = (
+        # Border
+        f'<rect x="{PAD}" y="{PAD}" width="{PW}" height="{PH}" fill="none" '
+        f'stroke="rgba(255,255,255,.55)" stroke-width="1.5"/>'
+        # Center line
+        f'<line x1="{PAD}" y1="{cy}" x2="{PAD+PW}" y2="{cy}" '
+        f'stroke="rgba(255,255,255,.45)" stroke-width="1"/>'
+        # Center circle
+        f'<circle cx="{cx}" cy="{cy}" r="32" fill="none" '
+        f'stroke="rgba(255,255,255,.4)" stroke-width="1"/>'
+        # Center dot
+        f'<circle cx="{cx}" cy="{cy}" r="3.5" fill="rgba(255,255,255,.6)"/>'
+        # Penalty box top
+        f'<rect x="{PAD+58}" y="{PAD}" width="136" height="66" fill="rgba(255,255,255,.03)" '
+        f'stroke="rgba(255,255,255,.38)" stroke-width="1"/>'
+        # Small box top
+        f'<rect x="{PAD+96}" y="{PAD}" width="60" height="23" fill="rgba(255,255,255,.02)" '
+        f'stroke="rgba(255,255,255,.28)" stroke-width="1"/>'
+        # Penalty spot top
+        f'<circle cx="{cx}" cy="{PAD+52}" r="2" fill="rgba(255,255,255,.45)"/>'
+        # Penalty arc top (D)
+        f'<path d="M {PAD+80} {PAD+66} A 32 32 0 0 0 {PAD+172} {PAD+66}" fill="none" '
+        f'stroke="rgba(255,255,255,.3)" stroke-width="1"/>'
+        # Penalty box bottom
+        f'<rect x="{PAD+58}" y="{PAD+PH-66}" width="136" height="66" fill="rgba(255,255,255,.03)" '
+        f'stroke="rgba(255,255,255,.38)" stroke-width="1"/>'
+        # Small box bottom
+        f'<rect x="{PAD+96}" y="{PAD+PH-23}" width="60" height="23" fill="rgba(255,255,255,.02)" '
+        f'stroke="rgba(255,255,255,.28)" stroke-width="1"/>'
+        # Penalty spot bottom
+        f'<circle cx="{cx}" cy="{PAD+PH-52}" r="2" fill="rgba(255,255,255,.45)"/>'
+        # Penalty arc bottom
+        f'<path d="M {PAD+80} {PAD+PH-66} A 32 32 0 0 1 {PAD+172} {PAD+PH-66}" fill="none" '
+        f'stroke="rgba(255,255,255,.3)" stroke-width="1"/>'
+        # Goals
+        f'<rect x="{PAD+102}" y="{PAD-8}" width="48" height="8" fill="rgba(255,255,255,.12)" '
+        f'stroke="rgba(255,255,255,.45)" stroke-width="1"/>'
+        f'<rect x="{PAD+102}" y="{PAD+PH}" width="48" height="8" fill="rgba(255,255,255,.12)" '
+        f'stroke="rgba(255,255,255,.45)" stroke-width="1"/>'
+        # Corner arcs
+        f'<path d="M {PAD} {PAD+9} A 9 9 0 0 1 {PAD+9} {PAD}" fill="none" stroke="rgba(255,255,255,.32)" stroke-width="1"/>'
+        f'<path d="M {PAD+PW-9} {PAD} A 9 9 0 0 1 {PAD+PW} {PAD+9}" fill="none" stroke="rgba(255,255,255,.32)" stroke-width="1"/>'
+        f'<path d="M {PAD} {PAD+PH-9} A 9 9 0 0 1 {PAD+9} {PAD+PH}" fill="none" stroke="rgba(255,255,255,.32)" stroke-width="1"/>'
+        f'<path d="M {PAD+PW-9} {PAD+PH} A 9 9 0 0 1 {PAD+PW} {PAD+PH-9}" fill="none" stroke="rgba(255,255,255,.32)" stroke-width="1"/>'
+    )
+
+    # ── Heat zones (radial gradient ellipses) ──
+    zones_svg = ""
+    for i, (zcx, zcy, zrx, zry, op) in enumerate(t.get("zones", [])):
+        zones_svg += (
+            f'<ellipse cx="{sx(zcx):.1f}" cy="{sy(zcy):.1f}" '
+            f'rx="{zrx/100*PW:.1f}" ry="{zry/100*PH:.1f}" '
+            f'fill="url(#hz_{slug}_{i})" class="hz_{slug}"/>\n'
+        )
+
+    # ── Formation lines (connect players in the same tactical line) ──
+    players = t["players"]
+    lines_by_depth = {}
+    for i, (ppx, ppy, abbr) in enumerate(players):
+        bucket = round(ppy / 22) * 22  # group by ~22% bands
+        lines_by_depth.setdefault(bucket, []).append(i)
+
+    formation_lines_svg = ""
+    for bucket, idxs in lines_by_depth.items():
+        if len(idxs) < 2:
+            continue
+        sorted_i = sorted(idxs, key=lambda i: players[i][0])
+        for j in range(len(sorted_i) - 1):
+            i1, i2 = sorted_i[j], sorted_i[j + 1]
+            x1, y1 = sx(players[i1][0]), sy(players[i1][1])
+            x2, y2 = sx(players[i2][0]), sy(players[i2][1])
+            formation_lines_svg += (
+                f'<line x1="{x1:.1f}" y1="{y1:.1f}" x2="{x2:.1f}" y2="{y2:.1f}" '
+                f'stroke="{color}" stroke-width="1.2" opacity="0.35" stroke-dasharray="3 4"/>'
+            )
+
+    # ── Movement arrows (animated dashed bezier paths) ──
+    moves_dict = {m[0]: (m[1], m[2]) for m in t.get("moves", [])}
+    arrows_svg = ""
+    arrow_css = []
+    for seq, (pi, (to_x, to_y)) in enumerate(moves_dict.items()):
+        ppx, ppy, _ = players[pi]
+        x1, y1 = sx(ppx), sy(ppy)
+        x2, y2 = sx(to_x), sy(to_y)
+        dx, dy = x2 - x1, y2 - y1
+        L = math.hypot(dx, dy) or 1
+        # Curved control point (slight perpendicular offset)
+        perp_x, perp_y = -dy / L, dx / L
+        offset = min(L * 0.22, 18)
+        cpx = (x1 + x2) / 2 + perp_x * offset
+        cpy = (y1 + y2) / 2 + perp_y * offset
+        path_d = f"M {x1:.1f} {y1:.1f} Q {cpx:.1f} {cpy:.1f} {x2:.1f} {y2:.1f}"
+        path_len = int(L * 1.18) + 10
+        an = f"aw_{slug}_{pi}"
+        cls_a = f"ac_{slug}_{pi}"
+        delay = seq * 1.8
+        arrow_css.append(
+            f"@keyframes {an}{{"
+            f"0%,{int(delay/9*100)}%{{stroke-dashoffset:{path_len};opacity:0}}"
+            f"{int((delay+0.5)/9*100)}%,{int((delay+2.2)/9*100)}%{{stroke-dashoffset:0;opacity:.92}}"
+            f"{int((delay+2.8)/9*100)}%,100%{{stroke-dashoffset:-{path_len};opacity:0}}}}"
+            f".{cls_a}{{stroke-dasharray:{path_len};stroke-dashoffset:{path_len};"
+            f"animation:{an} 9s ease-in-out infinite;}}"
+        )
+        arrows_svg += (
+            f'<path class="{cls_a}" d="{path_d}" fill="none" stroke="rgba(255,255,255,.9)" '
+            f'stroke-width="2" marker-end="url(#arr_{slug})"/>\n'
+        )
+
+    # ── Players ──
+    css_lines = [
+        f"@keyframes hz_p_{slug}{{0%,100%{{opacity:.75}}50%{{opacity:1}}}}",
+        f".hz_{slug}{{animation:hz_p_{slug} 4.5s ease-in-out infinite;}}",
+    ] + arrow_css
+
+    players_svg = ""
+    for i, (ppx, ppy, abbr) in enumerate(players):
+        x0, y0 = sx(ppx), sy(ppy)
+        cls = f"pl_{slug}_{i}"
+        delay = f"{i * 0.22:.2f}s"
+        is_mover = i in moves_dict
+        filt = f'filter="url(#pglow_{slug})"' if is_mover else f'filter="url(#pshadow_{slug})"'
+        if is_mover:
+            tx, ty = moves_dict[i]
+            ddx = sx(tx) - x0
+            ddy = sy(ty) - y0
+            an = f"pm_{slug}_{i}"
+            css_lines.append(
+                f"@keyframes {an}{{"
+                f"0%,18%{{transform:translate(0px,0px)}}"
+                f"38%,62%{{transform:translate({ddx:.1f}px,{ddy:.1f}px)}}"
+                f"82%,100%{{transform:translate(0px,0px)}}}}"
+                f".{cls}{{animation:{an} 9s ease-in-out infinite;animation-delay:{delay};}}"
+            )
+            ring = f'<circle cx="{x0:.1f}" cy="{y0:.1f}" r="15" fill="none" stroke="{color}" stroke-width="1" opacity="0.4" stroke-dasharray="3 3"/>'
+        else:
+            an = f"ps_{slug}_{i}"
+            css_lines.append(
+                f"@keyframes {an}{{0%,100%{{opacity:1}}50%{{opacity:.82}}}}"
+                f".{cls}{{animation:{an} 3.8s ease-in-out infinite;animation-delay:{delay};}}"
+            )
+            ring = ""
+        players_svg += (
+            f'<g class="{cls}" {filt}>'
+            f'{ring}'
+            f'<circle cx="{x0:.1f}" cy="{y0:.1f}" r="11.5" fill="{color}" stroke="rgba(255,255,255,.9)" stroke-width="1.8"/>'
+            f'<circle cx="{x0:.1f}" cy="{y0:.1f}" r="11.5" fill="rgba(255,255,255,.08)"/>'
+            f'<text x="{x0:.1f}" y="{y0:.1f}" text-anchor="middle" dominant-baseline="central" '
+            f'font-size="6.2" font-weight="900" fill="white" font-family="Nunito,sans-serif" letter-spacing="-.3">{abbr}</text>'
+            f'</g>\n'
+        )
+
+    # ── Style pills ──
+    pills = "".join(
+        f'<span style="display:inline-flex;align-items:center;gap:.3rem;padding:.25rem .72rem;'
+        f'border-radius:100px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.75);'
+        f'font-size:.6rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;'
+        f'border:1px solid rgba(255,255,255,.12);margin:.15rem .15rem 0 0">'
+        f'<span style="width:5px;height:5px;border-radius:50%;background:{color};display:inline-block;flex-shrink:0"></span>'
+        f'{s}</span>'
+        for s in t.get("style_tags", [])
+    )
+
+    css_block = "<style>" + "".join(css_lines) + "</style>"
+
+    svg = (
+        f'<svg viewBox="0 0 {SW} {SH}" xmlns="http://www.w3.org/2000/svg" '
+        f'style="display:block;width:100%;background:#1e5c1e;">'
+        f'{defs}{pitch_bg}{m}{zones_svg}{formation_lines_svg}{arrows_svg}{players_svg}'
+        f'</svg>'
+    )
+
+    return (
+        f'{css_block}'
+        f'<div style="background:#0F1C0F;border-radius:20px;overflow:hidden;'
+        f'box-shadow:0 8px 32px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.06);">'
+        # Header
+        f'<div style="padding:.9rem 1.1rem .6rem;display:flex;align-items:center;'
+        f'justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.07);">'
+        f'<div>'
+        f'<div style="font-size:.64rem;font-weight:800;letter-spacing:.18em;text-transform:uppercase;'
+        f'color:{color};margin-bottom:.18rem;">Team Analysis</div>'
+        f'<div style="font-size:.95rem;font-weight:900;color:rgba(255,255,255,.92);letter-spacing:-.02em;">{team_name}</div>'
+        f'</div>'
+        f'<span style="background:{color};color:white;font-size:.72rem;font-weight:900;'
+        f'padding:.3rem .9rem;border-radius:100px;letter-spacing:.06em;'
+        f'box-shadow:0 2px 10px {color}66;">{t["formation"]}</span>'
+        f'</div>'
+        # SVG pitch
+        f'<div style="position:relative;">{svg}</div>'
+        # Footer pills
+        f'<div style="padding:.6rem 1rem .8rem;border-top:1px solid rgba(255,255,255,.06);">'
+        f'<div style="font-size:.56rem;font-weight:800;letter-spacing:.16em;color:rgba(255,255,255,.3);'
+        f'text-transform:uppercase;margin-bottom:.3rem;">Playing style</div>'
+        f'{pills}</div>'
+        f'</div>'
+    )
+
 def linkify_terms(text, source_page="main", ta=None, tb=None):
     """Replace <b>term</b> with a colored clickable link."""
     extra = ""
@@ -1197,7 +1665,11 @@ def page_main():
 
     # ── Terrain ──
     st.markdown('<div class="sec-label">Tactics</div><div class="sec-title">Tactical pitch</div>', unsafe_allow_html=True)
-    st.markdown('<div class="terrain-wrap"><div class="terrain-border"></div><div class="terrain-center"></div><div class="terrain-center-dot"></div><div class="terrain-box-top"></div><div class="terrain-box-bot"></div><div class="terrain-small-top"></div><div class="terrain-small-bot"></div><span class="terrain-label">Tactical pitch — coming soon</span></div>', unsafe_allow_html=True)
+    pitch_col_a, pitch_col_b = st.columns(2)
+    with pitch_col_a:
+        st.markdown(render_tactical_pitch_html(team_a), unsafe_allow_html=True)
+    with pitch_col_b:
+        st.markdown(render_tactical_pitch_html(team_b), unsafe_allow_html=True)
 
     st.markdown('<div class="div"></div>', unsafe_allow_html=True)
 
