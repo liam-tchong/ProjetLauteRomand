@@ -116,6 +116,22 @@ def fetch_previous_standings(league_code):
         return {}
 
 
+@st.cache_data(ttl=600, show_spinner=False)
+def fetch_schedule(league_code, date_from, date_to):
+    """Fetch matches for a league between two dates (yyyy-mm-dd strings)."""
+    try:
+        r = requests.get(
+            f"https://api.football-data.org/v4/competitions/{league_code}/matches",
+            headers=HEADERS,
+            params={"dateFrom": date_from, "dateTo": date_to},
+            timeout=10,
+        )
+        r.raise_for_status()
+        return r.json().get("matches", [])
+    except Exception:
+        return []
+
+
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch_team_form(team_id):
     """Last 5 played matches for a football-data.org team_id."""
@@ -2898,7 +2914,7 @@ def render_header():
 def render_nav():
     page = st.session_state.page
     st.markdown('<div style="background:var(--white);border:2px solid var(--beige);border-radius:22px;padding:.5rem .6rem;margin-bottom:1.5rem;box-shadow:0 4px 20px rgba(42,32,24,0.08);display:flex;gap:.4rem">', unsafe_allow_html=True)
-    c1, c2, c3 = st.columns(3)
+    c1, c2, c3, c4 = st.columns(4)
     with c1:
         t = "primary" if page == "main" else "secondary"
         if st.button("⚽  Analysis", type=t, use_container_width=True, key="nav_main"):
@@ -2908,6 +2924,10 @@ def render_nav():
         if st.button("📊  Standings", type=t, use_container_width=True, key="nav_class"):
             st.session_state.page = "classement"; st.rerun()
     with c3:
+        t = "primary" if page == "schedule" else "secondary"
+        if st.button("📅  Schedule", type=t, use_container_width=True, key="nav_sched"):
+            st.session_state.page = "schedule"; st.rerun()
+    with c4:
         t = "primary" if page == "glossaire" else "secondary"
         if st.button("📖  Glossary", type=t, use_container_width=True, key="nav_glos"):
             st.session_state.page = "glossaire"; st.rerun()
@@ -3243,6 +3263,132 @@ def page_main():
     st.markdown("<br>", unsafe_allow_html=True)
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+# PAGE SCHEDULE
+# ══════════════════════════════════════════════════════════════════════════════
+def page_schedule():
+    from datetime import datetime, timedelta, timezone
+    from collections import defaultdict
+
+    st.markdown('<div class="sec-label">5 Leagues</div><div class="sec-title">Match Schedule</div>', unsafe_allow_html=True)
+
+    # ── League filter (toggle buttons) ──
+    if "sched_leagues" not in st.session_state:
+        st.session_state.sched_leagues = set(LEAGUES.keys())
+
+    btn_cols = st.columns(len(LEAGUES))
+    for col, (lname, linfo) in zip(btn_cols, LEAGUES.items()):
+        with col:
+            active = lname in st.session_state.sched_leagues
+            if st.button(f"{linfo['flag']} {lname}", key=f"sched_btn_{lname}",
+                         type="primary" if active else "secondary",
+                         use_container_width=True):
+                if active:
+                    st.session_state.sched_leagues.discard(lname)
+                else:
+                    st.session_state.sched_leagues.add(lname)
+                st.rerun()
+
+    selected = st.session_state.sched_leagues
+    if not selected:
+        st.markdown('<p style="color:var(--mid);text-align:center;padding:2rem 0">Select at least one league above.</p>', unsafe_allow_html=True)
+        return
+
+    now       = datetime.now(timezone.utc)
+    date_from = (now - timedelta(days=3)).strftime("%Y-%m-%d")
+    date_to   = (now + timedelta(days=14)).strftime("%Y-%m-%d")
+
+    all_matches = []
+    with st.spinner("Loading schedule…"):
+        for lname in selected:
+            linfo = LEAGUES[lname]
+            matches = fetch_schedule(linfo["code"], date_from, date_to)
+            for m in matches:
+                all_matches.append({
+                    "league":   lname,
+                    "color":    linfo.get("color", "#888"),
+                    "utcDate":  m["utcDate"],
+                    "status":   m["status"],
+                    "matchday": m.get("matchday", ""),
+                    "home":     m["homeTeam"]["name"],
+                    "away":     m["awayTeam"]["name"],
+                    "score_h":  m["score"]["fullTime"].get("home"),
+                    "score_a":  m["score"]["fullTime"].get("away"),
+                })
+
+    if not all_matches:
+        st.markdown('<p style="color:var(--mid);text-align:center;padding:2rem 0">No matches found for this period.</p>', unsafe_allow_html=True)
+        return
+
+    all_matches.sort(key=lambda m: m["utcDate"])
+
+    by_date = defaultdict(list)
+    for m in all_matches:
+        dt = datetime.fromisoformat(m["utcDate"].replace("Z", "+00:00"))
+        local_dt = dt.astimezone()
+        m["local_time"] = local_dt.strftime("%H:%M")
+        by_date[local_dt.strftime("%A %d %B %Y")].append(m)
+
+    STATUS_MAP = {
+        "FINISHED":  ("FIN",  "sched-status-fin"),
+        "IN_PLAY":   ("LIVE", "sched-status-live"),
+        "PAUSED":    ("HT",   "sched-status-live"),
+        "TIMED":     ("",     "sched-status-sched"),
+        "SCHEDULED": ("",     "sched-status-sched"),
+        "POSTPONED": ("PPD",  "sched-status-sched"),
+        "CANCELLED": ("CAN",  "sched-status-sched"),
+    }
+
+    # Inject CSS for match cards
+    st.markdown("""<style>
+.sched-date-group{margin-bottom:1.4rem;}
+.sched-date-label{font-size:.68rem;font-weight:900;letter-spacing:.14em;text-transform:uppercase;color:var(--mid);margin-bottom:.55rem;padding-left:.2rem;}
+.sched-match{display:flex;align-items:center;gap:.7rem;background:var(--white);border-radius:14px;padding:.65rem 1rem;margin-bottom:.45rem;box-shadow:0 2px 8px rgba(26,26,46,.06);border-left:4px solid #ccc;}
+.sched-league-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.sched-teams{flex:1;font-size:.88rem;font-weight:700;color:var(--dark);}
+.sched-score{font-size:.88rem;font-weight:900;color:var(--dark);min-width:42px;text-align:center;}
+.sched-status{font-size:.62rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:.18rem .55rem;border-radius:100px;white-space:nowrap;}
+.sched-status-fin{background:var(--green-lt);color:var(--green-dk);}
+.sched-status-live{background:#FFE0E0;color:var(--red-dk);animation:pulse 1.2s ease-in-out infinite;}
+.sched-status-sched{background:var(--beige);color:var(--mid);}
+.sched-matchday{font-size:.62rem;font-weight:700;color:var(--mid);white-space:nowrap;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+</style>""", unsafe_allow_html=True)
+
+    html = ""
+    for date_label, matches in by_date.items():
+        html += f'<div class="sched-date-group"><div class="sched-date-label">{date_label}</div>'
+        for m in matches:
+            status_raw = m["status"]
+            status_txt, status_cls = STATUS_MAP.get(status_raw, (status_raw[:3], "sched-status-sched"))
+
+            if status_raw == "FINISHED" and m["score_h"] is not None:
+                score_html = f'<div class="sched-score">{m["score_h"]} – {m["score_a"]}</div>'
+            elif status_raw in ("IN_PLAY", "PAUSED"):
+                score_html = f'<div class="sched-score">{m["score_h"]} – {m["score_a"]}</div>'
+            else:
+                score_html = f'<div class="sched-score" style="color:var(--mid);font-size:.8rem">{m["local_time"]}</div>'
+
+            if status_raw in ("TIMED", "SCHEDULED"):
+                status_badge = f'<span class="sched-status {status_cls}">{m["local_time"]}</span>'
+            else:
+                status_badge = f'<span class="sched-status {status_cls}">{status_txt}</span>'
+
+            md_badge = f'<span class="sched-matchday">MD {m["matchday"]}</span>' if m["matchday"] else ""
+
+            html += (
+                f'<div class="sched-match" style="border-left-color:{m["color"]}">'
+                f'<div class="sched-league-dot" style="background:{m["color"]}"></div>'
+                f'<div class="sched-teams">{m["home"]} <span style="color:var(--mid);font-weight:700">vs</span> {m["away"]}</div>'
+                f'{score_html}{status_badge}{md_badge}'
+                f'</div>'
+            )
+        html += '</div>'
+
+    st.markdown(html, unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+
+
 # ── Router ────────────────────────────────────────────────────────────────────
 if st.session_state.page == "definition":
     page_definition()
@@ -3251,6 +3397,8 @@ else:
     render_nav()
     if st.session_state.page == "classement":
         page_classement()
+    elif st.session_state.page == "schedule":
+        page_schedule()
     elif st.session_state.page == "glossaire":
         page_glossaire()
     else:
