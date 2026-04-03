@@ -410,39 +410,41 @@ Reply with the 3 paragraphs only, nothing else."""
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def generate_key_challenges(team_a, team_b, pts_a, pts_b, gf_a, gf_b, ga_a, ga_b):
-    """Generates one key challenge sentence per team for this specific matchup."""
+    """Generates a short challenge paragraph (2-3 sentences) per team for this specific matchup."""
     if not ANTHROPIC_API_KEY:
         return (
-            f"{team_a} must stay compact and limit space in behind.",
-            f"{team_b} must be clinical in the final third.",
+            f"{team_a} must stay compact and limit space in behind. Defensive organisation will be key.",
+            f"{team_b} must be clinical in the final third. Creating clear chances will decide the match.",
         )
-    prompt = f"""You are a concise football analyst. Given these two teams and their season stats, write exactly 2 lines — one per team — describing each team's single biggest tactical challenge in this specific matchup.
+    prompt = f"""You are a concise football analyst. Given these two teams and their season stats, write a short challenge for each team in this specific matchup.
 
 {team_a}: {pts_a} pts, {gf_a} goals scored, {ga_a} goals conceded this season.
 {team_b}: {pts_b} pts, {gf_b} goals scored, {ga_b} goals conceded this season.
 
-Format (reply with exactly these 2 lines, nothing else):
-{team_a}: <one sentence, max 12 words>
-{team_b}: <one sentence, max 12 words>"""
+For each team write 2 sentences maximum — the main tactical challenge they face and one concrete consequence if they fail to meet it. Be direct and specific to this matchup.
+
+Format (reply with exactly these 2 blocks, nothing else):
+{team_a}: <2 sentences>
+{team_b}: <2 sentences>"""
     try:
         client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
         msg = client.messages.create(
             model="claude-haiku-4-5-20251001",
-            max_tokens=80,
+            max_tokens=180,
             messages=[{"role": "user", "content": prompt}]
         )
-        lines = msg.content[0].text.strip().split("\n")
+        lines = [l.strip() for l in msg.content[0].text.strip().split("\n") if l.strip()]
         def _extract(line, team):
             if ":" in line:
                 return line.split(":", 1)[1].strip()
             return line.strip()
-        challenge_a = _extract(lines[0], team_a) if len(lines) > 0 else "Stay compact and limit space in behind."
-        challenge_b = _extract(lines[1], team_b) if len(lines) > 1 else "Be clinical in the final third."
+        challenge_a = _extract(lines[0], team_a) if len(lines) > 0 else "Stay compact and limit space in behind. Defensive organisation will be key."
+        challenge_b = _extract(lines[1], team_b) if len(lines) > 1 else "Be clinical in the final third. Creating clear chances will decide the match."
         return challenge_a, challenge_b
     except Exception:
         return (
-            f"Stay compact and limit space in behind.",
-            f"Be clinical in the final third.",
+            f"Stay compact and limit space in behind. Defensive organisation will be key.",
+            f"Be clinical in the final third. Creating clear chances will decide the match.",
         )
 
 
