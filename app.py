@@ -2971,7 +2971,7 @@ def render_header():
 def render_nav():
     page = st.session_state.page
     st.markdown('<div style="background:var(--white);border:2px solid var(--beige);border-radius:22px;padding:.5rem .6rem;margin-bottom:1.5rem;box-shadow:0 4px 20px rgba(42,32,24,0.08);display:flex;gap:.4rem">', unsafe_allow_html=True)
-    c1, c2, c3, c4 = st.columns(4)
+    c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
         t = "primary" if page == "main" else "secondary"
         if st.button("⚽  Analysis", type=t, use_container_width=True, key="nav_main"):
@@ -2985,6 +2985,10 @@ def render_nav():
         if st.button("📅  Schedule", type=t, use_container_width=True, key="nav_sched"):
             st.session_state.page = "schedule"; st.rerun()
     with c4:
+        t = "primary" if page == "regles" else "secondary"
+        if st.button("📋  Rules", type=t, use_container_width=True, key="nav_regles"):
+            st.session_state.page = "regles"; st.rerun()
+    with c5:
         t = "primary" if page == "glossaire" else "secondary"
         if st.button("📖  Glossary", type=t, use_container_width=True, key="nav_glos"):
             st.session_state.page = "glossaire"; st.rerun()
@@ -3459,6 +3463,76 @@ def page_schedule():
     st.markdown("<br>", unsafe_allow_html=True)
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+# FOOTBALL RULES DATA
+# ══════════════════════════════════════════════════════════════════════════════
+FOOTBALL_RULES = [
+    ("The Objective", "⚽", "Score more goals than the opponent before time runs out. A goal is scored when the ball fully crosses the opponent's goal line between the posts and under the crossbar. The team with the most goals wins. If both teams score the same number, the match is a draw — unless a winner must be decided (knockout round), in which case extra time or a penalty shootout follows."),
+    ("The Duration", "⏱️", "A match lasts 90 minutes, split into two halves of 45 minutes each, with a 15-minute break at half-time. The referee adds extra minutes at the end of each half (called added time or stoppage time) to compensate for injuries, substitutions, or time-wasting. These extra minutes are displayed on a board by the 4th official on the touchline."),
+    ("The Teams", "👥", "Each team fields 11 players on the pitch at any one time, including one goalkeeper. A team needs at least 7 players to continue a match — if a team drops below 7 (due to red cards or injuries with no substitutes left), the game is abandoned. Both teams must wear different coloured kits so they are easy to tell apart."),
+    ("The Goalkeeper", "🧤", "The goalkeeper is the only player allowed to handle the ball with their hands — but only inside their own penalty area. Outside the area, they must play like any other outfield player. They wear a different colour shirt to distinguish themselves. The keeper cannot pick up the ball with their hands if a teammate deliberately passes it back to them with their feet (back-pass rule)."),
+    ("Handball", "✋", "A handball is called when the ball touches a player's hand or arm in an unnatural position — meaning the arm is making the body bigger or in a position that was not expected. Accidental handballs are not always penalised. However, if a player scores directly after an accidental handball by a teammate, the goal is disallowed. Deliberate handball is always a foul. Goalkeepers can handle the ball freely inside their penalty area."),
+    ("Offside", "🚩", "A player is offside if, at the moment the ball is played to them, any part of their body that can score a goal (head, torso, legs) is closer to the opponent's goal line than both the ball AND the second-to-last defender (usually the last outfield player). Being offside is not a foul by itself — it only becomes an offside infringement if the player is actively involved in play (receives the ball, influences an opponent, or gains an advantage). You cannot be offside from a throw-in, corner, or goal kick."),
+    ("The Foul", "🦵", "A foul is an unfair act against an opponent, judged by the referee. Common fouls include: kicking, tripping, pushing, holding, or charging an opponent in a careless, reckless, or excessively forceful way. Fouls result in a free kick (or penalty if committed inside the penalty area) for the opposing team. The severity of the foul determines whether a yellow or red card is shown."),
+    ("The Free Kick", "🎯", "Awarded to a team after a foul or infringement by the opponent. There are two types: a direct free kick (can be shot directly into goal) and an indirect free kick (must touch another player before a goal can be scored). The opposing players must stand at least 9.15 metres (10 yards) from the ball. The kick must be taken from where the foul occurred."),
+    ("The Penalty Area", "📐", "The large rectangle in front of each goal (18-yard box). Inside this area, the goalkeeper can handle the ball. Any foul committed by a defending player inside this box results in a penalty kick for the attacking team. The smaller box inside it (6-yard box) marks the goal area, from where goal kicks are taken."),
+    ("The Penalty", "💥", "Awarded when a defending player commits a direct free kick foul inside their own penalty area. The ball is placed on the penalty spot (12 yards from goal). Only the penalty taker and the opposing goalkeeper are allowed in the area at the moment of the kick. All other players must be outside the penalty area and the penalty arc. The goalkeeper must stay on their goal line until the ball is kicked."),
+    ("The Yellow Card", "🟨", "A formal warning shown by the referee, also called a caution. A player receives a yellow card for: persistent fouling, unsporting behaviour (diving, time-wasting, pulling a shirt), showing dissent towards the referee, entering or leaving the pitch without permission, or deliberately handling the ball. If a player receives two yellow cards in the same match, they are immediately shown a red card and sent off."),
+    ("The Red Card", "🟥", "Shown for serious offences that result in immediate dismissal from the match. A player receives a direct red card (no prior yellow needed) for: violent conduct (punching, headbutting, biting), serious foul play (a tackle that endangers the opponent's safety), spitting, using offensive or abusive language or gestures, or denying an obvious goal-scoring opportunity by deliberate handball or a foul (DOGSO). After a red card, the team plays with 10 players and cannot replace the sent-off player."),
+    ("Expulsion", "🚫", "When a player receives a red card — either directly or after two yellow cards — they must immediately leave the pitch and the technical area. They cannot be replaced by a substitute, so their team plays with one fewer player for the rest of the match. The player is also automatically suspended for at least one subsequent match, sometimes more depending on the seriousness of the offence."),
+    ("The Corner", "🚩", "Awarded to the attacking team when the ball goes out of play over the goal line and was last touched by a defending player. The ball is placed in the corner arc (a small quarter-circle in the corner of the pitch) and kicked back into play. A goal can be scored directly from a corner. Defending players must stand at least 9.15 metres from the corner arc until the ball is in play."),
+    ("The Throw-In", "🤾", "Awarded when the ball goes out of play over the touchline (the long sides of the pitch). The throw-in is taken by the team that did not touch the ball last. The player must throw the ball with both hands, from behind and over their head, and both feet must be on or behind the touchline at the moment of release. A goal cannot be scored directly from a throw-in."),
+    ("The Goal", "🥅", "A goal is scored when the entire ball crosses the goal line between the goalposts and under the crossbar, provided no infringement (offside, foul, handball) occurred in the build-up. The goal counts the moment the ball fully crosses the line — even if it bounces back out. Goal-line technology or VAR may be used to confirm whether the ball crossed the line."),
+    ("The Ball", "⚪", "A standard football is spherical, made of leather or a similar material, with a circumference of 68–70 cm and a weight of 410–450 grams at the start of the match. If the ball bursts or deflates during play, the game is stopped and restarted with a new ball. The restart depends on where the ball was when it stopped — usually a dropped ball from where it became defective."),
+    ("The Substitute", "🔄", "Teams can make up to 5 substitutions per match (in most competitions), with a sixth allowed in extra time. Substitutions can only be made during a stoppage in play and must be confirmed with the 4th official. Once a player is substituted off, they cannot return to the match. A player who receives a red card cannot be replaced by a substitute — the team simply plays with fewer players."),
+    ("Extra Time", "⏰", "If a knockout match is level after 90 minutes, the game goes into extra time: two additional periods of 15 minutes each (30 minutes total). If the score is still level after extra time, the match is decided by a penalty shootout. Unlike regular time, a goal scored in extra time does not end the game immediately — both periods must be played."),
+    ("Penalty Shootout", "🥊", "Used to decide a knockout match that is still level after extra time. Each team takes turns shooting 5 penalties alternately. If still level after 5 each, it goes to sudden death (one penalty at a time, the first team to score while the other misses wins). Only players on the pitch at the end of extra time are eligible to take penalties (except the expelled players)."),
+    ("The Referee", "👨‍⚖️", "The referee is the authority on the pitch. They enforce the rules, start and stop play, award free kicks and penalties, show yellow and red cards, and add stoppage time. The referee's decision is final on the pitch. They can change a decision if they realise it was wrong, as long as play has not resumed. The referee is assisted by two assistant referees and, in top competitions, a VAR team."),
+    ("The Assistant Referee", "🚩", "Two assistant referees (ARs) patrol the touchlines during a match, one on each side. Their main jobs are to signal when the ball goes out of play (and which team gets the throw-in or corner), to flag for offside, and to assist the referee with decisions near their side of the pitch. They communicate with the referee via earpiece. They can only recommend decisions — the final call always belongs to the referee."),
+    ("VAR", "📺", "Video Assistant Referee — a technology system used in top competitions to review four key match-changing decisions: goals (and the build-up to them), penalty decisions, direct red cards, and cases of mistaken identity. A VAR team watches multiple camera angles in a review centre. They can recommend the referee to review footage on a pitchside monitor. VAR only intervenes for a 'clear and obvious error' — not for every debatable decision."),
+    ("Assisted Offside (OGSO)", "📏", "In competitions using VAR, offside decisions are confirmed using a 'semi-automated offside technology' (SAOT) system that tracks players' body positions using camera data and draws precise lines to determine if any part of the attacking player's body was ahead of the last defender. This removes the need for a subjective judgment call by the assistant referee and has made offside decisions much more accurate — though sometimes controversial for millimetre-thin calls."),
+    ("Kick-Off", "🔔", "Used to start each half of the match, to restart after a goal is scored, and to begin extra time periods. The ball is placed on the centre spot. Both teams must be in their own half. The team kicking off can kick the ball in any direction. The opposing team must be outside the centre circle (radius 9.15 m) until the ball is in play. A goal can be scored directly from a kick-off."),
+    ("The Clearance", "💨", "When a defending player kicks, heads, or otherwise moves the ball away from their own goal to relieve pressure. A clearance is not a pass with precision — the priority is simply to get the ball as far away from danger as possible. Clearances often go out of play (leading to a throw-in or corner for the opposition) or are won back by the attacking team, which is why teams prefer controlled defending when possible."),
+    ("The Back Pass", "↩️", "When a player deliberately passes the ball back to their own goalkeeper using their feet. The goalkeeper is NOT allowed to pick up the ball with their hands in this situation — they must play it with their feet. This rule was introduced in 1992 to prevent time-wasting. However, if the ball is headed or controlled with another body part (not the feet) and played back, the goalkeeper CAN pick it up."),
+    ("The Wall", "🧱", "When a free kick is awarded near the penalty area, the defending team can form a 'wall' of players to block the direct shot on goal. The wall must stand at least 9.15 metres from the ball. Only the attacking team's players are allowed inside this 9.15-metre zone — a recent rule change prevents defending players from standing in the wall on the same line as attackers before the kick is taken."),
+    ("Shot on Target", "🎯", "A shot is considered 'on target' if it is heading into the goal and would have gone in if not saved by the goalkeeper or blocked by another player. Shots that hit the post or crossbar without being touched by the keeper are NOT counted as shots on target. This is a key statistical metric used to evaluate a team's attacking efficiency."),
+    ("Simulation (Diving)", "🎭", "When a player intentionally falls to the ground or exaggerates contact to deceive the referee into awarding a free kick or penalty. This is considered unsporting behaviour and is punishable by a yellow card. VAR has made it easier to identify simulation after the fact. Despite this, diving remains a controversial topic in football, as the line between embellishment and genuine reaction to contact can be very thin."),
+    ("Added Time", "➕", "Also known as stoppage time or injury time. At the end of each half, the referee adds extra minutes to compensate for time lost during the half — due to injuries, substitutions, goal celebrations, VAR checks, time-wasting, and other stoppages. The 4th official displays the minimum added time on a board. Since 2023, FIFA encouraged referees to add more accurate amounts of time, sometimes exceeding 10 minutes per half in high-stoppage games."),
+]
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PAGE RULES
+# ══════════════════════════════════════════════════════════════════════════════
+def page_regles():
+    st.markdown('<div class="sec-label">Football Basics</div><div class="sec-title">Rules of the Game</div>', unsafe_allow_html=True)
+    st.markdown("""<style>
+.rule-card{background:var(--white);border-radius:16px;padding:0;margin-bottom:.7rem;box-shadow:0 2px 10px rgba(26,26,46,.06);overflow:hidden;}
+.rule-card summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:.75rem;padding:.85rem 1.1rem;user-select:none;}
+.rule-card summary::-webkit-details-marker{display:none;}
+.rule-icon{font-size:1.2rem;flex-shrink:0;width:32px;text-align:center;}
+.rule-title{font-size:.9rem;font-weight:800;color:var(--dark);flex:1;}
+.rule-arrow{font-size:.75rem;font-weight:900;color:var(--mid);transition:transform .2s;flex-shrink:0;}
+details.rule-card[open] .rule-arrow{transform:rotate(90deg);}
+details.rule-card summary::after{content:none;}
+.rule-body{padding:.1rem 1.1rem 1rem 1.1rem;font-size:.88rem;line-height:1.75;color:var(--mid);font-weight:600;border-top:1px solid var(--beige);}
+</style>""", unsafe_allow_html=True)
+
+    for title, icon, description in FOOTBALL_RULES:
+        st.markdown(
+            f'<details class="rule-card">'
+            f'<summary>'
+            f'<span class="rule-icon">{icon}</span>'
+            f'<span class="rule-title">{title}</span>'
+            f'<span class="rule-arrow">›</span>'
+            f'</summary>'
+            f'<div class="rule-body">{description}</div>'
+            f'</details>',
+            unsafe_allow_html=True
+        )
+    st.markdown("<br>", unsafe_allow_html=True)
+
+
 # ── Router ────────────────────────────────────────────────────────────────────
 if st.session_state.page == "definition":
     page_definition()
@@ -3469,6 +3543,8 @@ else:
         page_classement()
     elif st.session_state.page == "schedule":
         page_schedule()
+    elif st.session_state.page == "regles":
+        page_regles()
     elif st.session_state.page == "glossaire":
         page_glossaire()
     else:
