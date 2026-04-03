@@ -1192,6 +1192,14 @@ div[data-testid="stHorizontalBlock"] button[kind="primary"]{
 .team-card-header{padding:1rem 1.5rem;font-size:.82rem;font-weight:900;letter-spacing:.06em;text-transform:uppercase;color:var(--dark);display:flex;align-items:center;gap:.6rem;}
 .team-card-header .badge{margin-left:auto;font-size:.62rem;font-weight:800;letter-spacing:.1em;padding:.2rem .6rem;border-radius:100px;}
 .team-card-body{padding:1.2rem 1.5rem 1rem;font-size:.92rem;line-height:1.9;color:var(--mid);font-weight:600;border-top:1px solid var(--beige);}
+.style-summary{margin-bottom:.4rem;}
+.style-details{margin-top:.8rem;border-top:1px solid var(--beige);padding-top:.8rem;}
+details.style-acc summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:.4rem;font-size:.72rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--dark);background:var(--beige);border-radius:100px;padding:.25rem .75rem;margin-top:.5rem;user-select:none;}
+details.style-acc summary::-webkit-details-marker{display:none;}
+details.style-acc summary::after{content:'+ More details';}
+details.style-acc[open] summary::after{content:'− Less';}
+details.style-acc .style-details{animation:fadeIn .2s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
 .card-a .team-card-header{background:var(--green-lt);}
 .card-a .badge{background:var(--green);color:#fff;}
 .card-b .team-card-header{background:var(--red-lt);}
@@ -2196,9 +2204,15 @@ def page_main():
         return f'<div style="margin-bottom:.6rem;font-size:.62rem;font-weight:800;color:var(--mid);letter-spacing:.1em;text-transform:uppercase;margin-top:.2rem">Recent form &nbsp;{pills}</div>'
 
     def _fmt_style(raw):
-        """Converts line breaks to <br> for HTML display, then linkifies glossary terms."""
+        """Split into summary (1st paragraph) + collapsible detail (rest)."""
         html = raw.replace("\n\n", "<br><br>").replace("\n", " ")
-        return linkify_terms(html, source_page="main", ta=team_a, tb=team_b)
+        html = linkify_terms(html, source_page="main", ta=team_a, tb=team_b)
+        parts = html.split("<br><br>", 1)
+        summary = f'<div class="style-summary">{parts[0]}</div>'
+        if len(parts) > 1:
+            detail = f'<div class="style-details">{parts[1]}</div>'
+            return f'{summary}<details class="style-acc"><summary></summary>{detail}</details>'
+        return summary
 
     with st.spinner("Generating AI analysis…"):
         style_a_raw = generate_team_style(
