@@ -133,35 +133,69 @@ def fetch_schedule(league_code, date_from, date_to):
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
-def fetch_team_form(team_id):
-    """Last 5 played matches for a football-data.org team_id."""
+def fetch_team_extended(team_id):
+    """Last 15 finished matches: returns (form_5, extended_stats_dict)."""
     if not team_id:
-        return []
+        return [], {}
     try:
         r = requests.get(
             f"https://api.football-data.org/v4/teams/{team_id}/matches",
             headers=HEADERS,
-            params={"status": "FINISHED", "limit": 5},
-            timeout=10
+            params={"status": "FINISHED", "limit": 15},
+            timeout=10,
         )
         r.raise_for_status()
         matches = r.json().get("matches", [])
+
         form = []
+        home_w = home_d = home_l = 0
+        away_w = away_d = away_l = 0
+        clean_sheets = 0
+        gf_list = []
+        ga_list = []
+
         for m in matches:
             home_id    = m["homeTeam"]["id"]
-            home_score = m["score"]["fullTime"]["home"]
-            away_score = m["score"]["fullTime"]["away"]
-            is_home    = (home_id == team_id)
-            gs = home_score if is_home else away_score
-            gc = away_score if is_home else home_score
-            if gs is None or gc is None:
+            hs = m["score"]["fullTime"]["home"]
+            as_ = m["score"]["fullTime"]["away"]
+            if hs is None or as_ is None:
                 continue
-            if gs > gc:   form.append("W")
-            elif gs < gc: form.append("L")
-            else:          form.append("D")
-        return form[-5:]
+            is_home = (home_id == team_id)
+            gs = hs if is_home else as_
+            gc = as_ if is_home else hs
+            gf_list.append(gs)
+            ga_list.append(gc)
+            if gc == 0:
+                clean_sheets += 1
+            result = "W" if gs > gc else ("L" if gs < gc else "D")
+            form.append(result)
+            if is_home:
+                if result == "W": home_w += 1
+                elif result == "D": home_d += 1
+                else: home_l += 1
+            else:
+                if result == "W": away_w += 1
+                elif result == "D": away_d += 1
+                else: away_l += 1
+
+        n = len(gf_list)
+        stats = {
+            "home_record":   f"{home_w}W {home_d}D {home_l}L",
+            "away_record":   f"{away_w}W {away_d}D {away_l}L",
+            "clean_sheets":  clean_sheets,
+            "gf_avg_recent": round(sum(gf_list) / n, 2) if n else None,
+            "ga_avg_recent": round(sum(ga_list) / n, 2) if n else None,
+            "win_pct":       round(form.count("W") / len(form) * 100) if form else None,
+        }
+        return form[-5:], stats
     except Exception:
-        return []
+        return [], {}
+
+
+def fetch_team_form(team_id):
+    """Kept for backward compat — returns just the 5-match form list."""
+    form, _ = fetch_team_extended(team_id)
+    return form
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -263,7 +297,10 @@ def generate_team_style(team_name, pts, played, won, draw, lost,
                         extra_formation, extra_gf_avg, extra_ga_avg,
                         extra_wins_home, extra_wins_away, extra_top_slot,
                         extra_passes_pct, extra_shots_pg, extra_shots_on_pg,
-                        extra_clean_sheets, extra_failed_to_score):
+                        extra_clean_sheets, extra_failed_to_score,
+                        home_record=None, away_record=None,
+                        clean_sheets_recent=None, gf_avg_recent=None,
+                        ga_avg_recent=None, win_pct=None):
     """Generates a 3-paragraph tactical analysis via Claude."""
     if not ANTHROPIC_API_KEY:
         return TEAM_STYLES.get(team_name, DEFAULT_STYLE)
@@ -312,6 +349,18 @@ Recent form (last 5 matches): {form_str}"""
         stats_block += f"\nPeriod when team scores most: {extra_top_slot} min"
     if extra_gf_avg:
         stats_block += f"\nAverage goals for / against per match: {extra_gf_avg} / {extra_ga_avg}"
+    if home_record:
+        stats_block += f"\nHome record (last 15 matches): {home_record}"
+    if away_record:
+        stats_block += f"\nAway record (last 15 matches): {away_record}"
+    if clean_sheets_recent is not None:
+        stats_block += f"\nClean sheets (last 15 matches): {clean_sheets_recent}"
+    if gf_avg_recent is not None:
+        stats_block += f"\nAvg goals scored (last 15 matches): {gf_avg_recent}/match"
+    if ga_avg_recent is not None:
+        stats_block += f"\nAvg goals conceded (last 15 matches): {ga_avg_recent}/match"
+    if win_pct is not None:
+        stats_block += f"\nWin rate (last 15 matches): {win_pct}%"
 
     terms = ", ".join(TACTICAL_TERMS.keys())
 
@@ -3108,8 +3157,9 @@ def page_main():
     st.markdown('<div class="sec-label">AI Analysis</div><div class="sec-title">Playing Style</div>', unsafe_allow_html=True)
 
     # Fetch enriched data for both teams
-    form_a        = tuple(fetch_team_form(da.get("id")))
-    form_b        = tuple(fetch_team_form(db.get("id")))
+    form_a, ext_a = fetch_team_extended(da.get("id"))
+    form_b, ext_b = fetch_team_extended(db.get("id"))
+    form_a, form_b = tuple(form_a), tuple(form_b)
     extra_a       = fetch_api_football_stats(team_a, _league_code)
     extra_b       = fetch_api_football_stats(team_b, _league_code)
     all_scorers   = fetch_competition_scorers(_league_code)
@@ -3153,6 +3203,9 @@ def page_main():
             extra_a.get("wins_home"), extra_a.get("wins_away"), extra_a.get("top_scoring_slot"),
             extra_a.get("passes_pct"), extra_a.get("shots_pg"), extra_a.get("shots_on_pg"),
             extra_a.get("clean_sheets"), extra_a.get("failed_to_score"),
+            home_record=ext_a.get("home_record"), away_record=ext_a.get("away_record"),
+            clean_sheets_recent=ext_a.get("clean_sheets"), gf_avg_recent=ext_a.get("gf_avg_recent"),
+            ga_avg_recent=ext_a.get("ga_avg_recent"), win_pct=ext_a.get("win_pct"),
         )
         style_b_raw = generate_team_style(
             team_b,
@@ -3164,6 +3217,9 @@ def page_main():
             extra_b.get("wins_home"), extra_b.get("wins_away"), extra_b.get("top_scoring_slot"),
             extra_b.get("passes_pct"), extra_b.get("shots_pg"), extra_b.get("shots_on_pg"),
             extra_b.get("clean_sheets"), extra_b.get("failed_to_score"),
+            home_record=ext_b.get("home_record"), away_record=ext_b.get("away_record"),
+            clean_sheets_recent=ext_b.get("clean_sheets"), gf_avg_recent=ext_b.get("gf_avg_recent"),
+            ga_avg_recent=ext_b.get("ga_avg_recent"), win_pct=ext_b.get("win_pct"),
         )
 
     style_a = _fmt_style(style_a_raw)
