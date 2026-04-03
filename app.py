@@ -13,11 +13,11 @@ ANTHROPIC_API_KEY  = st.secrets.get("ANTHROPIC_API_KEY", "")
 API_FOOTBALL_KEY   = st.secrets.get("API_FOOTBALL_KEY", "")
 
 LEAGUES = {
-    "Ligue 1":        {"code": "FL1",  "flag": "🇫🇷", "country": "France",  "color": "#004B9D", "color_lt": "#E8F0FB"},
-    "La Liga":        {"code": "PD",   "flag": "🇪🇸", "country": "Spain",   "color": "#C8102E", "color_lt": "#FDEAED"},
-    "Serie A":        {"code": "SA",   "flag": "🇮🇹", "country": "Italy",   "color": "#00529F", "color_lt": "#E6EFF9"},
-    "Premier League": {"code": "PL",   "flag": "🇬🇧", "country": "England", "color": "#6C1D45", "color_lt": "#F3EAF0"},
-    "Bundesliga":     {"code": "BL1",  "flag": "🇩🇪", "country": "Germany", "color": "#E30614", "color_lt": "#FDEAEB"},
+    "Ligue 1":        {"code": "FL1",  "flag": "🇫🇷", "country": "France",  "color": "#1A56C4", "color_lt": "#E8F0FB"},
+    "La Liga":        {"code": "PD",   "flag": "🇪🇸", "country": "Spain",   "color": "#F5C800", "color_lt": "#FFFBE6"},
+    "Serie A":        {"code": "SA",   "flag": "🇮🇹", "country": "Italy",   "color": "#1E9E4A", "color_lt": "#E6F7EC"},
+    "Premier League": {"code": "PL",   "flag": "🇬🇧", "country": "England", "color": "#E02020", "color_lt": "#FDEAED"},
+    "Bundesliga":     {"code": "BL1",  "flag": "🇩🇪", "country": "Germany", "color": "#7B4A1E", "color_lt": "#F5EDE6"},
 }
 
 # Ligue 1 team IDs on API-Football (only used for advanced stats)
