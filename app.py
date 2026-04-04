@@ -368,15 +368,15 @@ Recent form (last 5 matches): {form_str}"""
 
 {stats_block}
 
-Write EXACTLY 4 sections separated by "|||". Each section: 2 to 3 short sentences. No titles, no numbers, no bullet points.
+Write EXACTLY 4 sections separated by "|||". Each section: MAX 2 short sentences. Be very brief. No titles, no numbers, no bullet points.
 
-SECTION 1 — THE CLUB: Is this team famous or not? Have they won big things recently, or are they struggling? Describe their vibe — exciting, dominant, underdogs?
+SECTION 1 — THE CLUB: Famous or not? Recent success or struggling? One sentence on their vibe.
 
-SECTION 2 — HOW THEY PLAY (simple): What do they do with the ball? Do they attack a lot or stay safe and defend? Are they fast and aggressive or slow and patient?
+SECTION 2 — HOW THEY PLAY (simple): Attack or defend? Fast or patient? Keep it to 2 sentences max.
 
-SECTION 3 — HOW THEY PLAY (a bit more): Use 1-2 real player names and say what they do on the pitch in simple words. If you mention a tactic (like <b>pressing</b> or <b>counter-attack</b>), explain it in one simple sentence. Use at least 2 terms from: {terms} — wrap each one like: <b>term</b>.
+SECTION 3 — HOW THEY PLAY (details): Name 1 player and what they do. Use 1-2 terms from: {terms} — wrap each like <b>term</b> and explain it simply in the same sentence.
 
-SECTION 4 — FUN FACT: One surprising or fun thing about this club — a record, a quirky stat, a famous player story, or what makes them unique.
+SECTION 4 — FUN FACT: One fun or surprising thing about this club in 1-2 sentences.
 
 Reply with EXACTLY 4 sections separated by "|||", nothing else."""
 
@@ -3217,11 +3217,11 @@ def page_main():
             display = "flex" if i == 0 else "none"
             cards_html += (
                 f'<div id="c{i}" style="display:{display};flex-direction:column;align-items:center;'
-                f'gap:.45rem;text-align:center;padding:.4rem .3rem">'
-                f'<div style="font-size:1.9rem;line-height:1">{icon}</div>'
-                f'<div style="font-size:.6rem;font-weight:900;text-transform:uppercase;letter-spacing:.14em;'
-                f'color:#5A5A7A;background:#FFE8C8;padding:.18rem .7rem;border-radius:100px">{label}</div>'
-                f'<div style="font-size:1.05rem;font-weight:700;line-height:1.7;color:#1A1A2E;max-width:300px">{body}</div>'
+                f'gap:.4rem;padding:.3rem .2rem;width:100%">'
+                f'<div style="font-size:1.7rem;line-height:1">{icon}</div>'
+                f'<div style="font-size:.58rem;font-weight:900;text-transform:uppercase;letter-spacing:.14em;'
+                f'color:#5A5A7A;background:#FFE8C8;padding:.15rem .65rem;border-radius:100px;flex-shrink:0">{label}</div>'
+                f'<div style="font-size:.97rem;font-weight:700;line-height:1.6;color:#1A1A2E;width:100%;text-align:left">{body}</div>'
                 f'</div>'
             )
         stats_html = "".join(
@@ -3247,7 +3247,7 @@ html,body{{font-family:'Nunito',sans-serif;background:transparent;overflow:hidde
 .hdr{{background:{hdr_bg};padding:.75rem 1rem;font-size:.82rem;font-weight:900;letter-spacing:.05em;text-transform:uppercase;color:#1A1A2E;display:flex;align-items:center;}}
 .bdg{{margin-left:auto;font-size:.6rem;font-weight:800;letter-spacing:.1em;padding:.2rem .65rem;border-radius:100px;background:rgba(0,0,0,.08);}}
 .body{{padding:.85rem 1rem .3rem;}}
-.carousel{{min-height:165px;}}
+.carousel{{min-height:155px;max-height:220px;overflow-y:auto;}}
 .nav{{display:flex;align-items:center;justify-content:center;gap:.5rem;padding:.5rem 0 .4rem;}}
 .arr{{background:none;border:2px solid #FFE8C8;border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:.9rem;color:#1A1A2E;font-family:inherit;line-height:1;transition:background .15s;}}
 .arr:hover{{background:#FFE8C8;}}
@@ -3333,12 +3333,12 @@ document.querySelector('.carousel').addEventListener('touchend',function(e){{
     with c1:
         st.components.v1.html(
             _build_team_card_html(team_a, "Team A", "#CCFFE9", style_a_raw, form_a, da, da.get("crest","")),
-            height=430
+            height=490
         )
     with c2:
         st.components.v1.html(
             _build_team_card_html(team_b, "Team B", "#FFE0E0", style_b_raw, form_b, db, db.get("crest","")),
-            height=430
+            height=490
         )
 
     st.markdown('<div class="div"></div>', unsafe_allow_html=True)
