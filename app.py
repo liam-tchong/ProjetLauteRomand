@@ -364,48 +364,37 @@ Recent form (last 5 matches): {form_str}"""
 
     terms = ", ".join(TACTICAL_TERMS.keys())
 
-    prompt = f"""You are a passionate football commentator writing for fans of all levels — from total beginners to die-hard supporters.
-Using the stats below AND your own knowledge of this club, write an analysis in EXACTLY 3 paragraphs in English.
+    prompt = f"""You are explaining a football team to someone who has NEVER watched football before. Use simple, friendly, everyday language — like talking to a curious 12-year-old. No complicated words unless you explain them simply.
 
 {stats_block}
 
-CRITICAL: Your response must contain EXACTLY 3 paragraphs separated by a blank line. Not 2, not 4. Exactly 3.
+Write EXACTLY 4 sections separated by "|||". Each section: 2 to 3 short sentences. No titles, no numbers, no bullet points.
 
-Paragraph 1 — BIG PICTURE (2 to 3 sentences MAX): Playing style, recent form, last season comparison, key players or trophies. Be concise.
+SECTION 1 — THE CLUB: Is this team famous or not? Have they won big things recently, or are they struggling? Describe their vibe — exciting, dominant, underdogs?
 
-Paragraph 2 — HOW THEY PLAY (2 to 3 sentences MAX): Formation, strengths, how they press/build up, one or two stats translated into behaviour. Simple and accessible.
+SECTION 2 — HOW THEY PLAY (simple): What do they do with the ball? Do they attack a lot or stay safe and defend? Are they fast and aggressive or slow and patient?
 
-Paragraph 3 — WHAT'S HAPPENING NOW (1 to 2 sentences MAX): NOT technical. One current news item — injured player, player returning from injury, transfer, record, or fun fact.
+SECTION 3 — HOW THEY PLAY (a bit more): Use 1-2 real player names and say what they do on the pitch in simple words. If you mention a tactic (like <b>pressing</b> or <b>counter-attack</b>), explain it in one simple sentence. Use at least 2 terms from: {terms} — wrap each one like: <b>term</b>.
 
-Rules:
-- Write in English, vivid and accessible — no unexplained jargon
-- Name real players when relevant
-- You MUST use AT LEAST 5 terms from this glossary: {terms}
-- Every time you use one of those terms, wrap it EXACTLY like this: <b>term</b>
-- Separate the 3 paragraphs with a blank line (\\n\\n)
-- No titles, no bullet points, no numbering
-- If unsure of a specific fact, stay vague rather than inventing
+SECTION 4 — FUN FACT: One surprising or fun thing about this club — a record, a quirky stat, a famous player story, or what makes them unique.
 
-Reply with the 3 paragraphs only, nothing else."""
+Reply with EXACTLY 4 sections separated by "|||", nothing else."""
 
     try:
         client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
         msg = client.messages.create(
             model="claude-haiku-4-5-20251001",
-            max_tokens=400,
+            max_tokens=550,
             messages=[{"role": "user", "content": prompt}]
         )
         raw = msg.content[0].text.strip()
-        # If response was cut mid-sentence, trim to last complete sentence
-        if raw and raw[-1] not in ".!?":
-            for sep in (".", "!", "?"):
-                idx = raw.rfind(sep)
-                if idx != -1:
-                    raw = raw[:idx+1]
-                    break
-        return raw
+        parts = [p.strip() for p in raw.split("|||")]
+        while len(parts) < 4:
+            parts.append("")
+        return tuple(parts[:4])
     except Exception:
-        return TEAM_STYLES.get(team_name, DEFAULT_STYLE)
+        fallback = TEAM_STYLES.get(team_name, DEFAULT_STYLE)
+        return (fallback, "", "", "")
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -3194,28 +3183,115 @@ def page_main():
     prev_pos_a    = prev_standings.get(team_a)
     prev_pos_b    = prev_standings.get(team_b)
 
-    def _render_form(form):
-        if not form:
-            return ""
-        colors = {"W": "var(--green)", "D": "var(--yellow-dk)", "L": "var(--red)"}
-        pills = "".join(
-            f'<span style="display:inline-block;padding:.15rem .5rem;border-radius:6px;'
-            f'background:{"var(--green-lt)" if r=="W" else ("var(--yellow-lt)" if r=="D" else "var(--red-lt)")};'
-            f'color:{colors[r]};font-size:.65rem;font-weight:900;margin-right:.25rem">{r}</span>'
-            for r in form
-        )
-        return f'<div style="margin-bottom:.6rem;font-size:.62rem;font-weight:800;color:var(--mid);letter-spacing:.1em;text-transform:uppercase;margin-top:.2rem">Recent form &nbsp;{pills}</div>'
 
-    def _fmt_style(raw):
-        """Show 1st paragraph by default, rest collapsible behind a + button."""
-        html = raw.replace("\n\n", "<br><br>").replace("\n", " ")
-        html = linkify_terms(html, source_page="main", ta=team_a, tb=team_b)
-        parts = html.split("<br><br>", 1)
-        summary = f'<div class="style-summary">{parts[0]}</div>'
-        if len(parts) > 1:
-            detail = f'<div class="style-details">{parts[1]}</div>'
-            return f'{summary}<details class="style-acc"><summary></summary>{detail}</details>'
-        return summary
+    def _build_team_card_html(team_name, badge_label, hdr_bg, cards_tuple, form_tuple, stats_dict, crest_url):
+        """Self-contained HTML document for a team card with a working JS carousel (used with st.components.v1.html)."""
+        pill_style = {"W": "background:#CCFFE9;color:#007A47", "D": "background:#FFF3CC;color:#7A5500", "L": "background:#FFE0E0;color:#CC1F1F"}
+        form_html = ""
+        if form_tuple:
+            pills = "".join(
+                f'<span style="{pill_style.get(r,"background:#eee;color:#333")};padding:.1rem .45rem;border-radius:5px;font-size:.72rem;font-weight:900;margin-right:.2rem">{r}</span>'
+                for r in form_tuple
+            )
+            form_html = (
+                f'<div style="font-size:.62rem;font-weight:800;color:#5A5A7A;letter-spacing:.1em;'
+                f'text-transform:uppercase;margin-bottom:.6rem;display:flex;align-items:center;flex-wrap:wrap;gap:.2rem">'
+                f'Recent form &nbsp;{pills}</div>'
+            )
+        card_defs = [
+            ("🏆", "The Club",      cards_tuple[0] if len(cards_tuple) > 0 else ""),
+            ("⚽", "How They Play", cards_tuple[1] if len(cards_tuple) > 1 else ""),
+            ("🎯", "Tactics",       cards_tuple[2] if len(cards_tuple) > 2 else ""),
+            ("⭐", "Fun Fact",      cards_tuple[3] if len(cards_tuple) > 3 else ""),
+        ]
+        cards_html = ""
+        for i, (icon, label, text) in enumerate(card_defs):
+            body = text or "—"
+            for term in TACTICAL_TERMS:
+                url = f"?term={term}&from=main&ta={team_a}&tb={team_b}"
+                body = body.replace(
+                    f"<b>{term}</b>",
+                    f'<a href="#" onclick="window.parent.location.href=\'{url}\';return false;"'
+                    f' style="color:#8B5CF6;font-weight:800;text-decoration:underline dotted 2px;cursor:pointer">{term}</a>'
+                )
+            display = "flex" if i == 0 else "none"
+            cards_html += (
+                f'<div id="c{i}" style="display:{display};flex-direction:column;align-items:center;'
+                f'gap:.45rem;text-align:center;padding:.4rem .3rem">'
+                f'<div style="font-size:1.9rem;line-height:1">{icon}</div>'
+                f'<div style="font-size:.6rem;font-weight:900;text-transform:uppercase;letter-spacing:.14em;'
+                f'color:#5A5A7A;background:#FFE8C8;padding:.18rem .7rem;border-radius:100px">{label}</div>'
+                f'<div style="font-size:1.05rem;font-weight:700;line-height:1.7;color:#1A1A2E;max-width:300px">{body}</div>'
+                f'</div>'
+            )
+        stats_html = "".join(
+            f'<div style="flex:1;text-align:center">'
+            f'<div style="font-size:1.15rem;font-weight:900;color:#1A1A2E">{v}</div>'
+            f'<div style="font-size:.58rem;font-weight:800;color:#5A5A7A;text-transform:uppercase;letter-spacing:.08em">{l}</div>'
+            f'</div>'
+            for v, l in [(stats_dict.get("points","—"),"Pts"),(stats_dict.get("won","—"),"W"),
+                         (stats_dict.get("draw","—"),"D"),(stats_dict.get("lost","—"),"L"),
+                         (stats_dict.get("goals_for","—"),"Goals")]
+        )
+        crest_tag = (
+            f'<img src="{crest_url}" style="width:22px;height:22px;object-fit:contain;margin-right:.5rem;vertical-align:middle" onerror="this.style.display=\'none\'">'
+            if crest_url else ""
+        )
+        return f"""<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{{box-sizing:border-box;margin:0;padding:0;}}
+html,body{{font-family:'Nunito',sans-serif;background:transparent;overflow:hidden;}}
+.wrap{{background:#fff;border-radius:16px;border:2px solid #FFE8C8;overflow:hidden;box-shadow:0 4px 20px rgba(42,32,24,.08);}}
+.hdr{{background:{hdr_bg};padding:.75rem 1rem;font-size:.82rem;font-weight:900;letter-spacing:.05em;text-transform:uppercase;color:#1A1A2E;display:flex;align-items:center;}}
+.bdg{{margin-left:auto;font-size:.6rem;font-weight:800;letter-spacing:.1em;padding:.2rem .65rem;border-radius:100px;background:rgba(0,0,0,.08);}}
+.body{{padding:.85rem 1rem .3rem;}}
+.carousel{{min-height:165px;}}
+.nav{{display:flex;align-items:center;justify-content:center;gap:.5rem;padding:.5rem 0 .4rem;}}
+.arr{{background:none;border:2px solid #FFE8C8;border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:.9rem;color:#1A1A2E;font-family:inherit;line-height:1;transition:background .15s;}}
+.arr:hover{{background:#FFE8C8;}}
+.dots{{display:flex;gap:.35rem;align-items:center;}}
+.dot{{width:7px;height:7px;border-radius:50%;background:#FFE8C8;border:none;cursor:pointer;transition:all .2s;padding:0;}}
+.dot.on{{background:#1A1A2E;width:20px;border-radius:4px;}}
+.stats{{display:flex;border-top:1px solid #FFE8C8;padding:.65rem .5rem .55rem;}}
+</style></head>
+<body>
+<div class="wrap">
+  <div class="hdr">{crest_tag}{team_name}<span class="bdg">{badge_label}</span></div>
+  <div class="body">
+    {form_html}
+    <div class="carousel">{cards_html}</div>
+    <div class="nav">
+      <button class="arr" onclick="go(cur-1)">&#8592;</button>
+      <div class="dots">
+        <button class="dot on" onclick="go(0)"></button>
+        <button class="dot" onclick="go(1)"></button>
+        <button class="dot" onclick="go(2)"></button>
+        <button class="dot" onclick="go(3)"></button>
+      </div>
+      <button class="arr" onclick="go(cur+1)">&#8594;</button>
+    </div>
+  </div>
+  <div class="stats">{stats_html}</div>
+</div>
+<script>
+var cur=0;
+function go(n){{
+  n=Math.max(0,Math.min(3,n));
+  document.getElementById('c'+cur).style.display='none';
+  document.getElementById('c'+n).style.display='flex';
+  document.querySelectorAll('.dot').forEach(function(d,i){{d.classList.toggle('on',i===n);}});
+  cur=n;
+}}
+var sx=0;
+document.querySelector('.carousel').addEventListener('touchstart',function(e){{sx=e.touches[0].clientX;}},{{passive:true}});
+document.querySelector('.carousel').addEventListener('touchend',function(e){{
+  var dx=e.changedTouches[0].clientX-sx;
+  if(Math.abs(dx)>40)dx<0?go(cur+1):go(cur-1);
+}},{{passive:true}});
+</script>
+</body></html>"""
 
     with st.spinner("Generating AI analysis…"):
         style_a_raw = generate_team_style(
@@ -3247,40 +3323,22 @@ def page_main():
             ga_avg_recent=ext_b.get("ga_avg_recent"), win_pct=ext_b.get("win_pct"),
         )
 
-    style_a = _fmt_style(style_a_raw)
-    style_b = _fmt_style(style_b_raw)
+    # Handle legacy cache returning a plain string
+    if isinstance(style_a_raw, str):
+        style_a_raw = (style_a_raw, "", "", "")
+    if isinstance(style_b_raw, str):
+        style_b_raw = (style_b_raw, "", "", "")
 
     c1, c2 = st.columns(2)
-    img28_a = get_crest_img(team_a, 28)
-    img28_b = get_crest_img(team_b, 28)
-
     with c1:
-        st.markdown(
-            f'<div class="team-card card-a">'
-            f'<div class="team-card-header">{img28_a} {team_a}<span class="badge">Team A</span></div>'
-            f'<div class="team-card-body">{_render_form(form_a)}{style_a}</div>'
-            f'<div class="team-stats-row">'
-            f'<div class="team-stat-box"><div class="team-stat-box-num">{da.get("points","—")}</div><div class="team-stat-box-lbl">Pts</div></div>'
-            f'<div class="team-stat-box"><div class="team-stat-box-num">{da.get("won","—")}</div><div class="team-stat-box-lbl">W</div></div>'
-            f'<div class="team-stat-box"><div class="team-stat-box-num">{da.get("draw","—")}</div><div class="team-stat-box-lbl">D</div></div>'
-            f'<div class="team-stat-box"><div class="team-stat-box-num">{da.get("lost","—")}</div><div class="team-stat-box-lbl">L</div></div>'
-            f'<div class="team-stat-box"><div class="team-stat-box-num">{da.get("goals_for","—")}</div><div class="team-stat-box-lbl">Goals</div></div>'
-            f'</div></div>',
-            unsafe_allow_html=True
+        st.components.v1.html(
+            _build_team_card_html(team_a, "Team A", "#CCFFE9", style_a_raw, form_a, da, da.get("crest","")),
+            height=430
         )
     with c2:
-        st.markdown(
-            f'<div class="team-card card-b">'
-            f'<div class="team-card-header">{img28_b} {team_b}<span class="badge">Team B</span></div>'
-            f'<div class="team-card-body">{_render_form(form_b)}{style_b}</div>'
-            f'<div class="team-stats-row">'
-            f'<div class="team-stat-box"><div class="team-stat-box-num">{db.get("points","—")}</div><div class="team-stat-box-lbl">Pts</div></div>'
-            f'<div class="team-stat-box"><div class="team-stat-box-num">{db.get("won","—")}</div><div class="team-stat-box-lbl">W</div></div>'
-            f'<div class="team-stat-box"><div class="team-stat-box-num">{db.get("draw","—")}</div><div class="team-stat-box-lbl">D</div></div>'
-            f'<div class="team-stat-box"><div class="team-stat-box-num">{db.get("lost","—")}</div><div class="team-stat-box-lbl">L</div></div>'
-            f'<div class="team-stat-box"><div class="team-stat-box-num">{db.get("goals_for","—")}</div><div class="team-stat-box-lbl">Goals</div></div>'
-            f'</div></div>',
-            unsafe_allow_html=True
+        st.components.v1.html(
+            _build_team_card_html(team_b, "Team B", "#FFE0E0", style_b_raw, form_b, db, db.get("crest","")),
+            height=430
         )
 
     st.markdown('<div class="div"></div>', unsafe_allow_html=True)
