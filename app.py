@@ -372,9 +372,9 @@ Write EXACTLY 4 sections separated by "|||". Each section: MAX 2 short sentences
 
 SECTION 1 — THE CLUB: Famous or not? Recent success or struggling? One sentence on their vibe.
 
-SECTION 2 — HOW THEY PLAY (simple): Attack or defend? Fast or patient? Keep it to 2 sentences max.
+SECTION 2 — HOW THEY PLAY (simple): 2-3 sentences. Do they attack or defend? Fast or patient? Use 2-3 terms from this list: {terms} — wrap each like <b>term</b> and explain it in simple words right after (e.g. "<b>pressing</b> (hunting the ball immediately when they lose it)").
 
-SECTION 3 — HOW THEY PLAY (details): Name 1 player and what they do. Use 1-2 terms from: {terms} — wrap each like <b>term</b> and explain it simply in the same sentence.
+SECTION 3 — HOW THEY PLAY (details): 3-4 sentences. Go a bit deeper. Name 1-2 real players and what they do. Use 3-4 terms from: {terms} — wrap each like <b>term</b> with a short simple explanation. Make the glossary terms feel natural in the sentences.
 
 SECTION 4 — FUN FACT: One fun or surprising thing about this club in 1-2 sentences.
 
@@ -384,7 +384,7 @@ Reply with EXACTLY 4 sections separated by "|||", nothing else."""
         client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
         msg = client.messages.create(
             model="claude-haiku-4-5-20251001",
-            max_tokens=550,
+            max_tokens=700,
             messages=[{"role": "user", "content": prompt}]
         )
         raw = msg.content[0].text.strip()
@@ -3218,13 +3218,13 @@ def page_main():
             display = "block" if i == 0 else "none"
             # Each card has fixed height 175px with internal scroll — nav stays visible regardless of text length
             cards_html += (
-                f'<div id="c{i}" style="display:{display};height:175px;overflow-y:auto;padding:.3rem .1rem">'
-                f'<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.35rem">'
-                f'<span style="font-size:1.5rem;line-height:1">{icon}</span>'
-                f'<span style="font-size:.58rem;font-weight:900;text-transform:uppercase;letter-spacing:.13em;'
-                f'color:#5A5A7A;background:#FFE8C8;padding:.15rem .6rem;border-radius:100px">{label}</span>'
+                f'<div id="c{i}" style="display:{display};height:210px;overflow-y:auto;padding:.3rem .1rem">'
+                f'<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem">'
+                f'<span style="font-size:1.6rem;line-height:1">{icon}</span>'
+                f'<span style="font-size:.62rem;font-weight:900;text-transform:uppercase;letter-spacing:.13em;'
+                f'color:#5A5A7A;background:#FFE8C8;padding:.18rem .7rem;border-radius:100px">{label}</span>'
                 f'</div>'
-                f'<div style="font-size:.97rem;font-weight:700;line-height:1.65;color:#1A1A2E">{body}</div>'
+                f'<div style="font-size:1.05rem;font-weight:700;line-height:1.7;color:#1A1A2E">{body}</div>'
                 f'</div>'
             )
         stats_html = "".join(
@@ -3336,12 +3336,12 @@ document.getElementById('carousel').addEventListener('touchend',function(e){{
     with c1:
         st.components.v1.html(
             _build_team_card_html(team_a, "Team A", "#CCFFE9", style_a_raw, form_a, da, da.get("crest","")),
-            height=440
+            height=490
         )
     with c2:
         st.components.v1.html(
             _build_team_card_html(team_b, "Team B", "#FFE0E0", style_b_raw, form_b, db, db.get("crest","")),
-            height=440
+            height=490
         )
 
     st.markdown('<div class="div"></div>', unsafe_allow_html=True)
