@@ -2746,18 +2746,18 @@ div[data-testid="stHorizontalBlock"] button[kind="primary"]{
 .match-card-label{font-size:.7rem;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:var(--mid);flex:1;}
 .match-vs-badge{background:var(--dark);color:var(--white);font-size:.7rem;font-weight:900;letter-spacing:.12em;padding:.28rem .85rem;border-radius:100px;}
 
-/* VS Banner */
-.vs-banner{display:flex;align-items:stretch;background:var(--white);border-radius:var(--radius);border:2px solid var(--beige);overflow:hidden;box-shadow:var(--shadow);margin-top:.6rem;}
-.vs-team{flex:1;padding:1.2rem 1.8rem;display:flex;flex-direction:column;gap:.3rem;}
-.vs-team-crest{display:flex;align-items:center;gap:.75rem;}
-.vs-team-label{font-size:.62rem;font-weight:800;letter-spacing:.15em;text-transform:uppercase;}
-.vs-team-label-a{color:var(--green-dk);}
-.vs-team-label-b{color:var(--red-dk);}
-.vs-team-name{font-size:1.05rem;font-weight:900;color:var(--dark);letter-spacing:-.02em;line-height:1.2;}
-.vs-team-stat{font-size:.72rem;font-weight:700;color:var(--mid);}
-.vs-sep{background:var(--dark);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 1.4rem;gap:.15rem;}
-.vs-sep-text{font-size:.9rem;font-weight:900;color:var(--white);letter-spacing:.06em;}
-.vs-sep-dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.2);}
+/* Team picker cards */
+.team-pick-card{background:var(--white);border-radius:var(--radius) var(--radius) 0 0;border:2px solid var(--beige);border-bottom:none;padding:1rem 1.2rem .85rem;box-shadow:var(--shadow);position:relative;}
+.team-pick-a{border-top:4px solid var(--green);}
+.team-pick-b{border-top:4px solid var(--red);}
+.team-pick-label{font-size:.6rem;font-weight:800;letter-spacing:.15em;text-transform:uppercase;display:block;margin-bottom:.5rem;}
+.team-pick-label-a{color:var(--green-dk);}
+.team-pick-label-b{color:var(--red-dk);}
+.team-pick-info{display:flex;align-items:center;gap:.75rem;}
+.team-pick-meta{display:flex;flex-direction:column;gap:.1rem;}
+.team-pick-name{font-size:1.05rem;font-weight:900;color:var(--dark);letter-spacing:-.02em;line-height:1.2;}
+.team-pick-stat{font-size:.72rem;font-weight:700;color:var(--mid);}
+.vs-mid-pill{display:flex;align-items:center;justify-content:center;background:var(--dark);color:var(--white);font-size:.8rem;font-weight:900;letter-spacing:.06em;border-radius:100px;padding:.35rem .45rem;margin-top:2rem;}
 
 /* Team card */
 .team-card{background:var(--white);border-radius:var(--radius);overflow:hidden;border:2px solid var(--beige);box-shadow:var(--shadow);transition:box-shadow .2s,transform .2s;position:relative;}
@@ -3125,37 +3125,56 @@ def page_main():
                 del st.session_state[k]
         st.rerun()
 
-    # ── Team selectors ──
-    st.markdown('<div class="match-card"><span class="match-card-label">Choose the match to analyse</span><span class="match-vs-badge">VS</span></div>', unsafe_allow_html=True)
-    col_a, col_b = st.columns(2)
+    # ── Integrated VS team selector ──
+    col_a, col_mid, col_b = st.columns([10, 1, 10])
+
     with col_a:
+        da_pre = standings.get(team_a, {})
+        img_pre_a = get_crest_img(team_a, 44)
+        st.markdown(
+            f'<div class="team-pick-card team-pick-a">'
+            f'<span class="team-pick-label team-pick-label-a">Team A</span>'
+            f'<div class="team-pick-info">{img_pre_a}'
+            f'<div class="team-pick-meta">'
+            f'<div class="team-pick-name">{team_a}</div>'
+            f'<div class="team-pick-stat">#{da_pre.get("position","—")} · {da_pre.get("points","—")} pts</div>'
+            f'</div></div></div>',
+            unsafe_allow_html=True
+        )
         idx_a = ALL_TEAMS.index(team_a) if team_a in ALL_TEAMS else 0
-        st.session_state.team_a = st.selectbox("Team A", ALL_TEAMS, index=idx_a, key="sel_a")
+        new_a = st.selectbox("Team A", ALL_TEAMS, index=idx_a, key="sel_a", label_visibility="collapsed")
+        if new_a != st.session_state.team_a:
+            st.session_state.team_a = new_a
+            st.rerun()
+
+    with col_mid:
+        st.markdown('<div class="vs-mid-pill">VS</div>', unsafe_allow_html=True)
+
     with col_b:
         remaining = [t for t in ALL_TEAMS if t != st.session_state.team_a]
         if st.session_state.team_b not in remaining:
             st.session_state.team_b = remaining[0] if remaining else ""
-        st.session_state.team_b = st.selectbox("Team B", remaining, index=remaining.index(st.session_state.team_b) if st.session_state.team_b in remaining else 0, key="sel_b")
+        db_pre = standings.get(team_b, {})
+        img_pre_b = get_crest_img(team_b, 44)
+        st.markdown(
+            f'<div class="team-pick-card team-pick-b">'
+            f'<span class="team-pick-label team-pick-label-b">Team B</span>'
+            f'<div class="team-pick-info">{img_pre_b}'
+            f'<div class="team-pick-meta">'
+            f'<div class="team-pick-name">{team_b}</div>'
+            f'<div class="team-pick-stat">#{db_pre.get("position","—")} · {db_pre.get("points","—")} pts</div>'
+            f'</div></div></div>',
+            unsafe_allow_html=True
+        )
+        idx_b = remaining.index(st.session_state.team_b) if st.session_state.team_b in remaining else 0
+        new_b = st.selectbox("Team B", remaining, index=idx_b, key="sel_b", label_visibility="collapsed")
+        if new_b != st.session_state.team_b:
+            st.session_state.team_b = new_b
+            st.rerun()
 
     team_a, team_b = st.session_state.team_a, st.session_state.team_b
     da, db = standings.get(team_a, {}), standings.get(team_b, {})
     crest_a, crest_b = da.get("crest",""), db.get("crest","")
-    img_a = get_crest_img(team_a, 36)
-    img_b = get_crest_img(team_b, 36)
-
-    # ── VS Banner ──
-    st.markdown(
-        f'<div class="vs-banner">'
-        f'<div class="vs-team"><span class="vs-team-label vs-team-label-a">Team A</span>'
-        f'<div class="vs-team-crest">{img_a}<span class="vs-team-name">{team_a}</span></div>'
-        f'<span class="vs-team-stat">#{da.get("position","—")} · {da.get("points","—")} pts</span></div>'
-        f'<div class="vs-sep"><span class="vs-sep-dot"></span><span class="vs-sep-text">VS</span><span class="vs-sep-dot"></span></div>'
-        f'<div class="vs-team"><span class="vs-team-label vs-team-label-b">Team B</span>'
-        f'<div class="vs-team-crest">{img_b}<span class="vs-team-name">{team_b}</span></div>'
-        f'<span class="vs-team-stat">#{db.get("position","—")} · {db.get("points","—")} pts</span></div>'
-        f'</div>',
-        unsafe_allow_html=True
-    )
 
     st.markdown('<div class="div"></div>', unsafe_allow_html=True)
 
