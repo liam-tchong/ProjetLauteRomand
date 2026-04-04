@@ -3185,17 +3185,17 @@ def page_main():
 
 
     def _build_team_card_html(team_name, badge_label, hdr_bg, cards_tuple, form_tuple, stats_dict, crest_url):
-        """Self-contained HTML document for a team card with a working JS carousel (used with st.components.v1.html)."""
+        """Self-contained HTML iframe: team card with 4-card JS carousel. Fixed card height ensures nav is always visible."""
         pill_style = {"W": "background:#CCFFE9;color:#007A47", "D": "background:#FFF3CC;color:#7A5500", "L": "background:#FFE0E0;color:#CC1F1F"}
         form_html = ""
         if form_tuple:
             pills = "".join(
-                f'<span style="{pill_style.get(r,"background:#eee;color:#333")};padding:.1rem .45rem;border-radius:5px;font-size:.72rem;font-weight:900;margin-right:.2rem">{r}</span>'
+                f'<span style="{pill_style.get(r,"background:#eee;color:#333")};padding:.1rem .4rem;border-radius:5px;font-size:.7rem;font-weight:900;margin-right:.18rem">{r}</span>'
                 for r in form_tuple
             )
             form_html = (
-                f'<div style="font-size:.62rem;font-weight:800;color:#5A5A7A;letter-spacing:.1em;'
-                f'text-transform:uppercase;margin-bottom:.6rem;display:flex;align-items:center;flex-wrap:wrap;gap:.2rem">'
+                f'<div style="font-size:.6rem;font-weight:800;color:#5A5A7A;letter-spacing:.1em;'
+                f'text-transform:uppercase;margin-bottom:.5rem;display:flex;align-items:center;flex-wrap:wrap;gap:.15rem">'
                 f'Recent form &nbsp;{pills}</div>'
             )
         card_defs = [
@@ -3207,34 +3207,37 @@ def page_main():
         cards_html = ""
         for i, (icon, label, text) in enumerate(card_defs):
             body = text or "—"
+            # Use target="_parent" — works from srcdoc iframes (unlike window.parent.location)
             for term in TACTICAL_TERMS:
                 url = f"?term={term}&from=main&ta={team_a}&tb={team_b}"
                 body = body.replace(
                     f"<b>{term}</b>",
-                    f'<a href="#" onclick="window.parent.location.href=\'{url}\';return false;"'
-                    f' style="color:#8B5CF6;font-weight:800;text-decoration:underline dotted 2px;cursor:pointer">{term}</a>'
+                    f'<a href="{url}" target="_parent"'
+                    f' style="color:#8B5CF6;font-weight:800;text-decoration:underline dotted 2px">{term}</a>'
                 )
-            display = "flex" if i == 0 else "none"
+            display = "block" if i == 0 else "none"
+            # Each card has fixed height 175px with internal scroll — nav stays visible regardless of text length
             cards_html += (
-                f'<div id="c{i}" style="display:{display};flex-direction:column;align-items:center;'
-                f'gap:.4rem;padding:.3rem .2rem;width:100%">'
-                f'<div style="font-size:1.7rem;line-height:1">{icon}</div>'
-                f'<div style="font-size:.58rem;font-weight:900;text-transform:uppercase;letter-spacing:.14em;'
-                f'color:#5A5A7A;background:#FFE8C8;padding:.15rem .65rem;border-radius:100px;flex-shrink:0">{label}</div>'
-                f'<div style="font-size:.97rem;font-weight:700;line-height:1.6;color:#1A1A2E;width:100%;text-align:left">{body}</div>'
+                f'<div id="c{i}" style="display:{display};height:175px;overflow-y:auto;padding:.3rem .1rem">'
+                f'<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.35rem">'
+                f'<span style="font-size:1.5rem;line-height:1">{icon}</span>'
+                f'<span style="font-size:.58rem;font-weight:900;text-transform:uppercase;letter-spacing:.13em;'
+                f'color:#5A5A7A;background:#FFE8C8;padding:.15rem .6rem;border-radius:100px">{label}</span>'
+                f'</div>'
+                f'<div style="font-size:.97rem;font-weight:700;line-height:1.65;color:#1A1A2E">{body}</div>'
                 f'</div>'
             )
         stats_html = "".join(
             f'<div style="flex:1;text-align:center">'
-            f'<div style="font-size:1.15rem;font-weight:900;color:#1A1A2E">{v}</div>'
-            f'<div style="font-size:.58rem;font-weight:800;color:#5A5A7A;text-transform:uppercase;letter-spacing:.08em">{l}</div>'
+            f'<div style="font-size:1.1rem;font-weight:900;color:#1A1A2E">{v}</div>'
+            f'<div style="font-size:.57rem;font-weight:800;color:#5A5A7A;text-transform:uppercase;letter-spacing:.08em">{l}</div>'
             f'</div>'
             for v, l in [(stats_dict.get("points","—"),"Pts"),(stats_dict.get("won","—"),"W"),
                          (stats_dict.get("draw","—"),"D"),(stats_dict.get("lost","—"),"L"),
                          (stats_dict.get("goals_for","—"),"Goals")]
         )
         crest_tag = (
-            f'<img src="{crest_url}" style="width:22px;height:22px;object-fit:contain;margin-right:.5rem;vertical-align:middle" onerror="this.style.display=\'none\'">'
+            f'<img src="{crest_url}" style="width:20px;height:20px;object-fit:contain;margin-right:.45rem;vertical-align:middle" onerror="this.style.display=\'none\'">'
             if crest_url else ""
         )
         return f"""<!DOCTYPE html>
@@ -3242,26 +3245,25 @@ def page_main():
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{{box-sizing:border-box;margin:0;padding:0;}}
-html,body{{font-family:'Nunito',sans-serif;background:transparent;overflow:hidden;}}
+html,body{{font-family:'Nunito',sans-serif;background:transparent;}}
 .wrap{{background:#fff;border-radius:16px;border:2px solid #FFE8C8;overflow:hidden;box-shadow:0 4px 20px rgba(42,32,24,.08);}}
-.hdr{{background:{hdr_bg};padding:.75rem 1rem;font-size:.82rem;font-weight:900;letter-spacing:.05em;text-transform:uppercase;color:#1A1A2E;display:flex;align-items:center;}}
-.bdg{{margin-left:auto;font-size:.6rem;font-weight:800;letter-spacing:.1em;padding:.2rem .65rem;border-radius:100px;background:rgba(0,0,0,.08);}}
-.body{{padding:.85rem 1rem .3rem;}}
-.carousel{{min-height:155px;max-height:220px;overflow-y:auto;}}
-.nav{{display:flex;align-items:center;justify-content:center;gap:.5rem;padding:.5rem 0 .4rem;}}
-.arr{{background:none;border:2px solid #FFE8C8;border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:.9rem;color:#1A1A2E;font-family:inherit;line-height:1;transition:background .15s;}}
+.hdr{{background:{hdr_bg};padding:.7rem 1rem;font-size:.8rem;font-weight:900;letter-spacing:.05em;text-transform:uppercase;color:#1A1A2E;display:flex;align-items:center;}}
+.bdg{{margin-left:auto;font-size:.6rem;font-weight:800;letter-spacing:.1em;padding:.18rem .6rem;border-radius:100px;background:rgba(0,0,0,.08);}}
+.body{{padding:.75rem .9rem .2rem;}}
+.nav{{display:flex;align-items:center;justify-content:center;gap:.5rem;padding:.45rem 0 .35rem;}}
+.arr{{background:none;border:2px solid #FFE8C8;border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:.85rem;color:#1A1A2E;font-family:inherit;line-height:1;transition:background .15s;display:flex;align-items:center;justify-content:center;}}
 .arr:hover{{background:#FFE8C8;}}
-.dots{{display:flex;gap:.35rem;align-items:center;}}
+.dots{{display:flex;gap:.3rem;align-items:center;}}
 .dot{{width:7px;height:7px;border-radius:50%;background:#FFE8C8;border:none;cursor:pointer;transition:all .2s;padding:0;}}
-.dot.on{{background:#1A1A2E;width:20px;border-radius:4px;}}
-.stats{{display:flex;border-top:1px solid #FFE8C8;padding:.65rem .5rem .55rem;}}
+.dot.on{{background:#1A1A2E;width:18px;border-radius:4px;}}
+.stats{{display:flex;border-top:1px solid #FFE8C8;padding:.55rem .4rem .45rem;}}
 </style></head>
 <body>
 <div class="wrap">
   <div class="hdr">{crest_tag}{team_name}<span class="bdg">{badge_label}</span></div>
   <div class="body">
     {form_html}
-    <div class="carousel">{cards_html}</div>
+    <div id="carousel">{cards_html}</div>
     <div class="nav">
       <button class="arr" onclick="go(cur-1)">&#8592;</button>
       <div class="dots">
@@ -3280,13 +3282,14 @@ var cur=0;
 function go(n){{
   n=Math.max(0,Math.min(3,n));
   document.getElementById('c'+cur).style.display='none';
-  document.getElementById('c'+n).style.display='flex';
+  document.getElementById('c'+n).style.display='block';
   document.querySelectorAll('.dot').forEach(function(d,i){{d.classList.toggle('on',i===n);}});
   cur=n;
 }}
+// Swipe support
 var sx=0;
-document.querySelector('.carousel').addEventListener('touchstart',function(e){{sx=e.touches[0].clientX;}},{{passive:true}});
-document.querySelector('.carousel').addEventListener('touchend',function(e){{
+document.getElementById('carousel').addEventListener('touchstart',function(e){{sx=e.touches[0].clientX;}},{{passive:true}});
+document.getElementById('carousel').addEventListener('touchend',function(e){{
   var dx=e.changedTouches[0].clientX-sx;
   if(Math.abs(dx)>40)dx<0?go(cur+1):go(cur-1);
 }},{{passive:true}});
@@ -3333,12 +3336,12 @@ document.querySelector('.carousel').addEventListener('touchend',function(e){{
     with c1:
         st.components.v1.html(
             _build_team_card_html(team_a, "Team A", "#CCFFE9", style_a_raw, form_a, da, da.get("crest","")),
-            height=490
+            height=440
         )
     with c2:
         st.components.v1.html(
             _build_team_card_html(team_b, "Team B", "#FFE0E0", style_b_raw, form_b, db, db.get("crest","")),
-            height=490
+            height=440
         )
 
     st.markdown('<div class="div"></div>', unsafe_allow_html=True)
