@@ -11,6 +11,7 @@ HEADERS = {"X-Auth-Token": API_KEY}
 
 ANTHROPIC_API_KEY  = st.secrets.get("ANTHROPIC_API_KEY", "")
 API_FOOTBALL_KEY   = st.secrets.get("API_FOOTBALL_KEY", "")
+SQUAD_API_KEY      = st.secrets.get("SQUAD_API_KEY", "")
 
 LEAGUES = {
     "Ligue 1":        {"code": "FL1",  "flag": "🇫🇷", "country": "France",  "color": "#1A56C4", "color_lt": "#E8F0FB"},
