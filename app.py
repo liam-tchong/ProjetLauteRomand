@@ -3100,6 +3100,17 @@ def page_definition():
 # PAGE GLOSSAIRE
 # ══════════════════════════════════════════════════════════════════════════════
 def page_glossaire():
+    # ── Scroll to anchor if arriving from pitch page ──────────────────────────
+    anchor = st.session_state.pop("glossaire_anchor", None) if "glossaire_anchor" in st.session_state else None
+    if anchor:
+        # Normalise: formation anchors use "formation-4-3-3", positions use "position-gk"
+        fkey = anchor.replace("-", "").replace(".", "")
+        st.markdown(
+            f'<script>setTimeout(function(){{var el=document.getElementById("position-{anchor.lower()}")'
+            f'||document.getElementById("formation-{fkey}");if(el)el.scrollIntoView({{behavior:"smooth",block:"center"}});}},600);</script>',
+            unsafe_allow_html=True,
+        )
+
     st.markdown('<div class="sec-label">Vocabulary</div><div class="sec-title">Tactical Glossary</div>', unsafe_allow_html=True)
     for i, (term, term_data) in enumerate(TACTICAL_TERMS.items()):
         definition = term_data.get("definition", "") if isinstance(term_data, dict) else term_data
@@ -3117,6 +3128,67 @@ def page_glossaire():
             f'</div>'
             f'</a>',
             unsafe_allow_html=True
+        )
+
+    # ── Positions & Composition ───────────────────────────────────────────────
+    st.markdown('<div style="margin-top:2.5rem"></div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec-label">Positions</div><div class="sec-title">Positions &amp; Composition</div>', unsafe_allow_html=True)
+
+    # Fetch squad for currently selected team_a (uses SQUAD_API_KEY)
+    squad_team = st.session_state.get("team_a", "")
+    squad_team_id = API_FOOTBALL_IDS.get(squad_team)
+    squad_by_pos = fetch_squad_composition(squad_team_id) if squad_team_id else {}
+    # Map API-Sports position labels → our abbreviations
+    _api_pos_map = {"Goalkeeper":"GK","Defender":"CB","Midfielder":"CM","Attacker":"ST"}
+
+    for abbr, pos in POSITIONS_DATA.items():
+        # Try to find real players for this position from the squad API
+        # API returns broad categories; map best-guess
+        example_players = []
+        for api_label, our_abbr in _api_pos_map.items():
+            if our_abbr == abbr or (abbr in ("LB","RB","CB") and api_label == "Defender") \
+               or (abbr in ("CM","DM","AM","LM","RM","LCM","RCM") and api_label == "Midfielder") \
+               or (abbr in ("LW","RW","ST","CF") and api_label == "Attacker") \
+               or (abbr == "GK" and api_label == "Goalkeeper"):
+                example_players = squad_by_pos.get(api_label, [])[:3]
+                break
+        players_html = ""
+        if example_players and squad_team:
+            names = " · ".join(example_players)
+            players_html = (
+                f'<div style="margin-top:.6rem;font-size:.72rem;font-weight:700;color:var(--mid);">'
+                f'<span style="font-weight:900;color:var(--dark);">{squad_team}</span>: {names}</div>'
+            )
+
+        st.markdown(
+            f'<div id="position-{abbr.lower()}" class="glos-card" style="border-color:{pos["border"]};scroll-margin-top:80px;">'
+            f'<div class="glos-card-header">'
+            f'<div class="glos-card-icon" style="background:{pos["color"]}">{pos["emoji"]}</div>'
+            f'<span class="glos-card-term">{abbr}</span>'
+            f'<span style="margin-left:.5rem;font-size:.85rem;font-weight:700;color:var(--mid);">{pos["name"]}</span>'
+            f'<span class="pill pill-yellow" style="margin-left:auto">Position</span>'
+            f'</div>'
+            f'<div class="glos-card-body">{pos["desc"]}{players_html}</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+
+    # ── Team Compositions (Formations) ────────────────────────────────────────
+    st.markdown('<div style="margin-top:2.5rem"></div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec-label">Systems</div><div class="sec-title">Team Compositions</div>', unsafe_allow_html=True)
+
+    for formation, fdata in FORMATIONS_DATA.items():
+        fkey = formation.replace("-", "").replace(".", "")
+        st.markdown(
+            f'<div id="formation-{fkey}" class="glos-card" style="border-color:{fdata["border"]};scroll-margin-top:80px;">'
+            f'<div class="glos-card-header">'
+            f'<div class="glos-card-icon" style="background:{fdata["color"]}">{fdata["emoji"]}</div>'
+            f'<span class="glos-card-term">{formation}</span>'
+            f'<span class="pill pill-yellow" style="margin-left:auto">Formation</span>'
+            f'</div>'
+            f'<div class="glos-card-body">{fdata["desc"]}</div>'
+            f'</div>',
+            unsafe_allow_html=True,
         )
 
 
