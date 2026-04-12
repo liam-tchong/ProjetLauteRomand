@@ -2948,6 +2948,7 @@ if "nav" in qp and qp["nav"] == "glossaire":
 
 # ── Session state ─────────────────────────────────────────────────────────────
 for k, v in [("page","main"), ("prev_page","main"), ("active_term",None),
+             ("glossaire_anchor", None),
              ("team_a", ALL_TEAMS[0] if ALL_TEAMS else ""),
              ("team_b", ALL_TEAMS[1] if len(ALL_TEAMS)>1 else "")]:
     if k not in st.session_state:
