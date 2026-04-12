@@ -3117,7 +3117,8 @@ def page_definition():
 # ══════════════════════════════════════════════════════════════════════════════
 def page_glossaire():
     # ── Scroll to anchor if arriving from pitch page ──────────────────────────
-    anchor = st.session_state.pop("glossaire_anchor", None) if "glossaire_anchor" in st.session_state else None
+    anchor = st.session_state.get("glossaire_anchor") or None
+    st.session_state.glossaire_anchor = None  # consume it
     if anchor:
         # Normalise: formation anchors use "formation-4-3-3", positions use "position-gk"
         fkey = anchor.replace("-", "").replace(".", "")
