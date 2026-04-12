@@ -1946,6 +1946,13 @@ def render_tactical_pitch_html(team_name):
         f".hz_{slug}{{animation:hz_p_{slug} 4.5s ease-in-out infinite;}}",
     ] + arrow_css
 
+    # Add hover glow CSS for clickable player bubbles
+    css_lines.append(
+        ".pitch-player-link{cursor:pointer;text-decoration:none;}"
+        ".pitch-player-link:hover circle:first-of-type{filter:brightness(1.35);stroke:white;stroke-width:2.4;}"
+        ".pitch-player-link:hover{opacity:.92;}"
+    )
+
     players_svg = ""
     for i, (ppx, ppy, abbr) in enumerate(players):
         x0, y0 = sx(ppx), sy(ppy)
@@ -1973,14 +1980,18 @@ def render_tactical_pitch_html(team_name):
                 f".{cls}{{animation:{an} 3.8s ease-in-out infinite;animation-delay:{delay};}}"
             )
             ring = ""
+        # Wrap each player bubble in an SVG <a> linking to the glossary position card
+        pos_anchor = f"?nav=glossaire&pos={abbr.lower()}"
         players_svg += (
+            f'<a href="{pos_anchor}" target="_self" class="pitch-player-link">'
             f'<g class="{cls}" {filt}>'
             f'{ring}'
             f'<circle cx="{x0:.1f}" cy="{y0:.1f}" r="11.5" fill="{color}" stroke="rgba(255,255,255,.9)" stroke-width="1.8"/>'
             f'<circle cx="{x0:.1f}" cy="{y0:.1f}" r="11.5" fill="rgba(255,255,255,.08)"/>'
             f'<text x="{x0:.1f}" y="{y0:.1f}" text-anchor="middle" dominant-baseline="central" '
             f'font-size="6.2" font-weight="900" fill="white" font-family="Nunito,sans-serif" letter-spacing="-.3">{abbr}</text>'
-            f'</g>\n'
+            f'</g>'
+            f'</a>\n'
         )
 
     # ── Style pills ──
