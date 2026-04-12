@@ -290,6 +290,33 @@ def fetch_api_football_stats(team_name, league_code="FL1"):
         return {}
 
 
+# ── Squad composition via SQUAD_API_KEY ──────────────────────────────────────
+@st.cache_data(ttl=3600, show_spinner=False)
+def fetch_squad_composition(team_id):
+    """Fetch squad players grouped by position using SQUAD_API_KEY."""
+    if not SQUAD_API_KEY or not team_id:
+        return {}
+    try:
+        r = requests.get(
+            "https://v3.football.api-sports.io/players/squads",
+            headers={"x-apisports-key": SQUAD_API_KEY},
+            params={"team": team_id},
+            timeout=10,
+        )
+        r.raise_for_status()
+        response = r.json().get("response", [])
+        if not response:
+            return {}
+        players = response[0].get("players", [])
+        by_position = {}
+        for p in players:
+            pos = p.get("position", "Unknown")
+            by_position.setdefault(pos, []).append(p["name"])
+        return by_position
+    except Exception:
+        return {}
+
+
 @st.cache_data(ttl=3600, show_spinner=False)
 def generate_team_style(team_name, pts, played, won, draw, lost,
                         goals_for, goals_against, goal_diff, position,
