@@ -3127,7 +3127,20 @@ def page_glossaire():
 
     st.markdown('<div class="sec-label">Vocabulary</div><div class="sec-title">Tactical Glossary</div>', unsafe_allow_html=True)
 
-    tab_tactics, tab_positions, tab_composition = st.tabs(["📖  Tactics", "🧍  Positions", "📐  Composition"])
+    # ── Tab switcher (same button pattern as nav bar) ─────────────────────────
+    active_tab = st.session_state.get("glossaire_tab", 0)
+    st.markdown('<div style="background:var(--white);border:2px solid var(--beige);border-radius:22px;padding:.5rem .6rem;margin-bottom:1.5rem;box-shadow:0 4px 20px rgba(42,32,24,0.08);display:flex;gap:.4rem">', unsafe_allow_html=True)
+    tc1, tc2, tc3 = st.columns(3)
+    with tc1:
+        if st.button("📖  Tactics", type="primary" if active_tab == 0 else "secondary", use_container_width=True, key="glos_tab0"):
+            st.session_state.glossaire_tab = 0; st.rerun()
+    with tc2:
+        if st.button("🧍  Positions", type="primary" if active_tab == 1 else "secondary", use_container_width=True, key="glos_tab1"):
+            st.session_state.glossaire_tab = 1; st.rerun()
+    with tc3:
+        if st.button("📐  Composition", type="primary" if active_tab == 2 else "secondary", use_container_width=True, key="glos_tab2"):
+            st.session_state.glossaire_tab = 2; st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
 
     # ── Tab 1: Tactics ────────────────────────────────────────────────────────
     with tab_tactics:
