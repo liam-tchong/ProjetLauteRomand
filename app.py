@@ -2965,6 +2965,54 @@ def watch_points(a, b):
 GLOS_ICONS = ["⚡","🎯","🔄","💨","🛡️"]
 GLOS_COLORS = ["var(--yellow-lt)","var(--green-lt)","var(--red-lt)","var(--beige)","var(--green-lt)"]
 
+# ── Position cards data ────────────────────────────────────────────────────────
+POSITIONS_DATA = {
+    "GK":  {"name":"Goalkeeper",              "emoji":"🧤", "color":"var(--yellow-lt)", "border":"var(--yellow)",
+            "desc":"The last line of defence, responsible for protecting the goal. The goalkeeper commands their box, organises the defence, and initiates build-up with short passes or long distribution. Modern keepers are increasingly involved as an extra outfield player during possession phases."},
+    "CB":  {"name":"Centre-Back",             "emoji":"🛡️", "color":"var(--beige)",     "border":"#bbb",
+            "desc":"Central defenders form the backbone of the defensive unit. They win aerial duels, read the game to intercept passes, and engage in one-on-one duels. Ball-playing centre-backs also carry the ball forward and contribute to build-up play from deep positions."},
+    "LB":  {"name":"Left-Back",               "emoji":"↙️", "color":"var(--green-lt)",  "border":"var(--green)",
+            "desc":"The left full-back defends against right-sided attacks and provides width in possession. In attacking systems, left-backs push high to create overloads on the flank, delivering crosses or cutting inside to combine with central midfielders in the half-space."},
+    "RB":  {"name":"Right-Back",              "emoji":"↘️", "color":"var(--green-lt)",  "border":"var(--green)",
+            "desc":"The right full-back mirrors the left-back on the opposite flank. Many modern right-backs invert to play as an extra midfielder when in possession, adding numerical superiority in central areas and contributing to the team's attacking combinations."},
+    "CM":  {"name":"Central Midfielder",      "emoji":"⚙️", "color":"var(--yellow-lt)", "border":"var(--yellow)",
+            "desc":"The engine of the team, linking defence and attack. Central midfielders must win the ball back, distribute it forward, and arrive into goal-scoring positions. Box-to-box midfielders cover every inch of the pitch in both defensive and offensive phases."},
+    "LCM": {"name":"Left Central Midfielder", "emoji":"⬅️", "color":"var(--yellow-lt)", "border":"var(--yellow)",
+            "desc":"In a 4-3-3, the left-sided central midfielder operates left of the pivot. They support the left flank, make late runs into the box, and offer width in midfield. Usually a more progressive, dynamic profile compared to the more defensive pivot."},
+    "RCM": {"name":"Right Central Midfielder","emoji":"➡️", "color":"var(--yellow-lt)", "border":"var(--yellow)",
+            "desc":"The right counterpart to the left central midfielder, operating right of the pivot. They provide a passing option across the pitch, press triggers on the right side when defending, and maintain midfield shape by balancing defensive and attacking duties."},
+    "DM":  {"name":"Defensive Midfielder",    "emoji":"🔒", "color":"var(--red-lt)",    "border":"var(--red)",
+            "desc":"Sitting in front of the defence, the DM screens the backline, intercepts passes, and breaks up attacks. In possession they act as the first distributor, calmly recycling the ball. Their positioning and reading of the game prevent opponents from playing through the middle."},
+    "AM":  {"name":"Attacking Midfielder",    "emoji":"🎯", "color":"var(--green-lt)",  "border":"var(--green)",
+            "desc":"Operating between the opposition's midfield and defence, the AM is the team's creative hub. They orchestrate attacks, deliver key passes, and arrive in the box to score or assist. Often referred to as the 'number 10', they are typically the most technically gifted player."},
+    "LM":  {"name":"Left Midfielder",         "emoji":"⚡", "color":"var(--green-lt)",  "border":"var(--green)",
+            "desc":"In a flat 4-4-2, the left midfielder covers the entire left channel — tracking back to defend and pushing forward to create. They combine with the left-back on overlap runs and deliver crosses into the box, offering both width and defensive cover throughout the match."},
+    "RM":  {"name":"Right Midfielder",        "emoji":"⚡", "color":"var(--green-lt)",  "border":"var(--green)",
+            "desc":"The right counterpart in a four-midfielder system. The right midfielder patrols the right flank, providing defensive cover before transitioning into attack to support the forward line with crosses, cut-backs, and combinations from deep wide positions."},
+    "LW":  {"name":"Left Winger",             "emoji":"💨", "color":"var(--red-lt)",    "border":"var(--red)",
+            "desc":"Wingers use pace and skill to beat defenders on the flank. A natural left winger hugs the touchline to deliver crosses, while an inverted left winger cuts inside onto their stronger right foot to shoot or play combinations through the half-space in behind."},
+    "RW":  {"name":"Right Winger",            "emoji":"💨", "color":"var(--red-lt)",    "border":"var(--red)",
+            "desc":"The right winger operates symmetrically to the left. Traditional right wingers deliver crosses from the byline, while inverted right wingers cut inside onto their left foot to shoot or combine centrally. Width from wingers stretches defensive blocks and creates space."},
+    "ST":  {"name":"Striker",                 "emoji":"⚽", "color":"var(--red-lt)",    "border":"var(--red)",
+            "desc":"The primary goal-scorer, positioned at the top of the formation. Strikers combine movement to create space, hold-up play to bring teammates into attacks, and clinical finishing. In a two-striker system, they work as a pair — one holding, one running in behind."},
+    "CF":  {"name":"Centre Forward",          "emoji":"🔥", "color":"var(--red-lt)",    "border":"var(--red)",
+            "desc":"Similar to a striker but with greater freedom to drop deep and combine. The centre forward links midfield and attack, creates space for wingers, and acts as the focal point of the attack. In pressing systems, the CF leads the press aggressively from the front."},
+}
+
+# ── Formation cards data ───────────────────────────────────────────────────────
+FORMATIONS_DATA = {
+    "4-3-3":   {"emoji":"📐", "color":"var(--yellow-lt)", "border":"var(--yellow)",
+                "desc":"Four defenders, three midfielders, and three forwards. The midfield trio typically includes a defensive pivot and two dynamic central midfielders. The three forwards provide width and a central striker, making it ideal for high-pressing and possession-based styles."},
+    "4-4-2":   {"emoji":"🔲", "color":"var(--beige)",     "border":"#bbb",
+                "desc":"A classic formation with two banks of four topped by a strike partnership. The flat midfield four provides strong defensive coverage and wide presence, while the two strikers work together as a pair. Compact and hard to break down, it excels in counter-attacking football."},
+    "4-2-3-1": {"emoji":"🏗️", "color":"var(--green-lt)",  "border":"var(--green)",
+                "desc":"A double pivot of two defensive midfielders shields the defence, with an attacking trio behind a lone striker. The two DMs give security and allow the number 10 to roam freely. Very versatile — can defend deep or press high depending on the team's philosophy."},
+    "3-4-3":   {"emoji":"🔺", "color":"var(--red-lt)",    "border":"var(--red)",
+                "desc":"Three central defenders supported by two aggressive wing-backs who provide width in both phases. Three midfielders control the centre and three forwards create constant offensive pressure. Requires wing-backs with exceptional stamina to cover the full length of the flanks."},
+    "3-5-2":   {"emoji":"⬛", "color":"var(--beige)",     "border":"#bbb",
+                "desc":"Three central defenders and five midfielders — including two wing-backs — create a compact, controlled shape. The five-man midfield dominates the centre, while two strikers work in tandem. Excellent for controlling possession and pressing, with wing-backs providing all the width."},
+}
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # HEADER (shown on all pages except definition)
