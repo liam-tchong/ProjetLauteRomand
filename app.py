@@ -2924,6 +2924,13 @@ if "term" in qp and qp["term"] in TACTICAL_TERMS:
     st.query_params.clear()
     st.rerun()
 
+# ── Navigate to glossary position / formation anchor from pitch page ──────────
+if "nav" in qp and qp["nav"] == "glossaire":
+    st.session_state.page = "glossaire"
+    st.session_state.glossaire_anchor = qp.get("pos") or qp.get("formation", "")
+    st.query_params.clear()
+    st.rerun()
+
 # ── Session state ─────────────────────────────────────────────────────────────
 for k, v in [("page","main"), ("prev_page","main"), ("active_term",None),
              ("team_a", ALL_TEAMS[0] if ALL_TEAMS else ""),
