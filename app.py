@@ -3142,8 +3142,8 @@ def page_glossaire():
             st.session_state.glossaire_tab = 2; st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # ── Tab 1: Tactics ────────────────────────────────────────────────────────
-    with tab_tactics:
+    # ── Tab 0: Tactics ────────────────────────────────────────────────────────
+    if active_tab == 0:
         for i, (term, term_data) in enumerate(TACTICAL_TERMS.items()):
             definition = term_data.get("definition", "") if isinstance(term_data, dict) else term_data
             icon = GLOS_ICONS[i % len(GLOS_ICONS)]
@@ -3162,19 +3162,17 @@ def page_glossaire():
                 unsafe_allow_html=True,
             )
 
-    # ── Tab 2: Positions ──────────────────────────────────────────────────────
-    with tab_positions:
+    # ── Tab 1: Positions ──────────────────────────────────────────────────────
+    elif active_tab == 1:
         team_a = st.session_state.get("team_a", "")
         team_b = st.session_state.get("team_b", "")
 
-        # Fetch squads for both selected teams using SQUAD_API_KEY
         id_a = API_FOOTBALL_IDS.get(team_a)
         id_b = API_FOOTBALL_IDS.get(team_b)
         squad_a = fetch_squad_composition(id_a) if id_a else {}
         squad_b = fetch_squad_composition(id_b) if id_b else {}
 
         def _get_players(squad, abbr):
-            """Map position abbreviation to API-Sports broad category and return up to 3 names."""
             if abbr == "GK":
                 return squad.get("Goalkeeper", [])[:2]
             elif abbr in ("CB", "LB", "RB"):
@@ -3214,8 +3212,16 @@ def page_glossaire():
                 unsafe_allow_html=True,
             )
 
-    # ── Tab 3: Composition (Formations) ───────────────────────────────────────
-    with tab_composition:
+        # Scroll to specific position card if arriving from pitch
+        if anchor and anchor.upper() in POSITIONS_DATA:
+            st.markdown(
+                f'<script>setTimeout(function(){{var el=document.getElementById("position-{anchor.lower()}");'
+                f'if(el)el.scrollIntoView({{behavior:"smooth",block:"center"}});}},300);</script>',
+                unsafe_allow_html=True,
+            )
+
+    # ── Tab 2: Composition (Formations) ───────────────────────────────────────
+    elif active_tab == 2:
         for formation, fdata in FORMATIONS_DATA.items():
             fkey = formation.replace("-", "").replace(".", "")
             st.markdown(
@@ -3230,24 +3236,14 @@ def page_glossaire():
                 unsafe_allow_html=True,
             )
 
-    # ── Auto-click the right tab + scroll when arriving from pitch ────────────
-    if anchor:
-        is_position   = anchor.upper() in POSITIONS_DATA
-        tab_idx       = 1 if is_position else 2
-        fkey          = anchor.replace("-", "").replace(".", "")
-        elem_id       = f"position-{anchor.lower()}" if is_position else f"formation-{fkey}"
-        st.markdown(
-            f'<script>'
-            f'setTimeout(function(){{'
-            f'  var tabs=document.querySelectorAll("[data-baseweb=\'tab\']");'
-            f'  if(tabs[{tab_idx}])tabs[{tab_idx}].click();'
-            f'  setTimeout(function(){{'
-            f'    var el=document.getElementById("{elem_id}");'
-            f'    if(el)el.scrollIntoView({{behavior:"smooth",block:"center"}});'
-            f'  }},400);'
-            f'}},600);</script>',
-            unsafe_allow_html=True,
-        )
+        # Scroll to specific formation card if arriving from pitch
+        if anchor:
+            fkey = anchor.replace("-", "").replace(".", "")
+            st.markdown(
+                f'<script>setTimeout(function(){{var el=document.getElementById("formation-{fkey}");'
+                f'if(el)el.scrollIntoView({{behavior:"smooth",block:"center"}});}},300);</script>',
+                unsafe_allow_html=True,
+            )
 
 
 # ══════════════════════════════════════════════════════════════════════════════
