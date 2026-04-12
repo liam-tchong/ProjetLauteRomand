@@ -3116,95 +3116,118 @@ def page_definition():
 # PAGE GLOSSAIRE
 # ══════════════════════════════════════════════════════════════════════════════
 def page_glossaire():
-    # ── Scroll to anchor if arriving from pitch page ──────────────────────────
+    # ── Consume anchor set when navigating from pitch page ────────────────────
     anchor = st.session_state.get("glossaire_anchor") or None
-    st.session_state.glossaire_anchor = None  # consume it
-    if anchor:
-        # Normalise: formation anchors use "formation-4-3-3", positions use "position-gk"
-        fkey = anchor.replace("-", "").replace(".", "")
-        st.markdown(
-            f'<script>setTimeout(function(){{var el=document.getElementById("position-{anchor.lower()}")'
-            f'||document.getElementById("formation-{fkey}");if(el)el.scrollIntoView({{behavior:"smooth",block:"center"}});}},600);</script>',
-            unsafe_allow_html=True,
-        )
+    st.session_state.glossaire_anchor = None
 
     st.markdown('<div class="sec-label">Vocabulary</div><div class="sec-title">Tactical Glossary</div>', unsafe_allow_html=True)
-    for i, (term, term_data) in enumerate(TACTICAL_TERMS.items()):
-        definition = term_data.get("definition", "") if isinstance(term_data, dict) else term_data
-        icon = GLOS_ICONS[i % len(GLOS_ICONS)]
-        bg   = GLOS_COLORS[i % len(GLOS_COLORS)]
-        st.markdown(
-            f'<a href="?term={term}&from=glossaire" style="text-decoration:none;color:inherit">'
-            f'<div class="glos-card">'
-            f'<div class="glos-card-header">'
-            f'<div class="glos-card-icon" style="background:{bg}">{icon}</div>'
-            f'<span class="glos-card-term">{term.capitalize()}</span>'
-            f'<span class="pill pill-yellow" style="margin-left:auto">Tactical →</span>'
-            f'</div>'
-            f'<div class="glos-card-body">{definition}</div>'
-            f'</div>'
-            f'</a>',
-            unsafe_allow_html=True
-        )
 
-    # ── Positions & Composition ───────────────────────────────────────────────
-    st.markdown('<div style="margin-top:2.5rem"></div>', unsafe_allow_html=True)
-    st.markdown('<div class="sec-label">Positions</div><div class="sec-title">Positions &amp; Composition</div>', unsafe_allow_html=True)
+    tab_tactics, tab_positions, tab_composition = st.tabs(["📖  Tactics", "🧍  Positions", "📐  Composition"])
 
-    # Fetch squad for currently selected team_a (uses SQUAD_API_KEY)
-    squad_team = st.session_state.get("team_a", "")
-    squad_team_id = API_FOOTBALL_IDS.get(squad_team)
-    squad_by_pos = fetch_squad_composition(squad_team_id) if squad_team_id else {}
-    # Map API-Sports position labels → our abbreviations
-    _api_pos_map = {"Goalkeeper":"GK","Defender":"CB","Midfielder":"CM","Attacker":"ST"}
-
-    for abbr, pos in POSITIONS_DATA.items():
-        # Try to find real players for this position from the squad API
-        # API returns broad categories; map best-guess
-        example_players = []
-        for api_label, our_abbr in _api_pos_map.items():
-            if our_abbr == abbr or (abbr in ("LB","RB","CB") and api_label == "Defender") \
-               or (abbr in ("CM","DM","AM","LM","RM","LCM","RCM") and api_label == "Midfielder") \
-               or (abbr in ("LW","RW","ST","CF") and api_label == "Attacker") \
-               or (abbr == "GK" and api_label == "Goalkeeper"):
-                example_players = squad_by_pos.get(api_label, [])[:3]
-                break
-        players_html = ""
-        if example_players and squad_team:
-            names = " · ".join(example_players)
-            players_html = (
-                f'<div style="margin-top:.6rem;font-size:.72rem;font-weight:700;color:var(--mid);">'
-                f'<span style="font-weight:900;color:var(--dark);">{squad_team}</span>: {names}</div>'
+    # ── Tab 1: Tactics ────────────────────────────────────────────────────────
+    with tab_tactics:
+        for i, (term, term_data) in enumerate(TACTICAL_TERMS.items()):
+            definition = term_data.get("definition", "") if isinstance(term_data, dict) else term_data
+            icon = GLOS_ICONS[i % len(GLOS_ICONS)]
+            bg   = GLOS_COLORS[i % len(GLOS_COLORS)]
+            st.markdown(
+                f'<a href="?term={term}&from=glossaire" style="text-decoration:none;color:inherit">'
+                f'<div class="glos-card">'
+                f'<div class="glos-card-header">'
+                f'<div class="glos-card-icon" style="background:{bg}">{icon}</div>'
+                f'<span class="glos-card-term">{term.capitalize()}</span>'
+                f'<span class="pill pill-yellow" style="margin-left:auto">Tactical →</span>'
+                f'</div>'
+                f'<div class="glos-card-body">{definition}</div>'
+                f'</div>'
+                f'</a>',
+                unsafe_allow_html=True,
             )
 
-        st.markdown(
-            f'<div id="position-{abbr.lower()}" class="glos-card" style="border-color:{pos["border"]};scroll-margin-top:80px;">'
-            f'<div class="glos-card-header">'
-            f'<div class="glos-card-icon" style="background:{pos["color"]}">{pos["emoji"]}</div>'
-            f'<span class="glos-card-term">{abbr}</span>'
-            f'<span style="margin-left:.5rem;font-size:.85rem;font-weight:700;color:var(--mid);">{pos["name"]}</span>'
-            f'<span class="pill pill-yellow" style="margin-left:auto">Position</span>'
-            f'</div>'
-            f'<div class="glos-card-body">{pos["desc"]}{players_html}</div>'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
+    # ── Tab 2: Positions ──────────────────────────────────────────────────────
+    with tab_positions:
+        team_a = st.session_state.get("team_a", "")
+        team_b = st.session_state.get("team_b", "")
 
-    # ── Team Compositions (Formations) ────────────────────────────────────────
-    st.markdown('<div style="margin-top:2.5rem"></div>', unsafe_allow_html=True)
-    st.markdown('<div class="sec-label">Systems</div><div class="sec-title">Team Compositions</div>', unsafe_allow_html=True)
+        # Fetch squads for both selected teams using SQUAD_API_KEY
+        id_a = API_FOOTBALL_IDS.get(team_a)
+        id_b = API_FOOTBALL_IDS.get(team_b)
+        squad_a = fetch_squad_composition(id_a) if id_a else {}
+        squad_b = fetch_squad_composition(id_b) if id_b else {}
 
-    for formation, fdata in FORMATIONS_DATA.items():
-        fkey = formation.replace("-", "").replace(".", "")
+        def _get_players(squad, abbr):
+            """Map position abbreviation to API-Sports broad category and return up to 3 names."""
+            if abbr == "GK":
+                return squad.get("Goalkeeper", [])[:2]
+            elif abbr in ("CB", "LB", "RB"):
+                return squad.get("Defender", [])[:3]
+            elif abbr in ("CM", "DM", "AM", "LM", "RM", "LCM", "RCM"):
+                return squad.get("Midfielder", [])[:3]
+            elif abbr in ("LW", "RW", "ST", "CF"):
+                return squad.get("Attacker", [])[:3]
+            return []
+
+        for abbr, pos in POSITIONS_DATA.items():
+            players_a = _get_players(squad_a, abbr)
+            players_b = _get_players(squad_b, abbr)
+
+            players_html = ""
+            if players_a and team_a:
+                players_html += (
+                    f'<div style="margin-top:.55rem;font-size:.72rem;font-weight:700;color:var(--mid);">'
+                    f'<span style="font-weight:900;color:var(--dark);">{team_a}</span>: {" · ".join(players_a)}</div>'
+                )
+            if players_b and team_b:
+                players_html += (
+                    f'<div style="margin-top:.3rem;font-size:.72rem;font-weight:700;color:var(--mid);">'
+                    f'<span style="font-weight:900;color:var(--dark);">{team_b}</span>: {" · ".join(players_b)}</div>'
+                )
+
+            st.markdown(
+                f'<div id="position-{abbr.lower()}" class="glos-card" style="border-color:{pos["border"]};scroll-margin-top:80px;">'
+                f'<div class="glos-card-header">'
+                f'<div class="glos-card-icon" style="background:{pos["color"]}">{pos["emoji"]}</div>'
+                f'<span class="glos-card-term">{abbr}</span>'
+                f'<span style="margin-left:.5rem;font-size:.85rem;font-weight:700;color:var(--mid);">{pos["name"]}</span>'
+                f'<span class="pill pill-yellow" style="margin-left:auto">Position</span>'
+                f'</div>'
+                f'<div class="glos-card-body">{pos["desc"]}{players_html}</div>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+
+    # ── Tab 3: Composition (Formations) ───────────────────────────────────────
+    with tab_composition:
+        for formation, fdata in FORMATIONS_DATA.items():
+            fkey = formation.replace("-", "").replace(".", "")
+            st.markdown(
+                f'<div id="formation-{fkey}" class="glos-card" style="border-color:{fdata["border"]};scroll-margin-top:80px;">'
+                f'<div class="glos-card-header">'
+                f'<div class="glos-card-icon" style="background:{fdata["color"]}">{fdata["emoji"]}</div>'
+                f'<span class="glos-card-term">{formation}</span>'
+                f'<span class="pill pill-yellow" style="margin-left:auto">Formation</span>'
+                f'</div>'
+                f'<div class="glos-card-body">{fdata["desc"]}</div>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+
+    # ── Auto-click the right tab + scroll when arriving from pitch ────────────
+    if anchor:
+        is_position   = anchor.upper() in POSITIONS_DATA
+        tab_idx       = 1 if is_position else 2
+        fkey          = anchor.replace("-", "").replace(".", "")
+        elem_id       = f"position-{anchor.lower()}" if is_position else f"formation-{fkey}"
         st.markdown(
-            f'<div id="formation-{fkey}" class="glos-card" style="border-color:{fdata["border"]};scroll-margin-top:80px;">'
-            f'<div class="glos-card-header">'
-            f'<div class="glos-card-icon" style="background:{fdata["color"]}">{fdata["emoji"]}</div>'
-            f'<span class="glos-card-term">{formation}</span>'
-            f'<span class="pill pill-yellow" style="margin-left:auto">Formation</span>'
-            f'</div>'
-            f'<div class="glos-card-body">{fdata["desc"]}</div>'
-            f'</div>',
+            f'<script>'
+            f'setTimeout(function(){{'
+            f'  var tabs=document.querySelectorAll("[data-baseweb=\'tab\']");'
+            f'  if(tabs[{tab_idx}])tabs[{tab_idx}].click();'
+            f'  setTimeout(function(){{'
+            f'    var el=document.getElementById("{elem_id}");'
+            f'    if(el)el.scrollIntoView({{behavior:"smooth",block:"center"}});'
+            f'  }},400);'
+            f'}},600);</script>',
             unsafe_allow_html=True,
         )
 
