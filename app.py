@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 import re
 import anthropic
+import time
 
 st.set_page_config(page_title="The Football Classroom", layout="wide")
 
@@ -68,34 +69,83 @@ FL1_NAME_MAP = {
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch_standings(league_code):
     name_map = FL1_NAME_MAP if league_code == "FL1" else {}
+    for attempt in range(3):
+        try:
+            r = requests.get(
+                f"https://api.football-data.org/v4/competitions/{league_code}/standings",
+                headers=HEADERS, timeout=10
+            )
+            r.raise_for_status()
+            table = r.json()["standings"][0]["table"]
+            result = {}
+            for row in table:
+                t = row["team"]
+                name = name_map.get(t["name"], t["name"])
+                result[name] = {
+                    "id":            t["id"],
+                    "crest":         t["crest"],
+                    "short":         t.get("shortName") or name[:3].upper(),
+                    "position":      row["position"],
+                    "points":        row["points"],
+                    "played":        row["playedGames"],
+                    "won":           row["won"],
+                    "draw":          row["draw"],
+                    "lost":          row["lost"],
+                    "goals_for":     row["goalsFor"],
+                    "goals_against": row["goalsAgainst"],
+                    "goal_diff":     row["goalDifference"],
+                }
+            return result
+        except Exception:
+            if attempt < 2:
+                time.sleep(1.2)
+    return {}
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def generate_standings_summary(league_name, standings_tuple):
+    """Generate a 3-4 sentence league summary via Claude Haiku."""
+    if not ANTHROPIC_API_KEY or not standings_tuple:
+        return ""
+    teams = sorted(standings_tuple, key=lambda x: x[1])  # sort by position
+    if len(teams) < 5:
+        return ""
+    n = len(teams)
+    def fmt(t):
+        return f"{t[0]} ({t[2]} pts)"
+    top3 = teams[:3]
+    cl4, cl5 = teams[3], teams[4]
+    rel_border = teams[n - 4]
+    rel_zone = teams[n - 3:]
+    matchday = teams[0][3]
+    context = (
+        f"League: {league_name} — Matchday {matchday}\n"
+        f"Leader: {fmt(top3[0])}\n"
+        f"2nd: {fmt(top3[1])} (gap to 1st: {top3[0][2]-top3[1][2]} pts)\n"
+        f"3rd: {fmt(top3[2])} (gap to 1st: {top3[0][2]-top3[2][2]} pts)\n"
+        f"4th vs 5th (European border): {fmt(cl4)} vs {fmt(cl5)} — gap: {cl4[2]-cl5[2]} pts\n"
+        f"Just above relegation: {fmt(rel_border)}\n"
+        f"Relegation zone: {fmt(rel_zone[0])}, {fmt(rel_zone[1])}, {fmt(rel_zone[2])}\n"
+        f"Gap between safety and drop zone: {rel_border[2]-rel_zone[0][2]} pts\n"
+    )
+    prompt = (
+        "You are a sharp European football analyst writing for a quality sports publication. "
+        "Based on the standings data below, write exactly 3-4 sentences summarising the current state of this league. "
+        "Cover: the title race (is it over or still open?), any key battle for European spots, "
+        "and relegation drama if relevant. Be specific with team names and gaps. "
+        "Write in flowing prose, expert and lively — no bullet points.\n\n"
+        + context
+    )
     try:
-        r = requests.get(
-            f"https://api.football-data.org/v4/competitions/{league_code}/standings",
-            headers=HEADERS, timeout=10
+        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+        msg = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=220,
+            messages=[{"role": "user", "content": prompt}]
         )
-        r.raise_for_status()
-        table = r.json()["standings"][0]["table"]
-        result = {}
-        for row in table:
-            t = row["team"]
-            name = name_map.get(t["name"], t["name"])
-            result[name] = {
-                "id":            t["id"],
-                "crest":         t["crest"],
-                "short":         t.get("shortName") or name[:3].upper(),
-                "position":      row["position"],
-                "points":        row["points"],
-                "played":        row["playedGames"],
-                "won":           row["won"],
-                "draw":          row["draw"],
-                "lost":          row["lost"],
-                "goals_for":     row["goalsFor"],
-                "goals_against": row["goalsAgainst"],
-                "goal_diff":     row["goalDifference"],
-            }
-        return result
+        return msg.content[0].text.strip()
     except Exception:
-        return {}
+        return ""
 
 @st.cache_data(ttl=86400, show_spinner=False)
 def fetch_previous_standings(league_code):
@@ -2851,6 +2901,9 @@ details.style-acc .style-details{animation:fadeIn .2s ease;}
 .standings-gd{font-weight:700;min-width:30px;text-align:right;font-size:.75rem;}
 .standings-gd-pos{color:var(--green-dk);} .standings-gd-neg{color:var(--red-dk);} .standings-gd-neu{color:var(--mid);}
 .standings-hdr-row{display:flex;align-items:center;gap:.7rem;padding:.5rem 1.4rem;background:var(--bg);font-size:.62rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--mid);}
+.standings-summary{background:var(--white);border-radius:var(--radius);border:2px solid var(--beige);box-shadow:var(--shadow);padding:1rem 1.4rem;margin-top:.75rem;display:flex;gap:.85rem;align-items:flex-start;}
+.standings-summary-icon{font-size:1.3rem;flex-shrink:0;margin-top:.05rem;}
+.standings-summary p{margin:0;font-size:.87rem;font-weight:600;color:var(--mid);line-height:1.7;}
 
 /* Glossaire */
 .glos-card{background:var(--white);border-radius:var(--radius);border:2px solid var(--beige);overflow:hidden;box-shadow:var(--shadow);transition:box-shadow .2s,transform .2s;margin-bottom:.8rem;}
@@ -3295,6 +3348,22 @@ def page_classement():
                 f'</div>',
                 unsafe_allow_html=True
             )
+
+            # ── AI standings summary ──
+            standings_tuple = tuple(
+                (name, d["position"], d["points"], d["played"], d["won"], d["goal_diff"])
+                for name, d in league_standings.items()
+            )
+            with st.spinner("Generating league summary…"):
+                summary = generate_standings_summary(league_name, standings_tuple)
+            if summary:
+                st.markdown(
+                    f'<div class="standings-summary">'
+                    f'<span class="standings-summary-icon">📊</span>'
+                    f'<p>{summary}</p>'
+                    f'</div>',
+                    unsafe_allow_html=True
+                )
     st.markdown("<br>", unsafe_allow_html=True)
 
 
@@ -3625,7 +3694,9 @@ document.getElementById('carousel').addEventListener('touchend',function(e){{
         f'</div>',
         unsafe_allow_html=True
     )
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.ma
+    
+    kdown("<br>", unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
