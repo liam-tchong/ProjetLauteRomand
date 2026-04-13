@@ -533,13 +533,13 @@ TACTICAL_TERMS = {
         "definition":        "A centre-forward who drops into midfield rather than staying as a traditional striker, creating confusion in the opposition's defence.",
         "simple_explanation":"An attacker who drifts away from goal to confuse defenders who don't know whether to follow.",
         "example":           "Messi played as a false nine under Guardiola at Barcelona, leaving centre-backs disoriented.",
-        "animation_idea":    "The striker drops into midfield, leaving space that midfielders run into behind.",
+        "animation_idea":    "Watch F9 drop back — the CBs don't know whether to follow or stay. That gap they leave behind? That's exactly where the midfielders sprint into.",
     },
     "build-up play": {
         "definition":        "The phase of play when a team in possession tries to move the ball forward from defence into attack against an organized opposition.",
         "simple_explanation":"The team passes the ball from the back to the front in an organized, controlled way.",
         "example":           "A goalkeeper passes to a centre-back, who plays to the midfielder, who finds the striker.",
-        "animation_idea":    "Arrows showing ball movement from defence through midfield into the final third.",
+        "animation_idea":    "The ball travels step by step: GK → CB → CM → ST. No rush, no long ball — just controlled progression until the striker is in a dangerous spot.",
     },
     "through ball": {
         "definition":        "A pass played straight through or behind the opposition's defence to reach a teammate making a run.",
@@ -623,13 +623,13 @@ TACTICAL_TERMS = {
         "definition":        "Pressing applied immediately after losing the ball to quickly regain possession, before the opponent can settle.",
         "simple_explanation":"The moment you lose the ball, instantly surround the opponent before they can look up.",
         "example":           "After losing the ball, Dortmund's players immediately swarm the opponent to win it back within seconds.",
-        "animation_idea":    "Players swarming as a group toward the ball the instant possession is lost.",
+        "animation_idea":    "The moment the ball is lost — don't retreat, attack it. 3 players swarm the opponent before they can look up. You have roughly 6 seconds before they're organized.",
     },
     "transition": {
         "definition":        "The moment a team switches from attack to defence (negative transition) or from defence to attack (positive transition).",
         "simple_explanation":"The moment your team changes from defending to attacking — or the other way around.",
         "example":           "A team is caught in a bad transition when they lose the ball with players pushed too far forward.",
-        "animation_idea":    "Half the arrows reversing direction simultaneously as the ball changes hands.",
+        "animation_idea":    "The most chaotic moment in football — the split second the ball changes hands. Attackers become defenders, defenders become attackers. Teams that win transitions win games.",
     },
     "formation": {
         "definition":        "The organized arrangement of players on the pitch, usually described numerically from defence to attack (e.g. 4-3-3).",
@@ -659,7 +659,7 @@ TACTICAL_TERMS = {
         "definition":        "The channel between the central area and the wide zone, just inside the full-back — one of the most dangerous areas to receive the ball.",
         "simple_explanation":"The danger zone between the center and the wing — hard for defenders to cover.",
         "example":           "An attacking midfielder receives in the half-space, turns quickly, and shoots at goal.",
-        "animation_idea":    "Two vertical channels highlighted between the centre circle and the touchlines.",
+        "animation_idea":    "The yellow zones are a defender's nightmare — too central for the full-back, too wide for the centre-back. Nobody clearly owns that space. Receive there, turn, and you're in a dangerous position immediately.",
     },
     "lines": {
         "definition":        "The horizontal rows of players a team organizes in defence or midfield — breaking these lines is a key attacking objective.",
@@ -671,19 +671,19 @@ TACTICAL_TERMS = {
         "definition":        "A style of play characterised by short, quick passing, constant movement and maintaining possession to control the match.",
         "simple_explanation":"Keep the ball moving fast with short passes — never hold it long, always move after passing.",
         "example":           "Barcelona under Pep Guardiola used tiki-taka to dominate possession and exhaust opponents.",
-        "animation_idea":    "Rapid short passes between many players forming fluid triangles across the pitch.",
+        "animation_idea":    "Watch the ball hop between all 5 players — nobody holds it more than a second. The opponent has to chase it around the whole pitch until they're too tired to defend properly. It's not showboating, it's exhaustion as a strategy.",
     },
     "total football": {
         "definition":        "A tactical theory in which any outfield player can take over the role of any other player, requiring universal positional flexibility.",
         "simple_explanation":"Every player is comfortable in any position — if someone moves, a teammate fills the gap.",
         "example":           "The Netherlands team of the 1970s rotated positions fluidly under coach Rinus Michels.",
-        "animation_idea":    "Players swapping positions with arrows showing continuous positional rotations.",
+        "animation_idea":    "Watch the CB and ST swap positions entirely. If every player can be anyone, the opponent can't mark anyone specifically. There are no fixed roles — just players filling space intelligently.",
     },
     "positional play": {
         "definition":        "A tactical system focused on controlling the game through intelligent positioning, occupying key spaces to dominate the pitch.",
         "simple_explanation":"Players take up smart positions to control space and make the team impossible to press.",
         "example":           "Manchester City under Guardiola use positional play to maintain passing structures at all times.",
-        "animation_idea":    "Players in structured positions forming triangles and diamonds across the full pitch.",
+        "animation_idea":    "It's not just about having the ball — it's about where you are when you have it. Players occupy specific zones so there's always a passing option. The opponent can't press because there's always someone open.",
     },
     "overload": {
         "definition":        "Creating a numerical superiority of attackers over defenders in a specific zone of the pitch.",
@@ -695,13 +695,13 @@ TACTICAL_TERMS = {
         "definition":        "When a team is attacking, a third player makes a run to become an alternative receiver beyond the initial passer and receiver.",
         "simple_explanation":"Two players exchange the ball while a third runs beyond them to receive it in space.",
         "example":           "A midfielder passes to a striker, the striker lays it off, and the midfielder continues their run to receive.",
-        "animation_idea":    "Two players exchanging the ball as a third player runs into open space to receive.",
+        "animation_idea":    "P1 passes to P2, P2 lays it off — but watch P3 who never stopped running. Defenders track the ball, not the run. P3 is always free because nobody remembered to follow them.",
     },
     "line-breaking pass": {
         "definition":        "A pass that bypasses one or more lines of opposing players in a single movement, skipping midfield or the defensive line.",
         "simple_explanation":"A pass that jumps over a whole line of opponents in one go, instantly unlocking the defence.",
         "example":           "A centre-back plays a line-breaking pass into the feet of a forward between the midfield and defensive lines.",
-        "animation_idea":    "Ball traveling through a defensive line with a dotted arrow bypassing all players in one move.",
+        "animation_idea":    "One pass, entire defence beaten. Watch the ball travel straight through both lines of defenders — it skips midfield entirely and lands at P2's feet with the whole defence behind them.",
     },
 }
 
@@ -1815,6 +1815,69 @@ TEAM_TACTICS = {
     },
 }
 
+# ── Style tag → TACTICAL_TERMS key (for clickable pills) ─────────────────────
+STYLE_TAG_TO_TERM = {
+    "high press":       "high press",
+    "false 9":          "false nine",
+    "false nine":       "false nine",
+    "possession":       "positional play",
+    "counter":          "counter-attack",
+    "counter-attack":   "counter-attack",
+    "low block":        "low block",
+    "tiki-taka":        "tiki-taka",
+    "positional":       "positional play",
+    "positional play":  "positional play",
+    "total football":   "total football",
+    "overlaps":         "overlap",
+    "overlap":          "overlap",
+    "pressing":         "pressing",
+    "collective press": "pressing",
+    "counter-pressing": "counter-pressing",
+    "gegenpressing":    "counter-pressing",
+    "build-up":         "build-up play",
+    "patient build-up": "build-up play",
+    "width":            "width",
+    "flanks":           "width",
+    "cross-heavy":      "cross",
+    "cross-based":      "cross",
+    "wing-backs":       "overlap",
+    "compact":          "shape",
+    "shape":            "shape",
+    "formation":        "formation",
+    "half-space":       "half-space",
+    "transition":       "transition",
+    "man marking":      "man marking",
+    "zonal marking":    "zonal marking",
+    "lines":            "lines",
+    "depth":            "depth",
+    "overload":         "overload",
+    "press":            "pressing",
+}
+
+# ── First style tag → one-sentence pitch description ─────────────────────────
+STYLE_TAG_DESC = {
+    "high press":       "Players chase the opponent deep in their own half to force mistakes and win the ball back fast.",
+    "low block":        "The whole team drops back near their own goal, leaving no space for opponents to attack.",
+    "counter-attack":   "The team absorbs pressure, then strikes quickly the moment they win the ball back.",
+    "counter":          "The team absorbs pressure, then strikes quickly the moment they win the ball back.",
+    "possession":       "Short, patient passes to keep the ball and tire out the opposition.",
+    "tiki-taka":        "Very fast, short passes — the team never lets go of the ball.",
+    "positional play":  "Players occupy precise zones to control space and dominate the game.",
+    "positional":       "Players occupy precise zones to control space and dominate the game.",
+    "total football":   "Any player can fill any role — constant positional rotations across the team.",
+    "overlaps":         "Full-backs push forward to create 2v1 situations and cross from the wing.",
+    "wing-backs":       "Wing-backs push very high and deliver crosses from deep positions.",
+    "false 9":          "The striker drops into midfield, pulling defenders out of position and creating space behind.",
+    "collective press": "All players press together the moment the ball is lost.",
+    "pressing":         "Players press high and hard to win the ball back as quickly as possible.",
+    "gegenpressing":    "The instant possession is lost, multiple players instantly surround the opponent.",
+    "build-up":         "The team builds from the back calmly, playing through midfield before attacking.",
+    "patient build-up": "Patient build-up from the back — waiting for the right moment to break through.",
+    "direct":           "Direct play — the ball moves forward quickly without delay.",
+    "cross-heavy":      "Wide players stay out wide to deliver crosses into the penalty area.",
+    "cross-based":      "Wide players stay out wide to deliver crosses into the penalty area.",
+}
+
 def render_tactical_pitch_html(team_name):
     """Generate a premium animated SVG tactical pitch for a given team."""
     import math
@@ -2044,23 +2107,76 @@ def render_tactical_pitch_html(team_name):
             f'</a>\n'
         )
 
-    # ── Style pills ──
-    pills = "".join(
-        f'<span style="display:inline-flex;align-items:center;gap:.3rem;padding:.25rem .72rem;'
-        f'border-radius:100px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.75);'
-        f'font-size:.6rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;'
-        f'border:1px solid rgba(255,255,255,.12);margin:.15rem .15rem 0 0">'
-        f'<span style="width:5px;height:5px;border-radius:50%;background:{color};display:inline-block;flex-shrink:0"></span>'
-        f'{s}</span>'
-        for s in t.get("style_tags", [])
-    )
+    # ── Animated ball ──
+    ball_svg = ""
+    if t.get("moves"):
+        first_move = t["moves"][0]
+        bpi, bto_x, bto_y = first_move
+        bppx, bppy, _ = players[bpi]
+        bx0, by0 = sx(bppx), sy(bppy)
+        bx1, by1 = sx(bto_x), sy(bto_y)
+        bddx, bddy = bx1 - bx0, by1 - by0
+        ball_cls = f"ball_{slug}"
+        ball_glow_id = f"ballglow_{slug}"
+        # Add glow filter for the ball
+        defs = defs[:-len("</defs>")] + (
+            f'<filter id="{ball_glow_id}" x="-60%" y="-60%" width="220%" height="220%">'
+            f'<feGaussianBlur stdDeviation="4" result="blur"/>'
+            f'<feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>'
+            f'</filter>'
+        ) + "</defs>"
+        css_lines.append(
+            f"@keyframes ballm_{slug}{{"
+            f"0%,15%{{transform:translate(0px,0px)}}"
+            f"35%,65%{{transform:translate({bddx:.1f}px,{bddy:.1f}px)}}"
+            f"85%,100%{{transform:translate(0px,0px)}}}}"
+            f"@keyframes ballpulse_{slug}{{0%,100%{{opacity:1}}50%{{opacity:.75}}}}"
+            f".{ball_cls}{{animation:ballm_{slug} 9s ease-in-out infinite,ballpulse_{slug} 1.2s ease-in-out infinite;animation-delay:.18s,0s;}}"
+        )
+        ball_svg = (
+            f'<g class="{ball_cls}" filter="url(#{ball_glow_id})">'
+            # Outer glow ring
+            f'<circle cx="{bx0:.1f}" cy="{by0:.1f}" r="11" fill="rgba(255,255,180,.18)" stroke="rgba(255,255,100,.4)" stroke-width="1.5"/>'
+            # Ball body
+            f'<circle cx="{bx0:.1f}" cy="{by0:.1f}" r="7.5" fill="white" stroke="rgba(0,0,0,.5)" stroke-width="1.5"/>'
+            # Ball pattern lines
+            f'<circle cx="{bx0:.1f}" cy="{by0:.1f}" r="7.5" fill="none" stroke="rgba(0,0,0,.2)" stroke-width="3.5" stroke-dasharray="4.5 4"/>'
+            # "BALL" label so it's unmistakably a ball
+            f'</g>'
+        )
+
+    # ── Style pills (clickable if glossary term exists) ──
+    def _make_pill(s):
+        term_key = STYLE_TAG_TO_TERM.get(s.lower())
+        inner = (
+            f'<span style="display:inline-flex;align-items:center;gap:.3rem;padding:.25rem .72rem;'
+            f'border-radius:100px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.75);'
+            f'font-size:.6rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;'
+            f'border:1px solid rgba(255,255,255,.12);margin:.15rem .15rem 0 0;'
+            + (f'cursor:pointer;transition:background .15s;' if term_key else '') +
+            f'"'
+            + (f' onmouseover="this.style.background=\'rgba(255,255,255,.18)\'" onmouseout="this.style.background=\'rgba(255,255,255,.08)\'"' if term_key else '') +
+            f'><span style="width:5px;height:5px;border-radius:50%;background:{color};display:inline-block;flex-shrink:0"></span>'
+            f'{s}'
+            + (' <span style="opacity:.5;font-size:.55rem">→</span>' if term_key else '') +
+            f'</span>'
+        )
+        if term_key:
+            return f'<a href="?term={term_key}&from=main" target="_self" style="text-decoration:none;">{inner}</a>'
+        return inner
+
+    pills = "".join(_make_pill(s) for s in t.get("style_tags", []))
+
+    # ── One-sentence description ──
+    first_tag = (t.get("style_tags") or [""])[0].lower()
+    pitch_desc = STYLE_TAG_DESC.get(first_tag, "The arrows show typical player movements and runs for this team.")
 
     css_block = "<style>" + "".join(css_lines) + "</style>"
 
     svg = (
         f'<svg viewBox="0 0 {SW} {SH}" xmlns="http://www.w3.org/2000/svg" '
         f'style="display:block;width:100%;background:#1e5c1e;">'
-        f'{defs}{pitch_bg}{m}{zones_svg}{formation_lines_svg}{arrows_svg}{players_svg}'
+        f'{defs}{pitch_bg}{m}{zones_svg}{formation_lines_svg}{arrows_svg}{players_svg}{ball_svg}'
         f'</svg>'
     )
 
@@ -2086,10 +2202,12 @@ def render_tactical_pitch_html(team_name):
         f'</div>'
         # SVG pitch
         f'<div style="position:relative;">{svg}</div>'
-        # Footer pills
-        f'<div style="padding:.6rem 1rem .8rem;border-top:1px solid rgba(255,255,255,.06);">'
-        f'<div style="font-size:.56rem;font-weight:800;letter-spacing:.16em;color:rgba(255,255,255,.3);'
-        f'text-transform:uppercase;margin-bottom:.3rem;">Playing style</div>'
+        # Footer: description + pills
+        f'<div style="padding:.55rem 1rem .85rem;border-top:1px solid rgba(255,255,255,.06);">'
+        f'<div style="font-size:.72rem;color:rgba(255,255,255,.55);font-weight:600;margin-bottom:.5rem;line-height:1.4;">'
+        f'⚽ {pitch_desc}</div>'
+        f'<div style="font-size:.52rem;font-weight:800;letter-spacing:.16em;color:rgba(255,255,255,.25);'
+        f'text-transform:uppercase;margin-bottom:.28rem;">Playing style · click a tag to learn more</div>'
         f'{pills}</div>'
         f'</div>'
     )
@@ -2162,6 +2280,10 @@ def render_term_animation_html(term):
         f'<polygon points="0 0,7 3.5,0 7" fill="{color}"/></marker>'
         f'<marker id="tgarr_{slug}" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">'
         f'<polygon points="0 0,7 3.5,0 7" fill="#00C875"/></marker>'
+        f'<filter id="tbglow_{slug}" x="-60%" y="-60%" width="220%" height="220%">'
+        f'<feGaussianBlur stdDeviation="3.5" result="blur"/>'
+        f'<feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>'
+        f'</filter>'
         f"</defs>"
     )
 
@@ -2304,6 +2426,8 @@ def render_term_animation_html(term):
         content += pl(174, 102, "RM", color, cls_name=f"fnpc_{slug}", filt=gf)
 
     elif term == "build-up play":
+        # Players: GK(140,194), CB(108,154), CM(164,112), ST(140,50)
+        # Ball follows: GK→CB→CM→ST, synced with pass animations
         css = (
             f"@keyframes bu1_{slug}{{0%{{stroke-dashoffset:80;opacity:0}}20%,38%{{stroke-dashoffset:0;opacity:.9}}55%,100%{{stroke-dashoffset:80;opacity:0}}}}"
             f"@keyframes bu2_{slug}{{0%,20%{{stroke-dashoffset:80;opacity:0}}38%,56%{{stroke-dashoffset:0;opacity:.9}}72%,100%{{stroke-dashoffset:80;opacity:0}}}}"
@@ -2311,6 +2435,15 @@ def render_term_animation_html(term):
             f".bua1_{slug}{{stroke-dasharray:80;animation:bu1_{slug} 3.2s ease-in-out infinite}}"
             f".bua2_{slug}{{stroke-dasharray:80;animation:bu2_{slug} 3.2s ease-in-out infinite}}"
             f".bua3_{slug}{{stroke-dasharray:80;animation:bu3_{slug} 3.2s ease-in-out infinite}}"
+            # Ball follows each pass: starts at GK(140,194)
+            f"@keyframes tbm_{slug}{{"
+            f"0%,16%{{transform:translate(0px,0px)}}"         # at GK
+            f"25%,46%{{transform:translate(-32px,-40px)}}"    # at CB(108,154): -32,-40
+            f"55%,72%{{transform:translate(24px,-82px)}}"     # at CM(164,112): +24,-82
+            f"80%,96%{{transform:translate(0px,-144px)}}"     # at ST(140,50): 0,-144
+            f"100%{{transform:translate(0px,0px)}}}}"
+            f"@keyframes tbp_{slug}{{0%,100%{{opacity:1}}50%{{opacity:.7}}}}"
+            f".tb_{slug}{{animation:tbm_{slug} 3.2s ease-in-out infinite,tbp_{slug} .8s ease-in-out infinite;}}"
         )
         content += pl(140, 194, "GK", "#FFB800", filt=sf)
         content += pl(108, 154, "CB", "#4a6fa5", filt=sf)
@@ -2617,6 +2750,20 @@ def render_term_animation_html(term):
             f".tta{i}_{slug}{{stroke-dasharray:70;animation:tt{i}_{slug} 3.5s ease-in-out infinite}}"
             for i in range(5)
         ])
+        # Multi-step ball: hops through all 5 players in sync with passes
+        # pts[0]=(78,110) is origin → translate offsets to each player
+        _tt_offsets = [(p[0]-78, p[1]-110) for p in pts] + [(0, 0)]
+        css += (
+            f"@keyframes tbm_{slug}{{"
+            f"0%,8%{{transform:translate(0px,0px)}}"
+            f"18%,28%{{transform:translate({_tt_offsets[1][0]}px,{_tt_offsets[1][1]}px)}}"
+            f"38%,48%{{transform:translate({_tt_offsets[2][0]}px,{_tt_offsets[2][1]}px)}}"
+            f"58%,68%{{transform:translate({_tt_offsets[3][0]}px,{_tt_offsets[3][1]}px)}}"
+            f"78%,88%{{transform:translate({_tt_offsets[4][0]}px,{_tt_offsets[4][1]}px)}}"
+            f"98%,100%{{transform:translate(0px,0px)}}}}"
+            f"@keyframes tbp_{slug}{{0%,100%{{opacity:1}}50%{{opacity:.7}}}}"
+            f".tb_{slug}{{animation:tbm_{slug} 3.5s ease-in-out infinite,tbp_{slug} .7s ease-in-out infinite;}}"
+        )
         for x, y in pts:
             content += pl(x, y, "", color, filt=gf)
         pairs = [(0,1),(1,2),(2,3),(3,4),(4,0)]
@@ -2690,7 +2837,72 @@ def render_term_animation_html(term):
     else:
         content += f'<text x="{cx}" y="{cy}" text-anchor="middle" dominant-baseline="central" font-size="10" fill="rgba(255,255,255,.35)" font-family="Nunito,sans-serif">{term.upper()}</text>'
 
-    # ── Style pills (same structure as tactical pitch) ──
+    # ── Consistent styled ball (same as tactical pitch) ──
+    # Config: (bx, by) for static pulse, or (bx, by, ex, ey, dur) for moving
+    _TERM_BALL = {
+        "pressing":          (140, 95),
+        "pivot":             (154, 100, 42, 118, "3s"),
+        "false nine":        (140, 62),
+        "build-up play":     (140, 194),  # CSS already set in term block above
+        "through ball":      (94, 146, 196, 46, "2.5s"),
+        "switch of play":    (22, 110, 258, 110, "2.8s"),
+        "overlap":           (196, 108),
+        "underlap":          (222, 80),
+        "cross":             (246, 138, 152, 48, "2.5s"),
+        "final third":       (140, 26),
+        "counter-attack":    (140, 148, 140, 60, "2.2s"),
+        "high press":        (140, 46),
+        "low block":         (140, 72),
+        "man marking":       (80, 58),
+        "zonal marking":     (82, 98),
+        "tackle":            (178, 90, 138, 106, "2s"),
+        "interception":      (63, 142, 138, 102, "2.8s"),
+        "counter-pressing":  (155, 100),
+        "transition":        (140, 110),
+        "formation":         (140, 110),
+        "shape":             (140, 62),
+        "width":             (140, 110),
+        "depth":             (140, 110),
+        "half-space":        (86, 58),
+        "lines":             (98, 170, 168, 52, "2.5s"),
+        "tiki-taka":         (78, 110),   # CSS already set in term block above
+        "total football":    (140, 90),
+        "positional play":   (140, 150),
+        "overload":          (134, 88, 222, 90, "2.2s"),
+        "third man run":     (78, 150, 152, 112, "3s"),
+        "line-breaking pass":(140, 162, 140, 59, "2.5s"),
+    }
+    ball_cfg = _TERM_BALL.get(term, (cx, cy))
+    bx, by = ball_cfg[0], ball_cfg[1]
+    ball_cls = f"tb_{slug}"
+    # Only generate ball CSS if the term block didn't already define it
+    _ball_css_already_set = f".tb_{slug}" in css
+    if not _ball_css_already_set:
+        if len(ball_cfg) >= 5:
+            ex, ey, bdur = ball_cfg[2], ball_cfg[3], ball_cfg[4]
+            bdx, bdy = ex - bx, ey - by
+            css += (
+                f"@keyframes tbm_{slug}{{0%,15%{{transform:translate(0px,0px)}}35%,65%{{transform:translate({bdx:.0f}px,{bdy:.0f}px)}}85%,100%{{transform:translate(0px,0px)}}}}"
+                f"@keyframes tbp_{slug}{{0%,100%{{opacity:1}}50%{{opacity:.7}}}}"
+                f".{ball_cls}{{animation:tbm_{slug} {bdur} ease-in-out infinite,tbp_{slug} 1.2s ease-in-out infinite;}}"
+            )
+        else:
+            css += (
+                f"@keyframes tbp_{slug}{{0%,100%{{opacity:1}}50%{{opacity:.75}}}}"
+                f".{ball_cls}{{animation:tbp_{slug} 1.2s ease-in-out infinite;}}"
+            )
+    content += (
+        f'<g class="{ball_cls}" filter="url(#tbglow_{slug})">'
+        f'<circle cx="{bx}" cy="{by}" r="10.5" fill="rgba(255,255,180,.18)" stroke="rgba(255,255,100,.38)" stroke-width="1.5"/>'
+        f'<circle cx="{bx}" cy="{by}" r="7.5" fill="white" stroke="rgba(0,0,0,.5)" stroke-width="1.5"/>'
+        f'<circle cx="{bx}" cy="{by}" r="7.5" fill="none" stroke="rgba(0,0,0,.2)" stroke-width="3.5" stroke-dasharray="4.5 4"/>'
+        f'</g>'
+    )
+
+    # ── Animation description (from TACTICAL_TERMS animation_idea) ──
+    anim_idea = TACTICAL_TERMS.get(term, {}).get("animation_idea", "") if isinstance(TACTICAL_TERMS.get(term), dict) else ""
+
+    # ── Style pills (non-clickable, they're already on the glossary page) ──
     pills = "".join(
         f'<span style="display:inline-flex;align-items:center;gap:.3rem;padding:.25rem .72rem;'
         f'border-radius:100px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.75);'
@@ -2728,10 +2940,11 @@ def render_term_animation_html(term):
         f'</div>'
         # SVG
         f'<div style="position:relative;">{svg}</div>'
-        # Footer — identical layout to tactical pitch
-        f'<div style="padding:.6rem 1rem .8rem;border-top:1px solid rgba(255,255,255,.06);">'
-        f'<div style="font-size:.56rem;font-weight:800;letter-spacing:.16em;color:rgba(255,255,255,.3);'
-        f'text-transform:uppercase;margin-bottom:.3rem;">Key attributes</div>'
+        # Footer — description + pills
+        f'<div style="padding:.55rem 1rem .85rem;border-top:1px solid rgba(255,255,255,.06);">'
+        + (f'<div style="font-size:.72rem;color:rgba(255,255,255,.55);font-weight:600;margin-bottom:.5rem;line-height:1.4;">⚽ {anim_idea}</div>' if anim_idea else '') +
+        f'<div style="font-size:.52rem;font-weight:800;letter-spacing:.16em;color:rgba(255,255,255,.25);'
+        f'text-transform:uppercase;margin-bottom:.28rem;">Key attributes</div>'
         f'{pills}</div>'
         f'</div>'
     )
