@@ -4063,10 +4063,34 @@ def page_schedule():
 
             md_badge = f'<span class="sched-matchday">MD {m["matchday"]}</span>' if m["matchday"] else ""
 
+            pred_html = ""
+            if m["league"] == "Ligue 1":
+                probs = predict_match(ligue1_standings, m["home"], m["away"])
+                if probs is not None:
+                    hw = int(probs[0] * 100)
+                    dr = int(probs[1] * 100)
+                    aw = int(probs[2] * 100)
+                    pred_html = (
+                        f'<div class="sched-pred">'
+                        f'<div class="sched-pred-bar">'
+                        f'<div style="width:{hw}%;background:#4CAF50;border-radius:4px 0 0 4px"></div>'
+                        f'<div style="width:{dr}%;background:#FFC107"></div>'
+                        f'<div style="width:{aw}%;background:#F44336;border-radius:0 4px 4px 0"></div>'
+                        f'</div>'
+                        f'<div class="sched-pred-labels">'
+                        f'<span style="color:#4CAF50">{m["home"].split()[-1]} {hw}%</span>'
+                        f'<span style="color:#FFC107">D {dr}%</span>'
+                        f'<span style="color:#F44336">{aw}% {m["away"].split()[-1]}</span>'
+                        f'</div></div>'
+                    )
+
             html += (
                 f'<div class="sched-match" style="border-left-color:{m["color"]}">'
                 f'<div class="sched-league-dot" style="background:{m["color"]}"></div>'
+                f'<div style="flex:1">'
                 f'<div class="sched-teams">{m["home"]} <span style="color:var(--mid);font-weight:700">vs</span> {m["away"]}</div>'
+                f'{pred_html}'
+                f'</div>'
                 f'{score_html}{status_badge}{md_badge}'
                 f'</div>'
             )
