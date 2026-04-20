@@ -1,44 +1,25 @@
-import requests
 import pandas as pd
-import time
+import requests
+import io
 
-API_KEY = "324bb6df2fc7354452b00f0a4e82affey"
-HEADERS = {
-    "x-rapidapi-host": "v3.football.api-sports.io",
-    "x-rapidapi-key": API_KEY
+print("Downloading Ligue 1 historical data...")
+
+all_dfs = []
+
+urls = {
+    2022: "https://www.football-data.co.uk/mmz4281/2223/F1.csv",
+    2023: "https://www.football-data.co.uk/mmz4281/2324/F1.csv",
+    2024: "https://www.football-data.co.uk/mmz4281/2425/F1.csv",
 }
 
-all_matches = []
-
-for season in [2022, 2023, 2024]:
+for season, url in urls.items():
     print(f"Fetching season {season}...")
-    r = requests.get(
-        "https://v3.football.api-sports.io/fixtures",
-        headers=HEADERS,
-        params={"league": 61, "season": season, "status": "FT"},
-        timeout=10
-    )
-    fixtures = r.json().get("response", [])
-    print(f"Found {len(fixtures)} matches")
-    
-    for m in fixtures:
-        home_goals = m["goals"]["home"]
-        away_goals = m["goals"]["away"]
-        if home_goals is None or away_goals is None:
-            continue
-        if home_goals > away_goals:   result = 0
-        elif home_goals < away_goals: result = 2
-        else:                          result = 1
-        all_matches.append({
-            "season":      season,
-            "home_team":   m["teams"]["home"]["name"],
-            "away_team":   m["teams"]["away"]["name"],
-            "home_goals":  home_goals,
-            "away_goals":  away_goals,
-            "result":      result
-        })
-    time.sleep(1)
+    r = requests.get(url, timeout=10)
+    df = pd.read_csv(io.StringIO(r.text))
+    df["season"] = season
+    all_dfs.append(df)
+    print(f"Found {len(df)} matches")
 
-df = pd.DataFrame(all_matches)
-df.to_csv("match_data.csv", index=False)
-print(f"Done. Saved {len(df)} matches to match_data.csv")
+combined = pd.concat(all_dfs, ignore_index=True)
+combined.to_csv("match_data.csv", index=False)
+print(f"Done. Saved {len(combined)} matches to match_data.csv")
