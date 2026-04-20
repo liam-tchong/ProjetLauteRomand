@@ -4034,8 +4034,13 @@ def page_schedule():
 .sched-status-live{background:#FFE0E0;color:var(--red-dk);animation:pulse 1.2s ease-in-out infinite;}
 .sched-status-sched{background:var(--beige);color:var(--mid);}
 .sched-matchday{font-size:.62rem;font-weight:700;color:var(--mid);white-space:nowrap;}
+.sched-pred{margin-top:.3rem;}
+.sched-pred-bar{display:flex;height:4px;border-radius:4px;overflow:hidden;margin-bottom:.15rem;}
+.sched-pred-labels{display:flex;justify-content:space-between;font-size:.58rem;font-weight:700;}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
 </style>""", unsafe_allow_html=True)
+
+    ligue1_standings = fetch_standings("FL1")
 
     html = ""
     for date_label, matches in by_date.items():
