@@ -75,6 +75,30 @@ FL1_NAME_MAP = {
     "FC Metz":                "FC Metz",
 }
 
+def predict_match(standings, home_team, away_team):
+    if MATCH_MODEL is None or not standings:
+        return None
+    try:
+        dh = standings.get(home_team, {})
+        da = standings.get(away_team, {})
+        if not dh or not da:
+            return None
+        played_h = dh.get("played", 1) or 1
+        played_a = da.get("played", 1) or 1
+        features = [[
+            dh.get("won", 0) / played_h,
+            dh.get("goals_for", 0) / played_h,
+            dh.get("goals_against", 0) / played_h,
+            da.get("won", 0) / played_a,
+            da.get("goals_for", 0) / played_a,
+            da.get("goals_against", 0) / played_a,
+        ]]
+        probs = MATCH_MODEL.predict_proba(features)[0]
+        return probs
+    except Exception:
+        return None
+
+
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch_standings(league_code):
     name_map = FL1_NAME_MAP if league_code == "FL1" else {}
