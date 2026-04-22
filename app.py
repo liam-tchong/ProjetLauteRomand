@@ -3865,9 +3865,7 @@ document.getElementById('carousel').addEventListener('touchend',function(e){{
         f'</div>',
         unsafe_allow_html=True
     )
-    st.ma
-    
-    kdown("<br>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
