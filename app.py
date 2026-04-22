@@ -79,12 +79,15 @@ def predict_match(standings, home_team, away_team):
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch_standings(league_code):
     name_map = {}
-    for attempt in range(3):
+    for attempt in range(4):
         try:
             r = requests.get(
                 f"https://api.football-data.org/v4/competitions/{league_code}/standings",
                 headers=HEADERS, timeout=10
             )
+            if r.status_code == 429:
+                time.sleep(7)
+                continue
             r.raise_for_status()
             table = r.json()["standings"][0]["table"]
             result = {}
@@ -107,8 +110,8 @@ def fetch_standings(league_code):
                 }
             return result
         except Exception:
-            if attempt < 2:
-                time.sleep(1.2)
+            if attempt < 3:
+                time.sleep(1.5)
     return {}
 
 
@@ -4032,10 +4035,9 @@ def page_schedule():
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
 </style>""", unsafe_allow_html=True)
 
-    all_standings = {
-        name: fetch_standings(info["code"])
-        for name, info in LEAGUES.items()
-    }
+    all_standings = {}
+    for name in selected:
+        all_standings[name] = fetch_standings(LEAGUES[name]["code"])
 
     html = ""
     for date_label, matches in by_date.items():
