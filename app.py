@@ -107,7 +107,7 @@ def generate_standings_summary(league_name, standings_tuple):
 
 @st.cache_data(ttl=86400, show_spinner=False)
 def fetch_previous_standings(league_code):
-    name_map = FL1_NAME_MAP if league_code == "FL1" else {}
+    name_map = {}
     try:
         r = requests.get(
             f"https://api.football-data.org/v4/competitions/{league_code}/standings",
@@ -209,7 +209,7 @@ def fetch_team_form(team_id):
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch_competition_scorers(league_code):
-    name_map = FL1_NAME_MAP if league_code == "FL1" else {}
+    name_map = {}
     try:
         r = requests.get(
             f"https://api.football-data.org/v4/competitions/{league_code}/scorers",
