@@ -4,7 +4,14 @@ import re
 import anthropic
 import time
 import os
+import pickle
 
+_model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "MachineLearning", "model.pkl")
+try:
+    with open(_model_path, "rb") as _f:
+        MATCH_MODEL = pickle.load(_f)
+except Exception:
+    MATCH_MODEL = None
 
 st.set_page_config(page_title="The Football Classroom", layout="wide")
 
