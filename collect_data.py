@@ -14,7 +14,7 @@ LEAGUES = {
     "BL1": "Bundesliga",
 }
 
-SEASONS = [2020, 2021, 2022, 2023, 2024]
+SEASONS = [2023, 2024, 2025]
 
 def fetch_matches(league_code, season):
     url = f"https://api.football-data.org/v4/competitions/{league_code}/matches"
