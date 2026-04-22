@@ -3994,7 +3994,7 @@ def page_schedule():
                 f'<div class="sched-league-dot" style="background:{m["color"]}"></div>'
                 f'<div style="flex:1">'
                 f'<div class="sched-teams">{m["home"]} <span style="color:var(--mid);font-weight:700">vs</span> {m["away"]}</div>'
-                f'{pred_html}'
+
                 f'</div>'
                 f'{score_html}{status_badge}{md_badge}'
                 f'</div>'
