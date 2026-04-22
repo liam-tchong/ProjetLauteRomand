@@ -3975,10 +3975,12 @@ def page_schedule():
     date_from = (now - timedelta(days=3)).strftime("%Y-%m-%d")
     date_to   = (now + timedelta(days=14)).strftime("%Y-%m-%d")
 
+    all_standings = {}
     all_matches = []
     with st.spinner("Loading schedule…"):
-        for lname in selected:
+        for lname in list(selected):
             linfo = LEAGUES[lname]
+            all_standings[lname] = fetch_standings(linfo["code"])
             matches = fetch_schedule(linfo["code"], date_from, date_to)
             for m in matches:
                 all_matches.append({
@@ -4034,10 +4036,6 @@ def page_schedule():
 .sched-pred-labels{display:flex;justify-content:space-between;font-size:.58rem;font-weight:700;}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
 </style>""", unsafe_allow_html=True)
-
-    all_standings = {}
-    for name in selected:
-        all_standings[name] = fetch_standings(LEAGUES[name]["code"])
 
     html = ""
     for date_label, matches in by_date.items():
