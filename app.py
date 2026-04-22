@@ -88,20 +88,27 @@ def generate_standings_summary(league_name, standings_tuple):
     )
     prompt = (
         "You are a sharp European football analyst writing for a quality sports publication. "
-        "Based on the standings data below, write exactly 3-4 sentences summarising the current state of this league. "
-        "Cover: the title race (is it over or still open?), any key battle for European spots, "
-        "and relegation drama if relevant. Be specific with team names and gaps. "
-        "Write in flowing prose, expert and lively — no bullet points.\n\n"
+        "Based on the standings data below, respond in exactly this format — two lines, nothing else:\n"
+        "TITLE: [a punchy 6-10 word headline capturing the key storyline of the season]\n"
+        "BODY: [3-4 sentences of flowing analysis covering the title race, European spots battle, and relegation drama. Be specific with team names and points gaps. No bullet points.]\n\n"
         + context
     )
     try:
         client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
         msg = client.messages.create(
             model="claude-haiku-4-5-20251001",
-            max_tokens=220,
+            max_tokens=260,
             messages=[{"role": "user", "content": prompt}]
         )
-        return msg.content[0].text.strip()
+        raw = msg.content[0].text.strip()
+        title, body = "", raw
+        for line in raw.split("\n"):
+            line = line.strip()
+            if line.upper().startswith("TITLE:"):
+                title = line[6:].strip()
+            elif line.upper().startswith("BODY:"):
+                body = line[5:].strip()
+        return f"{title}|||{body}" if title else body
     except Exception:
         return ""
 
@@ -3072,9 +3079,9 @@ details.style-acc .style-details{animation:fadeIn .2s ease;}
 .standings-gd{font-weight:700;min-width:30px;text-align:right;font-size:.75rem;}
 .standings-gd-pos{color:var(--green-dk);} .standings-gd-neg{color:var(--red-dk);} .standings-gd-neu{color:var(--mid);}
 .standings-hdr-row{display:flex;align-items:center;gap:.7rem;padding:.5rem 1.4rem;background:var(--bg);font-size:.62rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--mid);}
-.standings-summary{background:var(--white);border-radius:var(--radius);border:2px solid var(--beige);box-shadow:var(--shadow);padding:1rem 1.4rem;margin-top:.75rem;display:flex;gap:.85rem;align-items:flex-start;}
-.standings-summary-icon{font-size:1.3rem;flex-shrink:0;margin-top:.05rem;}
-.standings-summary p{margin:0;font-size:.87rem;font-weight:600;color:var(--mid);line-height:1.7;}
+.standings-summary{background:var(--white);border-radius:var(--radius);border:2px solid var(--beige);box-shadow:var(--shadow);padding:1rem 1.4rem;margin-top:.75rem;}
+.standings-summary-title{font-size:.82rem;font-weight:900;color:var(--dark);margin-bottom:.45rem;letter-spacing:-.01em;}
+.standings-summary p{margin:0;font-size:.85rem;font-weight:600;color:var(--mid);line-height:1.75;}
 
 /* Glossaire */
 .glos-card{background:var(--white);border-radius:var(--radius);border:2px solid var(--beige);overflow:hidden;box-shadow:var(--shadow);transition:box-shadow .2s,transform .2s;margin-bottom:.8rem;}
@@ -3528,10 +3535,14 @@ def page_classement():
             with st.spinner("Generating league summary…"):
                 summary = generate_standings_summary(league_name, standings_tuple)
             if summary:
+                parts = summary.split("|||", 1)
+                s_title = parts[0] if len(parts) > 1 else ""
+                s_body  = parts[1] if len(parts) > 1 else parts[0]
+                title_html = f'<div class="standings-summary-title">📊 {s_title}</div>' if s_title else ""
                 st.markdown(
                     f'<div class="standings-summary">'
-                    f'<span class="standings-summary-icon">📊</span>'
-                    f'<p>{summary}</p>'
+                    f'{title_html}'
+                    f'<p>{s_body}</p>'
                     f'</div>',
                     unsafe_allow_html=True
                 )
