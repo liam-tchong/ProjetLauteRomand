@@ -31,6 +31,7 @@ LEAGUES = {
     "Bundesliga":     {"code": "BL1",  "flag": "🇩🇪", "country": "Germany", "color": "#7B4A1E", "color_lt": "#F5EDE6"},
 }
 
+<<<<<<< HEAD
 # api-sports.io team IDs (used for squad composition in Positions tab)
 API_FOOTBALL_IDS = {
     "Paris Saint-Germain":    85,
@@ -52,6 +53,30 @@ API_FOOTBALL_IDS = {
     "Paris FC":              167,
     "FC Lorient":           1041,
 }
+=======
+def predict_match(standings, home_team, away_team):
+    if MATCH_MODEL is None or not standings:
+        return None
+    try:
+        dh = standings.get(home_team, {})
+        da = standings.get(away_team, {})
+        if not dh or not da:
+            return None
+        played_h = dh.get("played", 1) or 1
+        played_a = da.get("played", 1) or 1
+        features = [[
+            dh.get("won", 0) / played_h,
+            dh.get("goals_for", 0) / played_h,
+            dh.get("goals_against", 0) / played_h,
+            da.get("won", 0) / played_a,
+            da.get("goals_for", 0) / played_a,
+            da.get("goals_against", 0) / played_a,
+        ]]
+        probs = MATCH_MODEL.predict_proba(features)[0]
+        return probs
+    except Exception:
+        return None
+>>>>>>> 69cd28b (Auto-save: 2026-04-22 11:18:26)
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch_standings(league_code):
@@ -4009,7 +4034,10 @@ def page_schedule():
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
 </style>""", unsafe_allow_html=True)
 
-    ligue1_standings = fetch_standings("FL1")
+    all_standings = {
+        name: fetch_standings(info["code"])
+        for name, info in LEAGUES.items()
+    }
 
     html = ""
     for date_label, matches in by_date.items():
