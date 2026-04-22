@@ -3,15 +3,8 @@ import requests
 import re
 import anthropic
 import time
-import pickle
 import os
 
-_model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "MachineLearning", "model.pkl")
-try:
-    with open(_model_path, "rb") as _f:
-        MATCH_MODEL = pickle.load(_f)
-except Exception:
-    MATCH_MODEL = None
 
 st.set_page_config(page_title="The Football Classroom", layout="wide")
 
@@ -31,77 +24,9 @@ LEAGUES = {
     "Bundesliga":     {"code": "BL1",  "flag": "🇩🇪", "country": "Germany", "color": "#7B4A1E", "color_lt": "#F5EDE6"},
 }
 
-# Ligue 1 team IDs on API-Football (only used for advanced stats)
-API_FOOTBALL_IDS = {
-    "Paris Saint-Germain":    85,
-    "Olympique de Marseille": 81,
-    "Olympique Lyonnais":     80,
-    "AS Monaco":              91,
-    "LOSC Lille":             79,
-    "RC Lens":               116,
-    "OGC Nice":               84,
-    "Stade Rennais":          94,
-    "RC Strasbourg":          95,
-    "Toulouse FC":            96,
-    "Stade Brestois":        130,
-    "FC Nantes":              83,
-    "Angers SCO":             82,
-    "Le Havre AC":          1006,
-    "AJ Auxerre":             78,
-    "FC Metz":               112,
-    "Paris FC":              167,
-    "FC Lorient":           1041,
-}
-
-# Name normalization for Ligue 1 (football-data.org names → display names)
-FL1_NAME_MAP = {
-    "Paris Saint-Germain FC": "Paris Saint-Germain",
-    "Racing Club de Lens":    "RC Lens",
-    "Olympique de Marseille": "Olympique de Marseille",
-    "Olympique Lyonnais":     "Olympique Lyonnais",
-    "Lille OSC":              "LOSC Lille",
-    "AS Monaco FC":           "AS Monaco",
-    "Stade Rennais FC 1901":  "Stade Rennais",
-    "RC Strasbourg Alsace":   "RC Strasbourg",
-    "Toulouse FC":            "Toulouse FC",
-    "FC Lorient":             "FC Lorient",
-    "Stade Brestois 29":      "Stade Brestois",
-    "Angers SCO":             "Angers SCO",
-    "Paris FC":               "Paris FC",
-    "Le Havre AC":            "Le Havre AC",
-    "OGC Nice":               "OGC Nice",
-    "AJ Auxerre":             "AJ Auxerre",
-    "FC Nantes":              "FC Nantes",
-    "FC Metz":                "FC Metz",
-}
-
-def predict_match(standings, home_team, away_team):
-    if MATCH_MODEL is None or not standings:
-        return None
-    try:
-        dh = standings.get(home_team, {})
-        da = standings.get(away_team, {})
-        if not dh or not da:
-            return None
-        played_h = dh.get("played", 1) or 1
-        played_a = da.get("played", 1) or 1
-        features = [[
-            dh.get("won", 0) / played_h,
-            dh.get("goals_for", 0) / played_h,
-            dh.get("goals_against", 0) / played_h,
-            da.get("won", 0) / played_a,
-            da.get("goals_for", 0) / played_a,
-            da.get("goals_against", 0) / played_a,
-        ]]
-        probs = MATCH_MODEL.predict_proba(features)[0]
-        return probs
-    except Exception:
-        return None
-
-
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch_standings(league_code):
-    name_map = FL1_NAME_MAP if league_code == "FL1" else {}
+    name_map = {}
     for attempt in range(3):
         try:
             r = requests.get(
