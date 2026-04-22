@@ -31,7 +31,6 @@ LEAGUES = {
     "Bundesliga":     {"code": "BL1",  "flag": "🇩🇪", "country": "Germany", "color": "#7B4A1E", "color_lt": "#F5EDE6"},
 }
 
-<<<<<<< HEAD
 # api-sports.io team IDs (used for squad composition in Positions tab)
 API_FOOTBALL_IDS = {
     "Paris Saint-Germain":    85,
@@ -53,7 +52,7 @@ API_FOOTBALL_IDS = {
     "Paris FC":              167,
     "FC Lorient":           1041,
 }
-=======
+
 def predict_match(standings, home_team, away_team):
     if MATCH_MODEL is None or not standings:
         return None
@@ -76,7 +75,6 @@ def predict_match(standings, home_team, away_team):
         return probs
     except Exception:
         return None
->>>>>>> 69cd28b (Auto-save: 2026-04-22 11:18:26)
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch_standings(league_code):
