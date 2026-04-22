@@ -1865,6 +1865,12 @@ STYLE_TAG_DESC = {
     "cross-based":      "Wide players stay out wide to deliver crosses into the penalty area.",
 }
 
+_TACTICS_NAME_MAP = {
+    "FC Internazionale Milano": "Inter Milan",
+    "SC Freiburg":              "Sport-Club Freiburg",
+    "RCD Espanyol de Barcelona": "Espanyol",
+}
+
 def render_tactical_pitch_html(team_name):
     """Generate a premium animated SVG tactical pitch for a given team."""
     import math
@@ -1874,7 +1880,7 @@ def render_tactical_pitch_html(team_name):
     def sx(p): return PAD + p / 100 * PW
     def sy(p): return PAD + p / 100 * PH
 
-    t = TEAM_TACTICS.get(team_name)
+    t = TEAM_TACTICS.get(_TACTICS_NAME_MAP.get(team_name, team_name))
     if not t:
         return (f'<div style="background:#1a2e1a;border-radius:18px;height:260px;'
                 f'display:flex;align-items:center;justify-content:center;">'
