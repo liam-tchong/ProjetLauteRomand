@@ -24,6 +24,28 @@ LEAGUES = {
     "Bundesliga":     {"code": "BL1",  "flag": "🇩🇪", "country": "Germany", "color": "#7B4A1E", "color_lt": "#F5EDE6"},
 }
 
+# api-sports.io team IDs (used for squad composition in Positions tab)
+API_FOOTBALL_IDS = {
+    "Paris Saint-Germain":    85,
+    "Olympique de Marseille": 81,
+    "Olympique Lyonnais":     80,
+    "AS Monaco":              91,
+    "LOSC Lille":             79,
+    "RC Lens":               116,
+    "OGC Nice":               84,
+    "Stade Rennais":          94,
+    "RC Strasbourg":          95,
+    "Toulouse FC":            96,
+    "Stade Brestois":        130,
+    "FC Nantes":              83,
+    "Angers SCO":             82,
+    "Le Havre AC":          1006,
+    "AJ Auxerre":             78,
+    "FC Metz":               112,
+    "Paris FC":              167,
+    "FC Lorient":           1041,
+}
+
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch_standings(league_code):
     name_map = {}
@@ -4065,6 +4087,7 @@ def page_regles():
 details.rule-card[open] .rule-arrow{transform:rotate(90deg);}
 details.rule-card summary::after{content:none;}
 .rule-body{padding:.1rem 1.1rem 1rem 1.1rem;font-size:.88rem;line-height:1.75;color:var(--mid);font-weight:600;border-top:1px solid var(--beige);}
+
 </style>""", unsafe_allow_html=True)
 
     for title, icon, description in FOOTBALL_RULES:
