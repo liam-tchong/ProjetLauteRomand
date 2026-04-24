@@ -53,6 +53,16 @@ API_FOOTBALL_IDS = {
     "FC Lorient":           1041,
 }
 
+TEAM_NAME_MAP = {
+    "Paris Saint-Germain FC": "Paris Saint-Germain",
+    "Racing Club de Lens": "RC Lens",
+    "Lille OSC": "LOSC Lille",
+    "Stade Rennais FC 1901": "Stade Rennais",
+    "AS Monaco FC": "AS Monaco",
+    "RC Strasbourg Alsace": "RC Strasbourg",
+    "Stade Brestois 29": "Stade Brestois",
+}
+
 def _form_score(form_list):
     """Convert last-5 form into a weighted momentum score 0..1 (recent matches weigh more)."""
     if not form_list:
@@ -229,7 +239,7 @@ def predict_match(standings, home_team, away_team, form_home=None, form_away=Non
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch_standings(league_code):
-    name_map = {}
+    name_map = TEAM_NAME_MAP
     for attempt in range(4):
         try:
             r = requests.get(
@@ -320,7 +330,7 @@ def generate_standings_summary(league_name, standings_tuple):
 
 @st.cache_data(ttl=86400, show_spinner=False)
 def fetch_previous_standings(league_code):
-    name_map = {}
+    name_map = TEAM_NAME_MAP
     try:
         r = requests.get(
             f"https://api.football-data.org/v4/competitions/{league_code}/standings",
@@ -422,7 +432,7 @@ def fetch_team_form(team_id):
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch_competition_scorers(league_code):
-    name_map = {}
+    name_map = TEAM_NAME_MAP
     try:
         r = requests.get(
             f"https://api.football-data.org/v4/competitions/{league_code}/scorers",
@@ -538,7 +548,7 @@ def fetch_squad_composition(team_id):
         return {}
 
 
-@st.cache_data(ttl=3600, show_spinner=False)
+@st.cache_data(ttl=86400, show_spinner=False)
 def generate_team_style(team_name, pts, played, won, draw, lost,
                         goals_for, goals_against, goal_diff, position,
                         prev_position,
@@ -646,7 +656,7 @@ Reply with EXACTLY 4 sections separated by "|||", nothing else."""
         return (fallback, "", "", "")
 
 
-@st.cache_data(ttl=3600, show_spinner=False)
+@st.cache_data(ttl=86400, show_spinner=False)
 def generate_key_challenges(team_a, team_b, pts_a, pts_b, gf_a, gf_b, ga_a, ga_b):
     """Generates a short challenge paragraph (2-3 sentences) per team for this specific matchup."""
     if not ANTHROPIC_API_KEY:
