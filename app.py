@@ -147,15 +147,16 @@ def predict_match(standings, home_team, away_team, form_home=None, form_away=Non
         played_h = dh.get("played", 1) or 1
         played_a = da.get("played", 1) or 1
 
-        # ── Season-level features (what the model was trained on) ──
-        features = [[
+        # ── Season-level features (must match train_model.py column order) ──
+        import pandas as _pd
+        features = _pd.DataFrame([[
             dh.get("won", 0) / played_h,
             dh.get("goals_for", 0) / played_h,
             dh.get("goals_against", 0) / played_h,
             da.get("won", 0) / played_a,
             da.get("goals_for", 0) / played_a,
             da.get("goals_against", 0) / played_a,
-        ]]
+        ]], columns=["h_form","h_scored","h_conceded","a_form","a_scored","a_conceded"])
         base_probs = MATCH_MODEL.predict_proba(features)[0]  # [H, D, A]
 
         # ── Live adjustments (actualité / current form) ──
@@ -2429,16 +2430,30 @@ def render_tactical_pitch_html(team_name):
                 f".{cls}{{animation:{an} 3.8s ease-in-out infinite;animation-delay:{delay};}}"
             )
             ring = ""
-        # Wrap each player bubble in an SVG <a> linking to the glossary position card
+        # Goalkeeper gets a distinct visual: gold fill, larger circle, GK badge
+        is_gk = (abbr == "GK")
+        player_fill   = "#F5C842" if is_gk else color
+        player_r      = 13.5     if is_gk else 11.5
+        stroke_color  = "rgba(255,255,255,.95)"
+        stroke_w      = 2.2      if is_gk else 1.8
+        text_fill     = "#1A1A2E" if is_gk else "white"
+        font_sz       = 5.8      if is_gk else 6.2
+        # GK gets an extra outer ring to stand out
+        gk_ring = (
+            f'<circle cx="{x0:.1f}" cy="{y0:.1f}" r="{player_r+4.5}" '
+            f'fill="none" stroke="#F5C842" stroke-width="1.4" opacity="0.5" stroke-dasharray="4 3"/>'
+        ) if is_gk else ""
+
         pos_anchor = f"?nav=glossaire&pos={abbr.lower()}"
         players_svg += (
             f'<a href="{pos_anchor}" target="_self" class="pitch-player-link">'
             f'<g class="{cls}" {filt}>'
             f'{ring}'
-            f'<circle cx="{x0:.1f}" cy="{y0:.1f}" r="11.5" fill="{color}" stroke="rgba(255,255,255,.9)" stroke-width="1.8"/>'
-            f'<circle cx="{x0:.1f}" cy="{y0:.1f}" r="11.5" fill="rgba(255,255,255,.08)"/>'
+            f'{gk_ring}'
+            f'<circle cx="{x0:.1f}" cy="{y0:.1f}" r="{player_r}" fill="{player_fill}" stroke="{stroke_color}" stroke-width="{stroke_w}"/>'
+            f'<circle cx="{x0:.1f}" cy="{y0:.1f}" r="{player_r}" fill="rgba(255,255,255,.08)"/>'
             f'<text x="{x0:.1f}" y="{y0:.1f}" text-anchor="middle" dominant-baseline="central" '
-            f'font-size="6.2" font-weight="900" fill="white" font-family="Nunito,sans-serif" letter-spacing="-.3">{abbr}</text>'
+            f'font-size="{font_sz}" font-weight="900" fill="{text_fill}" font-family="Nunito,sans-serif" letter-spacing="-.3">{abbr}</text>'
             f'</g>'
             f'</a>\n'
         )
@@ -2586,7 +2601,7 @@ def render_tactical_pitch_html(team_name):
 
     svg = (
         f'<svg viewBox="0 0 {SW} {SH}" xmlns="http://www.w3.org/2000/svg" '
-        f'style="display:block;width:100%;background:#1e5c1e;">'
+        f'style="display:block;width:100%;max-width:300px;margin:0 auto;background:#1e5c1e;">'
         f'{defs}{pitch_bg}{m}{zones_svg}{formation_lines_svg}{arrows_svg}{players_svg}{ball_svg}'
         f'</svg>'
     )
@@ -4129,9 +4144,9 @@ def page_main():
 
     pitch_col_a, pitch_col_b = st.columns(2)
     with pitch_col_a:
-        st.components.v1.html(_wrap_pitch(team_a), height=620, scrolling=False)
+        st.components.v1.html(_wrap_pitch(team_a), height=580, scrolling=False)
     with pitch_col_b:
-        st.components.v1.html(_wrap_pitch(team_b), height=620, scrolling=False)
+        st.components.v1.html(_wrap_pitch(team_b), height=580, scrolling=False)
 
     st.markdown('<div class="div"></div>', unsafe_allow_html=True)
 
