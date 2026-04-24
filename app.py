@@ -1695,7 +1695,7 @@ TEAM_TACTICS = {
         "moves": [(8,20,38),(9,50,30),(10,80,38),(5,22,40)],
         "zones": [(50,22,36,14,0.14),(50,50,38,14,0.10),(16,42,12,20,0.10),(84,42,12,20,0.10)],
     },
-    "1. FSV Mainz 05": {
+    "FSV Mainz 05": {
         "formation": "4-4-2", "color": "#CC0000",
         "style_tags": ["Pressing", "Physical", "Compact"],
         "players": [
@@ -1739,7 +1739,7 @@ TEAM_TACTICS = {
         "moves": [(9,38,32),(10,62,32),(1,12,44),(4,88,44)],
         "zones": [(50,60,50,14,0.12),(12,46,12,28,0.12),(88,46,12,28,0.12),(50,26,30,12,0.10)],
     },
-    "1. FC Union Berlin": {
+    "FC Union Berlin": {
         "formation": "3-5-2", "color": "#CC0000",
         "style_tags": ["Physical", "Set Pieces", "Counter"],
         "players": [
@@ -4141,7 +4141,73 @@ def page_main():
 
     st.markdown('<div class="div"></div>', unsafe_allow_html=True)
 
-    # ── Terrain ── (rendered immediately — no API calls)
+    # Fetch enriched data for both teams
+    form_a, ext_a = fetch_team_extended(da.get("id"))
+    form_b, ext_b = fetch_team_extended(db.get("id"))
+    form_a, form_b = tuple(form_a), tuple(form_b)
+    extra_a       = fetch_api_football_stats(team_a, _league_code)
+    extra_b       = fetch_api_football_stats(team_b, _league_code)
+    all_scorers   = fetch_competition_scorers(_league_code)
+    scorers_a     = tuple(all_scorers.get(team_a, [])[:3])
+    scorers_b     = tuple(all_scorers.get(team_b, [])[:3])
+    prev_standings = fetch_previous_standings(_league_code)
+    prev_pos_a    = prev_standings.get(team_a)
+    prev_pos_b    = prev_standings.get(team_b)
+
+    # ── AI Analysis (Playing Style) ──
+    st.markdown('<div class="sec-label">AI Analysis</div><div class="sec-title">Playing Style</div>', unsafe_allow_html=True)
+
+    with st.spinner("Generating AI analysis…"):
+        style_a_raw = generate_team_style(
+            team_a,
+            da.get("points",0), da.get("played",1), da.get("won",0), da.get("draw",0), da.get("lost",0),
+            da.get("goals_for",0), da.get("goals_against",0), da.get("goal_diff",0), da.get("position",0),
+            prev_pos_a,
+            form_a, scorers_a,
+            extra_a.get("formation"), extra_a.get("gf_avg"), extra_a.get("ga_avg"),
+            extra_a.get("wins_home"), extra_a.get("wins_away"), extra_a.get("top_scoring_slot"),
+            extra_a.get("passes_pct"), extra_a.get("shots_pg"), extra_a.get("shots_on_pg"),
+            extra_a.get("clean_sheets"), extra_a.get("failed_to_score"),
+            home_record=ext_a.get("home_record"), away_record=ext_a.get("away_record"),
+            clean_sheets_recent=ext_a.get("clean_sheets"), gf_avg_recent=ext_a.get("gf_avg_recent"),
+            ga_avg_recent=ext_a.get("ga_avg_recent"), win_pct=ext_a.get("win_pct"),
+        )
+        style_b_raw = generate_team_style(
+            team_b,
+            db.get("points",0), db.get("played",1), db.get("won",0), db.get("draw",0), db.get("lost",0),
+            db.get("goals_for",0), db.get("goals_against",0), db.get("goal_diff",0), db.get("position",0),
+            prev_pos_b,
+            form_b, scorers_b,
+            extra_b.get("formation"), extra_b.get("gf_avg"), extra_b.get("ga_avg"),
+            extra_b.get("wins_home"), extra_b.get("wins_away"), extra_b.get("top_scoring_slot"),
+            extra_b.get("passes_pct"), extra_b.get("shots_pg"), extra_b.get("shots_on_pg"),
+            extra_b.get("clean_sheets"), extra_b.get("failed_to_score"),
+            home_record=ext_b.get("home_record"), away_record=ext_b.get("away_record"),
+            clean_sheets_recent=ext_b.get("clean_sheets"), gf_avg_recent=ext_b.get("gf_avg_recent"),
+            ga_avg_recent=ext_b.get("ga_avg_recent"), win_pct=ext_b.get("win_pct"),
+        )
+
+    # Handle legacy cache returning a plain string
+    if isinstance(style_a_raw, str):
+        style_a_raw = (style_a_raw, "", "", "")
+    if isinstance(style_b_raw, str):
+        style_b_raw = (style_b_raw, "", "", "")
+
+    c1, c2 = st.columns(2)
+    with c1:
+        st.components.v1.html(
+            _build_team_card_html(team_a, "Team A", "#CCFFE9", style_a_raw, form_a, da, da.get("crest","")),
+            height=490
+        )
+    with c2:
+        st.components.v1.html(
+            _build_team_card_html(team_b, "Team B", "#FFE0E0", style_b_raw, form_b, db, db.get("crest","")),
+            height=490
+        )
+
+    st.markdown('<div class="div"></div>', unsafe_allow_html=True)
+
+    # ── Terrain ──
     st.markdown('<div class="sec-label">Tactics</div><div class="sec-title">Tactical Pitch</div>', unsafe_allow_html=True)
     def _wrap_pitch(team_name):
         inner = render_tactical_pitch_html(team_name)
@@ -4159,19 +4225,6 @@ def page_main():
         st.components.v1.html(_wrap_pitch(team_b), height=580, scrolling=False)
 
     st.markdown('<div class="div"></div>', unsafe_allow_html=True)
-
-    # Fetch enriched data for both teams
-    form_a, ext_a = fetch_team_extended(da.get("id"))
-    form_b, ext_b = fetch_team_extended(db.get("id"))
-    form_a, form_b = tuple(form_a), tuple(form_b)
-    extra_a       = fetch_api_football_stats(team_a, _league_code)
-    extra_b       = fetch_api_football_stats(team_b, _league_code)
-    all_scorers   = fetch_competition_scorers(_league_code)
-    scorers_a     = tuple(all_scorers.get(team_a, [])[:3])
-    scorers_b     = tuple(all_scorers.get(team_b, [])[:3])
-    prev_standings = fetch_previous_standings(_league_code)
-    prev_pos_a    = prev_standings.get(team_a)
-    prev_pos_b    = prev_standings.get(team_b)
 
 
     # ── ML Prediction Card ──
@@ -4450,59 +4503,6 @@ document.getElementById('carousel').addEventListener('touchend',function(e){{
 }},{{passive:true}});
 </script>
 </body></html>"""
-
-    st.markdown('<div class="div"></div>', unsafe_allow_html=True)
-
-    # ── AI Analysis (Playing Style) ──
-    st.markdown('<div class="sec-label">AI Analysis</div><div class="sec-title">Playing Style</div>', unsafe_allow_html=True)
-
-    with st.spinner("Generating AI analysis…"):
-        style_a_raw = generate_team_style(
-            team_a,
-            da.get("points",0), da.get("played",1), da.get("won",0), da.get("draw",0), da.get("lost",0),
-            da.get("goals_for",0), da.get("goals_against",0), da.get("goal_diff",0), da.get("position",0),
-            prev_pos_a,
-            form_a, scorers_a,
-            extra_a.get("formation"), extra_a.get("gf_avg"), extra_a.get("ga_avg"),
-            extra_a.get("wins_home"), extra_a.get("wins_away"), extra_a.get("top_scoring_slot"),
-            extra_a.get("passes_pct"), extra_a.get("shots_pg"), extra_a.get("shots_on_pg"),
-            extra_a.get("clean_sheets"), extra_a.get("failed_to_score"),
-            home_record=ext_a.get("home_record"), away_record=ext_a.get("away_record"),
-            clean_sheets_recent=ext_a.get("clean_sheets"), gf_avg_recent=ext_a.get("gf_avg_recent"),
-            ga_avg_recent=ext_a.get("ga_avg_recent"), win_pct=ext_a.get("win_pct"),
-        )
-        style_b_raw = generate_team_style(
-            team_b,
-            db.get("points",0), db.get("played",1), db.get("won",0), db.get("draw",0), db.get("lost",0),
-            db.get("goals_for",0), db.get("goals_against",0), db.get("goal_diff",0), db.get("position",0),
-            prev_pos_b,
-            form_b, scorers_b,
-            extra_b.get("formation"), extra_b.get("gf_avg"), extra_b.get("ga_avg"),
-            extra_b.get("wins_home"), extra_b.get("wins_away"), extra_b.get("top_scoring_slot"),
-            extra_b.get("passes_pct"), extra_b.get("shots_pg"), extra_b.get("shots_on_pg"),
-            extra_b.get("clean_sheets"), extra_b.get("failed_to_score"),
-            home_record=ext_b.get("home_record"), away_record=ext_b.get("away_record"),
-            clean_sheets_recent=ext_b.get("clean_sheets"), gf_avg_recent=ext_b.get("gf_avg_recent"),
-            ga_avg_recent=ext_b.get("ga_avg_recent"), win_pct=ext_b.get("win_pct"),
-        )
-
-    # Handle legacy cache returning a plain string
-    if isinstance(style_a_raw, str):
-        style_a_raw = (style_a_raw, "", "", "")
-    if isinstance(style_b_raw, str):
-        style_b_raw = (style_b_raw, "", "", "")
-
-    c1, c2 = st.columns(2)
-    with c1:
-        st.components.v1.html(
-            _build_team_card_html(team_a, "Team A", "#CCFFE9", style_a_raw, form_a, da, da.get("crest","")),
-            height=490
-        )
-    with c2:
-        st.components.v1.html(
-            _build_team_card_html(team_b, "Team B", "#FFE0E0", style_b_raw, form_b, db, db.get("crest","")),
-            height=490
-        )
 
 
 
