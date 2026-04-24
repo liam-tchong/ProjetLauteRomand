@@ -53,16 +53,101 @@ API_FOOTBALL_IDS = {
     "FC Lorient":           1041,
 }
 
-def predict_match(standings, home_team, away_team):
-    if MATCH_MODEL is None or not standings:
+def _form_score(form_list):
+    """Convert last-5 form into a weighted momentum score 0..1 (recent matches weigh more)."""
+    if not form_list:
+        return 0.5
+    weights = [0.1, 0.15, 0.2, 0.25, 0.3][-len(form_list):]
+    pts = {"W": 1.0, "D": 0.5, "L": 0.0}
+    total_w = sum(weights)
+    return sum(pts.get(r, 0.5) * w for r, w in zip(form_list, weights)) / total_w
+
+
+def predict_expected_score(standings, home_team, away_team,
+                            form_home=None, form_away=None,
+                            extra_home=None, extra_away=None):
+    """Predict expected goals for each team using attack vs defence averages + recent form.
+
+    Uses a simplified Poisson-like approach: each team's expected goals =
+    (their attack rate) × (opponent's defensive weakness) × (home/away adjustment) × (form factor)
+
+    Returns dict with xg_home, xg_away, most_likely_score, alternatives.
+    """
+    if not standings:
         return None
     try:
         dh = standings.get(home_team, {})
         da = standings.get(away_team, {})
         if not dh or not da:
             return None
+
         played_h = dh.get("played", 1) or 1
         played_a = da.get("played", 1) or 1
+
+        # Prefer recent (last 15) averages if available — more in tune with current form
+        gf_h = (extra_home or {}).get("gf_avg_recent") or dh.get("goals_for", 0) / played_h
+        ga_h = (extra_home or {}).get("ga_avg_recent") or dh.get("goals_against", 0) / played_h
+        gf_a = (extra_away or {}).get("gf_avg_recent") or da.get("goals_for", 0) / played_a
+        ga_a = (extra_away or {}).get("ga_avg_recent") or da.get("goals_against", 0) / played_a
+
+        # League average ≈ 1.3 goals per team per match as baseline
+        LEAGUE_AVG = 1.3
+
+        # Attack strength = team attack / league avg; Defence weakness = team defence / league avg
+        atk_strength_h = gf_h / LEAGUE_AVG if LEAGUE_AVG else 1
+        def_weakness_a = ga_a / LEAGUE_AVG if LEAGUE_AVG else 1
+        atk_strength_a = gf_a / LEAGUE_AVG if LEAGUE_AVG else 1
+        def_weakness_h = ga_h / LEAGUE_AVG if LEAGUE_AVG else 1
+
+        # Baseline expected goals
+        xg_home = LEAGUE_AVG * atk_strength_h * def_weakness_a
+        xg_away = LEAGUE_AVG * atk_strength_a * def_weakness_h
+
+        # Home advantage: historically ~15% boost for home team
+        xg_home *= 1.15
+
+        # Recent form adjustment
+        fh = _form_score(form_home) if form_home else 0.5
+        fa = _form_score(form_away) if form_away else 0.5
+        # Form factor: 0.85x for cold streak (form=0), 1.15x for hot streak (form=1)
+        xg_home *= 0.85 + fh * 0.3
+        xg_away *= 0.85 + fa * 0.3
+
+        # Round to most likely integer score
+        most_likely_h = max(0, round(xg_home))
+        most_likely_a = max(0, round(xg_away))
+
+        return {
+            "xg_home": round(xg_home, 2),
+            "xg_away": round(xg_away, 2),
+            "most_likely_score": (most_likely_h, most_likely_a),
+        }
+    except Exception:
+        return None
+
+
+def predict_match(standings, home_team, away_team, form_home=None, form_away=None,
+                  extra_home=None, extra_away=None):
+    """Match prediction combining season stats + live form + tactical context.
+
+    - standings: current season table (season-level data)
+    - form_home / form_away: last 5 results as ['W','D','L',...] (live momentum)
+    - extra_home / extra_away: extended stats dict with clean_sheets, gf_avg_recent, etc.
+
+    Returns (probs, meta) where probs = [P(home_win), P(draw), P(away_win)]
+    and meta is a dict with interpretable factors (momentum, form boost, etc.).
+    """
+    if MATCH_MODEL is None or not standings:
+        return None, None
+    try:
+        dh = standings.get(home_team, {})
+        da = standings.get(away_team, {})
+        if not dh or not da:
+            return None, None
+        played_h = dh.get("played", 1) or 1
+        played_a = da.get("played", 1) or 1
+
+        # ── Season-level features (what the model was trained on) ──
         features = [[
             dh.get("won", 0) / played_h,
             dh.get("goals_for", 0) / played_h,
@@ -71,10 +156,75 @@ def predict_match(standings, home_team, away_team):
             da.get("goals_for", 0) / played_a,
             da.get("goals_against", 0) / played_a,
         ]]
-        probs = MATCH_MODEL.predict_proba(features)[0]
-        return probs
+        base_probs = MATCH_MODEL.predict_proba(features)[0]  # [H, D, A]
+
+        # ── Live adjustments (actualité / current form) ──
+        # 1) Recent form: last-5 momentum score (weights most recent matches heavier)
+        fh = _form_score(form_home) if form_home else 0.5
+        fa = _form_score(form_away) if form_away else 0.5
+
+        # 2) Home/away record from last 15 (gets closer to live state than season avg)
+        def _rate(rec):
+            if not rec:
+                return 0.5
+            w, d, l = 0, 0, 0
+            for p in rec.split():
+                if p.endswith("W"): w = int(p[:-1])
+                elif p.endswith("D"): d = int(p[:-1])
+                elif p.endswith("L"): l = int(p[:-1])
+            tot = w + d + l
+            return (w + 0.5 * d) / tot if tot else 0.5
+        hr = _rate((extra_home or {}).get("home_record")) if extra_home else 0.5
+        ar = _rate((extra_away or {}).get("away_record")) if extra_away else 0.5
+
+        # 3) Recent attacking/defensive momentum (last 15 matches)
+        gf_h = (extra_home or {}).get("gf_avg_recent") or dh.get("goals_for", 0) / played_h
+        ga_h = (extra_home or {}).get("ga_avg_recent") or dh.get("goals_against", 0) / played_h
+        gf_a = (extra_away or {}).get("gf_avg_recent") or da.get("goals_for", 0) / played_a
+        ga_a = (extra_away or {}).get("ga_avg_recent") or da.get("goals_against", 0) / played_a
+
+        # Momentum delta: attack vs their likely opposition defence
+        atk_h = gf_h - ga_a  # how much home side should outscore away
+        atk_a = gf_a - ga_h
+        momentum_delta = (atk_h - atk_a) * 0.04  # small adjustment, ~±8% max
+
+        # 4) Form-based probability shift
+        # Each 0.1 difference in form ≈ 4% shift toward the hotter team
+        form_delta = (fh - fa) * 0.40  # ~±20% max shift for extreme form gaps
+        venue_delta = (hr - ar) * 0.15  # home/away form
+
+        # Combine — bounded adjustments so the season-trained model stays relevant
+        total_shift = max(-0.25, min(0.25, form_delta + venue_delta + momentum_delta))
+
+        # Apply shift: positive → home gains, negative → away gains. Draw is mostly stable.
+        ph, pd_, pa = base_probs[0], base_probs[1], base_probs[2]
+        if total_shift > 0:
+            # take from away_win, give to home_win
+            take = min(total_shift, pa * 0.6)
+            ph += take; pa -= take
+        else:
+            take = min(-total_shift, ph * 0.6)
+            pa += take; ph -= take
+        # Re-normalise
+        s = ph + pd_ + pa
+        ph, pd_, pa = ph / s, pd_ / s, pa / s
+        adjusted = [ph, pd_, pa]
+
+        meta = {
+            "momentum_home": fh,
+            "momentum_away": fa,
+            "home_venue_rate": hr,
+            "away_venue_rate": ar,
+            "form_delta": form_delta,
+            "venue_delta": venue_delta,
+            "momentum_delta": momentum_delta,
+            "total_shift": total_shift,
+            "base": list(base_probs),
+            "confidence": max(adjusted) - sorted(adjusted)[-2],  # gap between top 2
+        }
+        return adjusted, meta
     except Exception:
-        return None
+        return None, None
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch_standings(league_code):
@@ -1875,27 +2025,182 @@ STYLE_TAG_TO_TERM = {
 }
 
 # ── First style tag → one-sentence pitch description ─────────────────────────
-STYLE_TAG_DESC = {
-    "high press":       "Players chase the opponent deep in their own half to force mistakes and win the ball back fast.",
-    "low block":        "The whole team drops back near their own goal, leaving no space for opponents to attack.",
-    "counter-attack":   "The team absorbs pressure, then strikes quickly the moment they win the ball back.",
-    "counter":          "The team absorbs pressure, then strikes quickly the moment they win the ball back.",
-    "possession":       "Short, patient passes to keep the ball and tire out the opposition.",
-    "tiki-taka":        "Very fast, short passes — the team never lets go of the ball.",
-    "positional play":  "Players occupy precise zones to control space and dominate the game.",
-    "positional":       "Players occupy precise zones to control space and dominate the game.",
-    "total football":   "Any player can fill any role — constant positional rotations across the team.",
-    "overlaps":         "Full-backs push forward to create 2v1 situations and cross from the wing.",
-    "wing-backs":       "Wing-backs push very high and deliver crosses from deep positions.",
-    "false 9":          "The striker drops into midfield, pulling defenders out of position and creating space behind.",
-    "collective press": "All players press together the moment the ball is lost.",
-    "pressing":         "Players press high and hard to win the ball back as quickly as possible.",
-    "gegenpressing":    "The instant possession is lost, multiple players instantly surround the opponent.",
-    "build-up":         "The team builds from the back calmly, playing through midfield before attacking.",
-    "patient build-up": "Patient build-up from the back — waiting for the right moment to break through.",
-    "direct":           "Direct play — the ball moves forward quickly without delay.",
-    "cross-heavy":      "Wide players stay out wide to deliver crosses into the penalty area.",
-    "cross-based":      "Wide players stay out wide to deliver crosses into the penalty area.",
+STYLE_TAG_GUIDE = {
+    "high press": [
+        ("⬆️", "Forwards push up high", "They sprint toward the opponent's defenders and GK to block every pass."),
+        ("🔄", "Midfielders follow up", "They cut off all passing lanes — nowhere safe to play."),
+        ("⚡", "Force a mistake", "Defenders panic, misplace passes — ball stolen near their goal."),
+        ("🎯", "Why it works", "You win the ball 25m from goal — one pass and you're shooting."),
+    ],
+    "low block": [
+        ("🛡️", "Everyone drops deep", "All 10 outfield players form two tight lines in front of their own goal."),
+        ("🧱", "Close every gap", "Shoulder to shoulder — no space to pass through."),
+        ("⏳", "Let them have the ball", "The opponent passes sideways in frustration — nothing dangerous."),
+        ("🎯", "Why it works", "One fast counter into all the space they left behind can win it."),
+    ],
+    "counter-attack": [
+        ("🛡️", "Defend deep first", "Stay compact, let the opponent commit players forward."),
+        ("🏃", "Win the ball, GO!", "2-3 fast players sprint forward while opponents are out of position."),
+        ("📐", "Exploit the space", "Defenders outnumbered — attackers run into open space."),
+        ("🎯", "Why it works", "The more they attack, the more space they leave behind."),
+    ],
+    "counter": [
+        ("🛡️", "Stay patient", "Absorb pressure, wait for the right moment."),
+        ("🏃", "Explode forward", "Fast wingers burst forward before defenders recover."),
+        ("⚡", "Strike in seconds", "Ball won to shot on goal in under 10 seconds."),
+        ("🎯", "Why it works", "Opponents leave huge gaps when they commit forward."),
+    ],
+    "possession": [
+        ("🔵", "Keep ball moving", "Short, safe passes — always within the team."),
+        ("🔄", "Move after passing", "Every player repositions to create new options."),
+        ("😫", "Tire the opponent", "They chase endlessly, exhausting themselves."),
+        ("🎯", "Why it works", "Tired defenders lose concentration — gaps appear."),
+    ],
+    "tiki-taka": [
+        ("⚡", "Ultra-fast passes", "Ball moves every 1-2 seconds — always in motion."),
+        ("🏃", "Constant movement", "Triangles of passing options appear everywhere."),
+        ("😵", "Opponent can't follow", "Defenders chase shadows — ball is always gone."),
+        ("🎯", "Why it works", "Exhaustion as strategy — they collapse by the 60th minute."),
+    ],
+    "positional play": [
+        ("📍", "Occupy key zones", "Each player takes a precise position on the pitch."),
+        ("🔺", "Create triangles", "Always 2+ short passes available from any position."),
+        ("🧠", "Brain over legs", "Control through positioning, not sprinting."),
+        ("🎯", "Why it works", "Always someone open — impossible to press effectively."),
+    ],
+    "positional": [
+        ("📍", "Smart positioning", "Players take up precise spots across the field."),
+        ("🔺", "Triangle passing", "Guarantees 2 safe options at all times."),
+        ("🧠", "Outsmart, don't outrun", "Perfect positioning beats raw speed."),
+        ("🎯", "Why it works", "The team becomes a machine that controls games."),
+    ],
+    "total football": [
+        ("🔄", "Anyone plays anywhere", "Defender becomes attacker, midfielder plays CB — fluid."),
+        ("🔀", "Constant rotation", "Positions swap — teammates cover each other."),
+        ("🤯", "Confuse opponents", "Can't mark players who keep changing position."),
+        ("🎯", "Why it works", "Unpredictable — impossible to plan against."),
+    ],
+    "overlaps": [
+        ("🏃", "Full-back sprints forward", "Past the winger, toward the corner flag area."),
+        ("2️⃣", "Create a 2v1", "Defender can't cover both players at once."),
+        ("⚽", "Cross into the box", "Overlapping player delivers into the penalty area."),
+        ("🎯", "Why it works", "Defender must choose — whoever is free gets the ball."),
+    ],
+    "wing-backs": [
+        ("⬆️", "Wing-backs push high", "They act like wingers, sprinting up and down."),
+        ("📐", "Stretch the pitch", "Force the opponent to spread out, opening the centre."),
+        ("✈️", "Deliver from wide", "Cross the ball into the box for the strikers."),
+        ("🎯", "Why it works", "3 CBs cover defence, wing-backs attack freely."),
+    ],
+    "false 9": [
+        ("⬇️", "Striker drops deep", "Centre-forward drops into midfield to receive."),
+        ("❓", "Defenders confused", "Follow? Stay? No good answer for the CBs."),
+        ("🏃", "Midfielders burst in", "Sprint into the gap left behind the defence."),
+        ("🎯", "Why it works", "Creates a dilemma defenders can never solve."),
+    ],
+    "collective press": [
+        ("📢", "Trigger moment", "Bad touch or sideways pass signals everyone to press."),
+        ("🏃", "Everyone presses at once", "All players rush toward the ball carrier."),
+        ("🔒", "Trap the opponent", "Surrounded with no escape — turnover."),
+        ("🎯", "Why it works", "No player can handle 4-5 closing in at once."),
+    ],
+    "pressing": [
+        ("🏃", "Close down the carrier", "Sprint toward the ball to reduce thinking time."),
+        ("🚧", "Block passing lanes", "Teammates cut off obvious options."),
+        ("💥", "Win the ball back", "Forced mistake — stolen possession."),
+        ("🎯", "Why it works", "Turns defence into attack instantly."),
+    ],
+    "gegenpressing": [
+        ("❌", "Ball is lost", "But instead of retreating, react immediately."),
+        ("🌀", "Swarm in 6 seconds", "3-4 players surround the ball carrier."),
+        ("🔄", "Win it back instantly", "Opponent barely touched it — stolen."),
+        ("🎯", "Why it works", "No time for them to organize a counter."),
+    ],
+    "build-up": [
+        ("🧤", "Start from the GK", "Short pass to a centre-back, not a long kick."),
+        ("📈", "Progress through midfield", "Each pass moves the ball forward one station."),
+        ("🎯", "Reach the final third", "Controlled passing — not rushed, not risky."),
+        ("✅", "Why it works", "Draws opponents out, opens space to exploit."),
+    ],
+    "patient build-up": [
+        ("🧤", "Start from the back", "GK and CBs pass calmly, waiting for the opening."),
+        ("⏳", "Wait for the gap", "Keep passing until a defender steps out of position."),
+        ("⚡", "Strike when ready", "Vertical pass cuts through to the attackers."),
+        ("🎯", "Why it works", "Patience creates openings — the opponent tires."),
+    ],
+    "direct": [
+        ("⬆️", "Ball goes forward fast", "No sideways passes — forward as quickly as possible."),
+        ("🏃", "Runners in behind", "Fast forwards make runs behind the defence."),
+        ("💨", "Skip the midfield", "Defence to attack in one or two passes."),
+        ("🎯", "Why it works", "No time for the opponent to set up a block."),
+    ],
+    "cross-heavy": [
+        ("↔️", "Wingers stay wide", "Hug the touchline, create 1v1 situations."),
+        ("🏃", "Reach the byline", "Dribble past the defender to the goal line."),
+        ("✈️", "Deliver into the box", "Cross whipped in for headers and volleys."),
+        ("🎯", "Why it works", "A perfect cross only needs one good header to score."),
+    ],
+    "cross-based": [
+        ("↔️", "Wide players get ball", "Full-backs and wingers advance toward the byline."),
+        ("🏃", "Full-back overlaps", "Extra option — 2v1 on the wing."),
+        ("✈️", "Cross to target man", "Ball delivered to the tall striker in the box."),
+        ("🎯", "Why it works", "Simple but effective — quality crosses = chances."),
+    ],
+    "physical": [
+        ("💪", "Win the duels", "Strength and athleticism dominate 50/50s."),
+        ("🏃", "Outwork the opponent", "Run harder, run longer — 90 minutes."),
+        ("🎯", "Why it works", "Win more tackles and headers = control the game."),
+    ],
+    "organized": [
+        ("📐", "Disciplined shape", "Every player knows exactly where to be."),
+        ("🛡️", "Hard to break down", "Gaps kept small — very difficult to play through."),
+        ("🎯", "Why it works", "Organisation beats individual quality."),
+    ],
+    "technical": [
+        ("🎯", "Precise passing", "Excellent touch — keeps possession under pressure."),
+        ("🧠", "Smart decisions", "Creative solutions through tight spaces."),
+        ("✨", "Why it works", "When everyone controls perfectly, any style works."),
+    ],
+    "vertical": [
+        ("⬆️", "Play forward first", "Instinct: move the ball toward goal ASAP."),
+        ("🏃", "Runners in behind", "Constant forward runs offering vertical options."),
+        ("🎯", "Why it works", "Every forward pass puts immediate pressure on defence."),
+    ],
+    "compact": [
+        ("🧱", "Stay close together", "Only ~30 metres between deepest and highest player."),
+        ("🔒", "No space to exploit", "Denies room between the lines."),
+        ("🎯", "Why it works", "Like a wall — opponents pass around, never through."),
+    ],
+    "attacking": [
+        ("⬆️", "Commit players forward", "Numerical advantage in the final third."),
+        ("🎯", "Create chances", "Calculated risks to break defences."),
+        ("✨", "Why it works", "More in the box = more chances to score."),
+    ],
+    "structured": [
+        ("📐", "Clear game plan", "Specific roles and instructions for each player."),
+        ("🔗", "Connected play", "Rehearsed patterns — nothing improvised."),
+        ("🎯", "Why it works", "Predictable for teammates, unpredictable for opponents."),
+    ],
+    "fluid": [
+        ("🔄", "Constant movement", "Players swap positions throughout the match."),
+        ("🌊", "Unpredictable patterns", "Shape constantly changes."),
+        ("🎯", "Why it works", "Defenders can't mark players who keep moving."),
+    ],
+    "set pieces": [
+        ("📐", "Rehearsed routines", "Corners and free kicks with specific movements."),
+        ("🎯", "Dangerous deliveries", "Set pieces = genuine goal-scoring opportunities."),
+        ("✨", "Why it works", "One well-executed corner can win the game."),
+    ],
+    "defensive": [
+        ("🛡️", "Defence first", "Every player contributes defensively."),
+        ("🔒", "Protect the goal", "Compact, deep — minimal risk."),
+        ("🎯", "Why it works", "If you don't concede, you can't lose."),
+    ],
+    "dominant": [
+        ("👑", "Control every phase", "Dominate possession, territory, and chances."),
+        ("💪", "Relentless intensity", "High press + constant attacking + suffocating."),
+        ("🎯", "Why it works", "The opponent never gets comfortable."),
+    ],
 }
 
 _TACTICS_NAME_MAP = {
@@ -1903,6 +2208,11 @@ _TACTICS_NAME_MAP = {
     "SC Freiburg":              "Sport-Club Freiburg",
     "RCD Espanyol de Barcelona": "Espanyol",
 }
+
+def _hex_to_rgb(hx):
+    """Hex → 'r,g,b' string for rgba()."""
+    h = hx.lstrip('#')
+    return f"{int(h[0:2],16)},{int(h[2:4],16)},{int(h[4:6],16)}"
 
 def render_tactical_pitch_html(team_name):
     """Generate a premium animated SVG tactical pitch for a given team."""
@@ -2193,9 +2503,82 @@ def render_tactical_pitch_html(team_name):
 
     pills = "".join(_make_pill(s) for s in t.get("style_tags", []))
 
-    # ── One-sentence description ──
+    # ── Animated step-by-step guide (appears on the pitch, one at a time) ──
     first_tag = (t.get("style_tags") or [""])[0].lower()
-    pitch_desc = STYLE_TAG_DESC.get(first_tag, "The arrows show typical player movements and runs for this team.")
+    guide_steps = STYLE_TAG_GUIDE.get(first_tag, [])
+    if not guide_steps:
+        guide_steps = [("", "How they play", "Arrows show typical player movements and runs.")]
+
+    action_steps = [s for s in guide_steps if s[1].lower() != "why it works"][:3]
+    why_step = next((s for s in guide_steps if s[1].lower() == "why it works"), None)
+
+    # Total animation cycle: 16s — 4 phases of 4s each
+    # Each phase: 0.4s fade-in, 3.2s visible, 0.4s fade-out
+    all_anim_steps = list(action_steps)
+    if why_step:
+        all_anim_steps.append(why_step)
+    n_phases = len(all_anim_steps)
+    cycle = n_phases * 4  # 4s per phase
+
+    overlay_html = ""
+    overlay_css = ""
+    if action_steps:
+        for idx, (_, title, desc, *_) in enumerate(all_anim_steps):
+            is_result = (idx == n_phases - 1 and why_step)
+            phase_start = idx * 4
+            # CSS keyframe percentages
+            t_in   = phase_start / cycle * 100
+            t_vis  = (phase_start + 0.5) / cycle * 100
+            t_hold = (phase_start + 3.5) / cycle * 100
+            t_out  = (phase_start + 4.0) / cycle * 100
+            anim_name = f"sg_{slug}_{idx}"
+            overlay_css += (
+                f"@keyframes {anim_name}{{"
+                f"0%,{t_in:.1f}%{{opacity:0;transform:translateY(6px)}}"
+                f"{t_vis:.1f}%,{t_hold:.1f}%{{opacity:1;transform:translateY(0)}}"
+                f"{t_out:.1f}%,100%{{opacity:0;transform:translateY(-4px)}}}}"
+                f".{anim_name}{{animation:{anim_name} {cycle}s ease-in-out infinite;}}"
+            )
+
+            if is_result:
+                # Result line — accent style
+                overlay_html += (
+                    f'<div class="{anim_name}" style="position:absolute;top:12px;left:10px;right:10px;'
+                    f'opacity:0;pointer-events:none;'
+                    f'padding:.55rem .7rem;border-radius:10px;'
+                    f'background:linear-gradient(135deg,rgba({_hex_to_rgb(color)},.22),rgba(0,0,0,.55));'
+                    f'backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);'
+                    f'border:1px solid rgba({_hex_to_rgb(color)},.3);">'
+                    f'<div style="font-size:.72rem;font-weight:900;color:{color};'
+                    f'letter-spacing:.06em;line-height:1.5;">'
+                    f'Result</div>'
+                    f'<div style="font-size:.7rem;font-weight:600;color:rgba(255,255,255,.75);'
+                    f'line-height:1.5;margin-top:.15rem;">{desc}</div>'
+                    f'</div>'
+                )
+            else:
+                step_num = idx + 1
+                overlay_html += (
+                    f'<div class="{anim_name}" style="position:absolute;top:12px;left:10px;right:10px;'
+                    f'opacity:0;pointer-events:none;'
+                    f'padding:.5rem .65rem;border-radius:10px;'
+                    f'background:linear-gradient(135deg,rgba(0,0,0,.6),rgba(0,0,0,.45));'
+                    f'backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);'
+                    f'border:1px solid rgba(255,255,255,.08);">'
+                    f'<div style="display:flex;align-items:center;gap:.45rem;">'
+                    f'<span style="min-width:19px;height:19px;border-radius:50%;'
+                    f'background:rgba({_hex_to_rgb(color)},.3);border:1.5px solid {color};'
+                    f'display:flex;align-items:center;justify-content:center;'
+                    f'font-size:.55rem;font-weight:900;color:white;flex-shrink:0;">{step_num}</span>'
+                    f'<div style="font-size:.72rem;font-weight:900;color:rgba(255,255,255,.9);'
+                    f'letter-spacing:.02em;line-height:1.3;">{title}</div>'
+                    f'</div>'
+                    f'<div style="font-size:.68rem;font-weight:600;color:rgba(255,255,255,.52);'
+                    f'line-height:1.45;margin-top:.3rem;padding-left:2rem;">{desc}</div>'
+                    f'</div>'
+                )
+
+        css_lines.append(overlay_css)
 
     css_block = "<style>" + "".join(css_lines) + "</style>"
 
@@ -2226,12 +2609,10 @@ def render_tactical_pitch_html(team_name):
         f'{t["formation"]}</span>'
         f'</a>'
         f'</div>'
-        # SVG pitch
-        f'<div style="position:relative;">{svg}</div>'
-        # Footer: description + pills
-        f'<div style="padding:.55rem 1rem .85rem;border-top:1px solid rgba(255,255,255,.06);">'
-        f'<div style="font-size:.72rem;color:rgba(255,255,255,.55);font-weight:600;margin-bottom:.5rem;line-height:1.4;">'
-        f'⚽ {pitch_desc}</div>'
+        # SVG pitch + animated overlay
+        f'<div style="position:relative;">{svg}{overlay_html}</div>'
+        # Footer: pills only
+        f'<div style="padding:.55rem 1rem .75rem;border-top:1px solid rgba(255,255,255,.06);">'
         f'<div style="font-size:.52rem;font-weight:800;letter-spacing:.16em;color:rgba(255,255,255,.25);'
         f'text-transform:uppercase;margin-bottom:.28rem;">Playing style · click a tag to learn more</div>'
         f'{pills}</div>'
@@ -2925,10 +3306,57 @@ def render_term_animation_html(term):
         f'</g>'
     )
 
-    # ── Animation description (from TACTICAL_TERMS animation_idea) ──
-    anim_idea = TACTICAL_TERMS.get(term, {}).get("animation_idea", "") if isinstance(TACTICAL_TERMS.get(term), dict) else ""
+    # ── Guide steps from TACTICAL_TERMS ──
+    term_data_g = TACTICAL_TERMS.get(term, {})
+    guide_steps_g = term_data_g.get("guide_steps", []) if isinstance(term_data_g, dict) else []
+    anim_idea = term_data_g.get("animation_idea", "") if isinstance(term_data_g, dict) else ""
 
-    # ── Style pills (non-clickable, they're already on the glossary page) ──
+    # Build on-pitch overlay for glossary too
+    g_action = [s for s in guide_steps_g if s[1].lower() != "why it works"][:3]
+    g_overlay = ""
+    if g_action:
+        gi = ""
+        for idx2, (gicon, gtitle, gdesc, *_) in enumerate(g_action):
+            gi += (
+                f'<div style="display:flex;gap:.4rem;align-items:flex-start;">'
+                f'<span style="min-width:15px;height:15px;border-radius:50%;'
+                f'background:rgba({_hex_to_rgb(color)},.35);border:1.5px solid {color};'
+                f'display:flex;align-items:center;justify-content:center;'
+                f'font-size:.45rem;font-weight:900;color:white;flex-shrink:0;">{idx2+1}</span>'
+                f'<div>'
+                f'<div style="font-size:.52rem;font-weight:900;color:rgba(255,255,255,.85);line-height:1.2;">{gicon} {gtitle}</div>'
+                f'<div style="font-size:.48rem;font-weight:600;color:rgba(255,255,255,.42);line-height:1.3;margin-top:.05rem;">{gdesc}</div>'
+                f'</div></div>'
+            )
+        g_why = next((s for s in guide_steps_g if s[1].lower() == "why it works"), None)
+        g_why_html = ""
+        if g_why:
+            g_why_html = (
+                f'<div style="display:flex;gap:.35rem;align-items:flex-start;margin-top:.2rem;'
+                f'padding:.25rem .35rem;border-radius:6px;'
+                f'background:linear-gradient(135deg,rgba({_hex_to_rgb(color)},.18),rgba({_hex_to_rgb(color)},.06));'
+                f'border:1px solid rgba({_hex_to_rgb(color)},.25);">'
+                f'<span style="font-size:.6rem;flex-shrink:0;">{g_why[0]}</span>'
+                f'<div style="font-size:.48rem;font-weight:700;color:rgba(255,255,255,.65);line-height:1.3;">'
+                f'<span style="color:{color};font-weight:900;">Result:</span> {g_why[2]}</div>'
+                f'</div>'
+            )
+        g_overlay = (
+            f'<div style="position:absolute;bottom:0;left:0;right:0;'
+            f'background:linear-gradient(to top,rgba(15,28,15,.95) 0%,rgba(15,28,15,.85) 60%,rgba(30,92,30,.0) 100%);'
+            f'padding:1.2rem .7rem .45rem;display:flex;flex-direction:column;gap:.3rem;">'
+            f'{gi}{g_why_html}</div>'
+        )
+    elif anim_idea:
+        g_overlay = (
+            f'<div style="position:absolute;bottom:0;left:0;right:0;'
+            f'background:linear-gradient(to top,rgba(15,28,15,.92) 0%,rgba(30,92,30,.0) 100%);'
+            f'padding:1rem .7rem .5rem;">'
+            f'<div style="font-size:.56rem;color:rgba(255,255,255,.5);font-weight:600;line-height:1.4;">⚽ {anim_idea}</div>'
+            f'</div>'
+        )
+
+    # ── Style pills ──
     pills = "".join(
         f'<span style="display:inline-flex;align-items:center;gap:.3rem;padding:.25rem .72rem;'
         f'border-radius:100px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.75);'
@@ -2952,7 +3380,6 @@ def render_term_animation_html(term):
         f'{css_block}'
         f'<div style="background:#0F1C0F;border-radius:20px;overflow:hidden;'
         f'box-shadow:0 8px 32px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.06);">'
-        # Header — identical layout to tactical pitch
         f'<div style="padding:.9rem 1.1rem .6rem;display:flex;align-items:center;'
         f'justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.07);">'
         f'<div>'
@@ -2964,11 +3391,10 @@ def render_term_animation_html(term):
         f'padding:.3rem .9rem;border-radius:100px;letter-spacing:.06em;'
         f'box-shadow:0 2px 10px {color}66;">{category}</span>'
         f'</div>'
-        # SVG
-        f'<div style="position:relative;">{svg}</div>'
-        # Footer — description + pills
-        f'<div style="padding:.55rem 1rem .85rem;border-top:1px solid rgba(255,255,255,.06);">'
-        + (f'<div style="font-size:.72rem;color:rgba(255,255,255,.55);font-weight:600;margin-bottom:.5rem;line-height:1.4;">⚽ {anim_idea}</div>' if anim_idea else '') +
+        # SVG + on-pitch overlay
+        f'<div style="position:relative;">{svg}{g_overlay}</div>'
+        # Footer — pills only
+        f'<div style="padding:.55rem 1rem .75rem;border-top:1px solid rgba(255,255,255,.06);">'
         f'<div style="font-size:.52rem;font-weight:800;letter-spacing:.16em;color:rgba(255,255,255,.25);'
         f'text-transform:uppercase;margin-bottom:.28rem;">Key attributes</div>'
         f'{pills}</div>'
@@ -3877,6 +4303,110 @@ document.getElementById('carousel').addEventListener('touchend',function(e){{
 
     st.markdown('<div class="div"></div>', unsafe_allow_html=True)
 
+    # ── ML Prediction Card ──
+    st.markdown('<div class="sec-label">Machine Learning</div><div class="sec-title">Match Prediction</div>', unsafe_allow_html=True)
+
+    ml_probs, ml_meta = predict_match(
+        standings, team_a, team_b,
+        form_home=list(form_a), form_away=list(form_b),
+        extra_home=ext_a, extra_away=ext_b,
+    )
+    ml_xg = predict_expected_score(
+        standings, team_a, team_b,
+        form_home=list(form_a), form_away=list(form_b),
+        extra_home=ext_a, extra_away=ext_b,
+    )
+
+    if ml_probs is not None and ml_meta is not None:
+        hw = int(ml_probs[0] * 100)
+        dr = int(ml_probs[1] * 100)
+        aw = int(ml_probs[2] * 100)
+        shift = ml_meta.get("total_shift", 0)
+        shift_pct = abs(int(shift * 100))
+        if shift > 0.05:
+            momentum_msg = f"<strong>{team_a}</strong> is in better form (+{shift_pct}% boost)"
+            momentum_col = "#00C875"
+        elif shift < -0.05:
+            momentum_msg = f"<strong>{team_b}</strong> is in better form (+{shift_pct}% boost)"
+            momentum_col = "#F2827F"
+        else:
+            momentum_msg = "Both teams in balanced form"
+            momentum_col = "#5A5A7A"
+
+        conf = ml_meta.get("confidence", 0)
+        if conf > 0.20:
+            conf_label = "High confidence"
+            conf_col = "#00C875"
+        elif conf > 0.10:
+            conf_label = "Medium confidence"
+            conf_col = "#FFB800"
+        else:
+            conf_label = "Low confidence · close match"
+            conf_col = "#F2827F"
+
+        def _form_pills_main(form_list):
+            if not form_list:
+                return '<span style="color:var(--mid);font-size:.75rem">—</span>'
+            color_map = {"W": "#00C875", "D": "#FFB800", "L": "#FF5C5C"}
+            return "".join(
+                f'<span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;background:{color_map.get(r,"#888")};color:white;font-size:.65rem;font-weight:900;margin-right:3px">{r}</span>'
+                for r in form_list
+            )
+
+        xg_block = ""
+        if ml_xg:
+            mls = ml_xg["most_likely_score"]
+            xg_block = (
+                f'<div style="flex:1;background:var(--bg);border-radius:14px;padding:1rem 1.2rem;text-align:center;">'
+                f'<div style="font-size:.58rem;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:var(--mid);margin-bottom:.4rem;">Expected Score</div>'
+                f'<div style="font-size:2rem;font-weight:900;color:var(--dark);letter-spacing:.05em;line-height:1;">{mls[0]} <span style="color:var(--mid);font-size:1.2rem;">–</span> {mls[1]}</div>'
+                f'<div style="font-size:.62rem;color:var(--mid);font-weight:700;margin-top:.4rem;">xG {ml_xg["xg_home"]} · {ml_xg["xg_away"]}</div>'
+                f'</div>'
+            )
+
+        st.markdown(
+            f'<div style="background:var(--white);border-radius:var(--radius);border:2px solid var(--beige);box-shadow:var(--shadow);padding:1.4rem 1.6rem;">'
+            # Top row: probability bar
+            f'<div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.4rem;">'
+            f'<span style="font-size:.62rem;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:var(--mid);">Win probability</span>'
+            f'<span style="background:{conf_col};color:white;padding:.15rem .55rem;border-radius:100px;font-size:.58rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase;">{conf_label}</span>'
+            f'</div>'
+            f'<div style="display:flex;height:30px;border-radius:10px;overflow:hidden;box-shadow:inset 0 1px 3px rgba(0,0,0,.08);">'
+            f'<div style="width:{hw}%;background:linear-gradient(90deg,#00C875,#00A862);display:flex;align-items:center;justify-content:center;color:white;font-weight:900;font-size:.78rem;">{hw}%</div>'
+            f'<div style="width:{dr}%;background:linear-gradient(90deg,#FFB800,#F5A500);display:flex;align-items:center;justify-content:center;color:white;font-weight:900;font-size:.78rem;">{dr}%</div>'
+            f'<div style="width:{aw}%;background:linear-gradient(90deg,#FF5C5C,#E63F3F);display:flex;align-items:center;justify-content:center;color:white;font-weight:900;font-size:.78rem;">{aw}%</div>'
+            f'</div>'
+            f'<div style="display:flex;justify-content:space-between;margin-top:.4rem;font-size:.7rem;font-weight:800;">'
+            f'<span style="color:#00A862;">{team_a} win</span>'
+            f'<span style="color:#F5A500;">Draw</span>'
+            f'<span style="color:#E63F3F;">{team_b} win</span>'
+            f'</div>'
+            # Middle row: expected score + recent form
+            f'<div style="display:flex;gap:1rem;margin-top:1.2rem;">'
+            f'{xg_block}'
+            f'<div style="flex:1.5;background:var(--bg);border-radius:14px;padding:1rem 1.2rem;">'
+            f'<div style="font-size:.58rem;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:var(--mid);margin-bottom:.5rem;">Recent Form · Last 5</div>'
+            f'<div style="display:flex;align-items:center;justify-content:space-between;">'
+            f'<div style="display:flex;flex-direction:column;gap:.3rem;">'
+            f'<span style="font-size:.72rem;font-weight:800;color:var(--dark);">{team_a}</span>'
+            f'<div>{_form_pills_main(form_a)}</div>'
+            f'</div>'
+            f'<div style="display:flex;flex-direction:column;gap:.3rem;align-items:flex-end;">'
+            f'<span style="font-size:.72rem;font-weight:800;color:var(--dark);">{team_b}</span>'
+            f'<div>{_form_pills_main(form_b)}</div>'
+            f'</div>'
+            f'</div></div></div>'
+            # Bottom: momentum insight
+            f'<div style="margin-top:1rem;padding:.8rem 1rem;background:rgba({",".join(str(int(momentum_col[i:i+2],16)) for i in (1,3,5))},.08);border-left:3px solid {momentum_col};border-radius:8px;">'
+            f'<div style="font-size:.58rem;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:{momentum_col};margin-bottom:.2rem;">📊 Model Insight</div>'
+            f'<div style="font-size:.82rem;font-weight:600;color:var(--dark);line-height:1.5;">{momentum_msg}. The model adjusted its season-based prediction using live form data from each team\'s last 5 matches and recent home/away records.</div>'
+            f'</div>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+
+    st.markdown('<div class="div"></div>', unsafe_allow_html=True)
+
     # ── Stats comparison ──
     st.markdown('<div class="sec-label">Statistics</div><div class="sec-title">Head to head</div>', unsafe_allow_html=True)
 
@@ -4059,12 +4589,75 @@ def page_schedule():
             md_badge = f'<span class="sched-matchday">MD {m["matchday"]}</span>' if m["matchday"] else ""
 
             cur_standings = all_standings.get(m["league"], {})
-            probs = predict_match(cur_standings, m["home"], m["away"])
+            # Fetch live form for both teams (last 5 matches + extended stats)
+            h_id = cur_standings.get(m["home"], {}).get("id")
+            a_id = cur_standings.get(m["away"], {}).get("id")
+            form_h, ext_h = fetch_team_extended(h_id) if h_id else ([], {})
+            form_a, ext_a = fetch_team_extended(a_id) if a_id else ([], {})
+            probs, pred_meta = predict_match(
+                cur_standings, m["home"], m["away"],
+                form_home=form_h, form_away=form_a,
+                extra_home=ext_h, extra_away=ext_a,
+            )
+            xg = predict_expected_score(
+                cur_standings, m["home"], m["away"],
+                form_home=form_h, form_away=form_a,
+                extra_home=ext_h, extra_away=ext_a,
+            )
             pred_html = ""
             if probs is not None and status_raw in ("TIMED", "SCHEDULED"):
                 hw = int(probs[0] * 100)
                 dr = int(probs[1] * 100)
                 aw = int(probs[2] * 100)
+
+                # Build momentum indicator — shows how much recent form affected the prediction
+                shift = pred_meta.get("total_shift", 0) if pred_meta else 0
+                shift_pct = abs(int(shift * 100))
+                if shift > 0.05:
+                    momentum_txt = f"↑ {m['home'].split()[-1]} in form (+{shift_pct}%)"
+                    momentum_col = "#4CAF50"
+                elif shift < -0.05:
+                    momentum_txt = f"↑ {m['away'].split()[-1]} in form (+{shift_pct}%)"
+                    momentum_col = "#F44336"
+                else:
+                    momentum_txt = "Form balanced"
+                    momentum_col = "var(--mid)"
+
+                # Confidence label
+                conf = pred_meta.get("confidence", 0) if pred_meta else 0
+                if conf > 0.20:
+                    conf_label = "HIGH"
+                    conf_col = "#00C875"
+                elif conf > 0.10:
+                    conf_label = "MEDIUM"
+                    conf_col = "#FFB800"
+                else:
+                    conf_label = "LOW"
+                    conf_col = "#F2827F"
+
+                # Form pills showing last 5 matches
+                def _form_pills(form_list, size=".5rem"):
+                    if not form_list:
+                        return '<span style="font-size:.55rem;color:var(--mid)">—</span>'
+                    color_map = {"W": "#4CAF50", "D": "#FFC107", "L": "#F44336"}
+                    pills = ""
+                    for r in form_list:
+                        c = color_map.get(r, "#888")
+                        pills += f'<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:{c};margin-right:2px"></span>'
+                    return pills
+
+                # Expected score line
+                xg_html = ""
+                if xg:
+                    mls = xg["most_likely_score"]
+                    xg_html = (
+                        f'<div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-top:.3rem;padding-top:.3rem;border-top:1px dashed var(--beige);">'
+                        f'<span style="font-size:.58rem;color:var(--mid);letter-spacing:.06em;text-transform:uppercase;font-weight:800;">Expected score</span>'
+                        f'<span style="font-size:.85rem;font-weight:900;color:var(--dark);letter-spacing:.05em;">{mls[0]} – {mls[1]}</span>'
+                        f'<span style="font-size:.52rem;color:var(--mid);font-weight:700;">xG {xg["xg_home"]} · {xg["xg_away"]}</span>'
+                        f'</div>'
+                    )
+
                 pred_html = (
                     f'<div class="sched-pred">'
                     f'<div class="sched-pred-bar">'
@@ -4076,7 +4669,21 @@ def page_schedule():
                     f'<span style="color:#4CAF50">{m["home"].split()[-1]} {hw}%</span>'
                     f'<span style="color:#FFC107">D {dr}%</span>'
                     f'<span style="color:#F44336">{aw}% {m["away"].split()[-1]}</span>'
-                    f'</div></div>'
+                    f'</div>'
+                    f'{xg_html}'
+                    f'<div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-top:.35rem;padding-top:.35rem;border-top:1px dashed var(--beige);font-size:.58rem;font-weight:700;">'
+                    f'<div style="display:flex;align-items:center;gap:.35rem;">'
+                    f'<span style="color:var(--mid);letter-spacing:.06em;text-transform:uppercase;">Form</span>'
+                    f'<span>{_form_pills(form_h)}</span>'
+                    f'<span style="color:var(--mid);margin:0 .1rem">·</span>'
+                    f'<span>{_form_pills(form_a)}</span>'
+                    f'</div>'
+                    f'<div style="display:flex;align-items:center;gap:.35rem;">'
+                    f'<span style="color:{momentum_col};letter-spacing:.02em;">{momentum_txt}</span>'
+                    f'<span style="background:{conf_col};color:white;padding:.08rem .35rem;border-radius:3px;font-size:.5rem;letter-spacing:.08em;">{conf_label}</span>'
+                    f'</div>'
+                    f'</div>'
+                    f'</div>'
                 )
 
             html += (
