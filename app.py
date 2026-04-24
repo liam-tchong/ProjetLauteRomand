@@ -2580,6 +2580,8 @@ def render_tactical_pitch_html(team_name):
 
         css_lines.append(overlay_css)
 
+    # transform-box ensures CSS transforms on SVG elements use the element's own bounding box
+    css_lines.insert(0, "g,ellipse,path,circle{transform-box:fill-box;transform-origin:center;}")
     css_block = "<style>" + "".join(css_lines) + "</style>"
 
     svg = (
@@ -4114,8 +4116,24 @@ def page_main():
 
     st.markdown('<div class="div"></div>', unsafe_allow_html=True)
 
-    # ── Styles de jeu ──
-    st.markdown('<div class="sec-label">AI Analysis</div><div class="sec-title">Playing Style</div>', unsafe_allow_html=True)
+    # ── Terrain ── (rendered immediately — no API calls)
+    st.markdown('<div class="sec-label">Tactics</div><div class="sec-title">Tactical Pitch</div>', unsafe_allow_html=True)
+    def _wrap_pitch(team_name):
+        inner = render_tactical_pitch_html(team_name)
+        return (
+            "<!DOCTYPE html><html><head><meta charset='utf-8'>"
+            "<style>html,body{margin:0;padding:0;background:transparent;overflow:hidden;}"
+            "g,ellipse,path,circle{transform-box:fill-box;transform-origin:center;}</style>"
+            f"</head><body>{inner}</body></html>"
+        )
+
+    pitch_col_a, pitch_col_b = st.columns(2)
+    with pitch_col_a:
+        st.components.v1.html(_wrap_pitch(team_a), height=620, scrolling=False)
+    with pitch_col_b:
+        st.components.v1.html(_wrap_pitch(team_b), height=620, scrolling=False)
+
+    st.markdown('<div class="div"></div>', unsafe_allow_html=True)
 
     # Fetch enriched data for both teams
     form_a, ext_a = fetch_team_extended(da.get("id"))
@@ -4130,178 +4148,6 @@ def page_main():
     prev_pos_a    = prev_standings.get(team_a)
     prev_pos_b    = prev_standings.get(team_b)
 
-
-    def _build_team_card_html(team_name, badge_label, hdr_bg, cards_tuple, form_tuple, stats_dict, crest_url):
-        """Self-contained HTML iframe: team card with 4-card JS carousel. Fixed card height ensures nav is always visible."""
-        pill_style = {"W": "background:#CCFFE9;color:#007A47", "D": "background:#FFF3CC;color:#7A5500", "L": "background:#FFE0E0;color:#CC1F1F"}
-        form_html = ""
-        if form_tuple:
-            pills = "".join(
-                f'<span style="{pill_style.get(r,"background:#eee;color:#333")};padding:.1rem .4rem;border-radius:5px;font-size:.7rem;font-weight:900;margin-right:.18rem">{r}</span>'
-                for r in form_tuple
-            )
-            form_html = (
-                f'<div style="font-size:.6rem;font-weight:800;color:#5A5A7A;letter-spacing:.1em;'
-                f'text-transform:uppercase;margin-bottom:.5rem;display:flex;align-items:center;flex-wrap:wrap;gap:.15rem">'
-                f'Recent form &nbsp;{pills}</div>'
-            )
-        card_defs = [
-            ("🏆", "The Club",      cards_tuple[0] if len(cards_tuple) > 0 else ""),
-            ("⚽", "How They Play", cards_tuple[1] if len(cards_tuple) > 1 else ""),
-            ("🎯", "Tactics",       cards_tuple[2] if len(cards_tuple) > 2 else ""),
-            ("⭐", "Fun Fact",      cards_tuple[3] if len(cards_tuple) > 3 else ""),
-        ]
-        cards_html = ""
-        for i, (icon, label, text) in enumerate(card_defs):
-            body = text or "—"
-            # Use target="_parent" — works from srcdoc iframes (unlike window.parent.location)
-            for term in TACTICAL_TERMS:
-                url = f"?term={term}&from=main&ta={team_a}&tb={team_b}"
-                body = body.replace(
-                    f"<b>{term}</b>",
-                    f'<a href="{url}" target="_parent"'
-                    f' style="color:#8B5CF6;font-weight:800;text-decoration:underline dotted 2px">{term}</a>'
-                )
-            display = "block" if i == 0 else "none"
-            # Each card has fixed height 175px with internal scroll — nav stays visible regardless of text length
-            cards_html += (
-                f'<div id="c{i}" style="display:{display};height:210px;overflow-y:auto;padding:.3rem .1rem">'
-                f'<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem">'
-                f'<span style="font-size:1.6rem;line-height:1">{icon}</span>'
-                f'<span style="font-size:.62rem;font-weight:900;text-transform:uppercase;letter-spacing:.13em;'
-                f'color:#5A5A7A;background:#FFE8C8;padding:.18rem .7rem;border-radius:100px">{label}</span>'
-                f'</div>'
-                f'<div style="font-size:1.05rem;font-weight:700;line-height:1.7;color:#1A1A2E">{body}</div>'
-                f'</div>'
-            )
-        stats_html = "".join(
-            f'<div style="flex:1;text-align:center">'
-            f'<div style="font-size:1.1rem;font-weight:900;color:#1A1A2E">{v}</div>'
-            f'<div style="font-size:.57rem;font-weight:800;color:#5A5A7A;text-transform:uppercase;letter-spacing:.08em">{l}</div>'
-            f'</div>'
-            for v, l in [(stats_dict.get("points","—"),"Pts"),(stats_dict.get("won","—"),"W"),
-                         (stats_dict.get("draw","—"),"D"),(stats_dict.get("lost","—"),"L"),
-                         (stats_dict.get("goals_for","—"),"Goals")]
-        )
-        crest_tag = (
-            f'<img src="{crest_url}" style="width:20px;height:20px;object-fit:contain;margin-right:.45rem;vertical-align:middle" onerror="this.style.display=\'none\'">'
-            if crest_url else ""
-        )
-        return f"""<!DOCTYPE html>
-<html><head><meta charset="utf-8">
-<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
-<style>
-*{{box-sizing:border-box;margin:0;padding:0;}}
-html,body{{font-family:'Nunito',sans-serif;background:transparent;}}
-.wrap{{background:#fff;border-radius:16px;border:2px solid #FFE8C8;overflow:hidden;box-shadow:0 4px 20px rgba(42,32,24,.08);}}
-.hdr{{background:{hdr_bg};padding:.7rem 1rem;font-size:.8rem;font-weight:900;letter-spacing:.05em;text-transform:uppercase;color:#1A1A2E;display:flex;align-items:center;}}
-.bdg{{margin-left:auto;font-size:.6rem;font-weight:800;letter-spacing:.1em;padding:.18rem .6rem;border-radius:100px;background:rgba(0,0,0,.08);}}
-.body{{padding:.75rem .9rem .2rem;}}
-.nav{{display:flex;align-items:center;justify-content:center;gap:.5rem;padding:.45rem 0 .35rem;}}
-.arr{{background:none;border:2px solid #FFE8C8;border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:.85rem;color:#1A1A2E;font-family:inherit;line-height:1;transition:background .15s;display:flex;align-items:center;justify-content:center;}}
-.arr:hover{{background:#FFE8C8;}}
-.dots{{display:flex;gap:.3rem;align-items:center;}}
-.dot{{width:7px;height:7px;border-radius:50%;background:#FFE8C8;border:none;cursor:pointer;transition:all .2s;padding:0;}}
-.dot.on{{background:#1A1A2E;width:18px;border-radius:4px;}}
-.stats{{display:flex;border-top:1px solid #FFE8C8;padding:.55rem .4rem .45rem;}}
-</style></head>
-<body>
-<div class="wrap">
-  <div class="hdr">{crest_tag}{team_name}<span class="bdg">{badge_label}</span></div>
-  <div class="body">
-    {form_html}
-    <div id="carousel">{cards_html}</div>
-    <div class="nav">
-      <button class="arr" onclick="go(cur-1)">&#8592;</button>
-      <div class="dots">
-        <button class="dot on" onclick="go(0)"></button>
-        <button class="dot" onclick="go(1)"></button>
-        <button class="dot" onclick="go(2)"></button>
-        <button class="dot" onclick="go(3)"></button>
-      </div>
-      <button class="arr" onclick="go(cur+1)">&#8594;</button>
-    </div>
-  </div>
-  <div class="stats">{stats_html}</div>
-</div>
-<script>
-var cur=0;
-function go(n){{
-  n=Math.max(0,Math.min(3,n));
-  document.getElementById('c'+cur).style.display='none';
-  document.getElementById('c'+n).style.display='block';
-  document.querySelectorAll('.dot').forEach(function(d,i){{d.classList.toggle('on',i===n);}});
-  cur=n;
-}}
-// Swipe support
-var sx=0;
-document.getElementById('carousel').addEventListener('touchstart',function(e){{sx=e.touches[0].clientX;}},{{passive:true}});
-document.getElementById('carousel').addEventListener('touchend',function(e){{
-  var dx=e.changedTouches[0].clientX-sx;
-  if(Math.abs(dx)>40)dx<0?go(cur+1):go(cur-1);
-}},{{passive:true}});
-</script>
-</body></html>"""
-
-    with st.spinner("Generating AI analysis…"):
-        style_a_raw = generate_team_style(
-            team_a,
-            da.get("points",0), da.get("played",1), da.get("won",0), da.get("draw",0), da.get("lost",0),
-            da.get("goals_for",0), da.get("goals_against",0), da.get("goal_diff",0), da.get("position",0),
-            prev_pos_a,
-            form_a, scorers_a,
-            extra_a.get("formation"), extra_a.get("gf_avg"), extra_a.get("ga_avg"),
-            extra_a.get("wins_home"), extra_a.get("wins_away"), extra_a.get("top_scoring_slot"),
-            extra_a.get("passes_pct"), extra_a.get("shots_pg"), extra_a.get("shots_on_pg"),
-            extra_a.get("clean_sheets"), extra_a.get("failed_to_score"),
-            home_record=ext_a.get("home_record"), away_record=ext_a.get("away_record"),
-            clean_sheets_recent=ext_a.get("clean_sheets"), gf_avg_recent=ext_a.get("gf_avg_recent"),
-            ga_avg_recent=ext_a.get("ga_avg_recent"), win_pct=ext_a.get("win_pct"),
-        )
-        style_b_raw = generate_team_style(
-            team_b,
-            db.get("points",0), db.get("played",1), db.get("won",0), db.get("draw",0), db.get("lost",0),
-            db.get("goals_for",0), db.get("goals_against",0), db.get("goal_diff",0), db.get("position",0),
-            prev_pos_b,
-            form_b, scorers_b,
-            extra_b.get("formation"), extra_b.get("gf_avg"), extra_b.get("ga_avg"),
-            extra_b.get("wins_home"), extra_b.get("wins_away"), extra_b.get("top_scoring_slot"),
-            extra_b.get("passes_pct"), extra_b.get("shots_pg"), extra_b.get("shots_on_pg"),
-            extra_b.get("clean_sheets"), extra_b.get("failed_to_score"),
-            home_record=ext_b.get("home_record"), away_record=ext_b.get("away_record"),
-            clean_sheets_recent=ext_b.get("clean_sheets"), gf_avg_recent=ext_b.get("gf_avg_recent"),
-            ga_avg_recent=ext_b.get("ga_avg_recent"), win_pct=ext_b.get("win_pct"),
-        )
-
-    # Handle legacy cache returning a plain string
-    if isinstance(style_a_raw, str):
-        style_a_raw = (style_a_raw, "", "", "")
-    if isinstance(style_b_raw, str):
-        style_b_raw = (style_b_raw, "", "", "")
-
-    c1, c2 = st.columns(2)
-    with c1:
-        st.components.v1.html(
-            _build_team_card_html(team_a, "Team A", "#CCFFE9", style_a_raw, form_a, da, da.get("crest","")),
-            height=490
-        )
-    with c2:
-        st.components.v1.html(
-            _build_team_card_html(team_b, "Team B", "#FFE0E0", style_b_raw, form_b, db, db.get("crest","")),
-            height=490
-        )
-
-    st.markdown('<div class="div"></div>', unsafe_allow_html=True)
-
-    # ── Terrain ──
-    st.markdown('<div class="sec-label">Tactics</div><div class="sec-title">Tactical pitch</div>', unsafe_allow_html=True)
-    pitch_col_a, pitch_col_b = st.columns(2)
-    with pitch_col_a:
-        st.markdown(render_tactical_pitch_html(team_a), unsafe_allow_html=True)
-    with pitch_col_b:
-        st.markdown(render_tactical_pitch_html(team_b), unsafe_allow_html=True)
-
-    st.markdown('<div class="div"></div>', unsafe_allow_html=True)
 
     # ── ML Prediction Card ──
     st.markdown('<div class="sec-label">Machine Learning</div><div class="sec-title">Match Prediction</div>', unsafe_allow_html=True)
@@ -4468,6 +4314,171 @@ document.getElementById('carousel').addEventListener('touchend',function(e){{
         unsafe_allow_html=True
     )
     st.markdown("<br>", unsafe_allow_html=True)
+    def _build_team_card_html(team_name, badge_label, hdr_bg, cards_tuple, form_tuple, stats_dict, crest_url):
+        """Self-contained HTML iframe: team card with 4-card JS carousel. Fixed card height ensures nav is always visible."""
+        pill_style = {"W": "background:#CCFFE9;color:#007A47", "D": "background:#FFF3CC;color:#7A5500", "L": "background:#FFE0E0;color:#CC1F1F"}
+        form_html = ""
+        if form_tuple:
+            pills = "".join(
+                f'<span style="{pill_style.get(r,"background:#eee;color:#333")};padding:.1rem .4rem;border-radius:5px;font-size:.7rem;font-weight:900;margin-right:.18rem">{r}</span>'
+                for r in form_tuple
+            )
+            form_html = (
+                f'<div style="font-size:.6rem;font-weight:800;color:#5A5A7A;letter-spacing:.1em;'
+                f'text-transform:uppercase;margin-bottom:.5rem;display:flex;align-items:center;flex-wrap:wrap;gap:.15rem">'
+                f'Recent form &nbsp;{pills}</div>'
+            )
+        card_defs = [
+            ("🏆", "The Club",      cards_tuple[0] if len(cards_tuple) > 0 else ""),
+            ("⚽", "How They Play", cards_tuple[1] if len(cards_tuple) > 1 else ""),
+            ("🎯", "Tactics",       cards_tuple[2] if len(cards_tuple) > 2 else ""),
+            ("⭐", "Fun Fact",      cards_tuple[3] if len(cards_tuple) > 3 else ""),
+        ]
+        cards_html = ""
+        for i, (icon, label, text) in enumerate(card_defs):
+            body = text or "—"
+            # Use target="_parent" — works from srcdoc iframes (unlike window.parent.location)
+            for term in TACTICAL_TERMS:
+                url = f"?term={term}&from=main&ta={team_a}&tb={team_b}"
+                body = body.replace(
+                    f"<b>{term}</b>",
+                    f'<a href="{url}" target="_parent"'
+                    f' style="color:#8B5CF6;font-weight:800;text-decoration:underline dotted 2px">{term}</a>'
+                )
+            display = "block" if i == 0 else "none"
+            # Each card has fixed height 175px with internal scroll — nav stays visible regardless of text length
+            cards_html += (
+                f'<div id="c{i}" style="display:{display};height:210px;overflow-y:auto;padding:.3rem .1rem">'
+                f'<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem">'
+                f'<span style="font-size:1.6rem;line-height:1">{icon}</span>'
+                f'<span style="font-size:.62rem;font-weight:900;text-transform:uppercase;letter-spacing:.13em;'
+                f'color:#5A5A7A;background:#FFE8C8;padding:.18rem .7rem;border-radius:100px">{label}</span>'
+                f'</div>'
+                f'<div style="font-size:1.05rem;font-weight:700;line-height:1.7;color:#1A1A2E">{body}</div>'
+                f'</div>'
+            )
+        stats_html = "".join(
+            f'<div style="flex:1;text-align:center">'
+            f'<div style="font-size:1.1rem;font-weight:900;color:#1A1A2E">{v}</div>'
+            f'<div style="font-size:.57rem;font-weight:800;color:#5A5A7A;text-transform:uppercase;letter-spacing:.08em">{l}</div>'
+            f'</div>'
+            for v, l in [(stats_dict.get("points","—"),"Pts"),(stats_dict.get("won","—"),"W"),
+                         (stats_dict.get("draw","—"),"D"),(stats_dict.get("lost","—"),"L"),
+                         (stats_dict.get("goals_for","—"),"Goals")]
+        )
+        crest_tag = (
+            f'<img src="{crest_url}" style="width:20px;height:20px;object-fit:contain;margin-right:.45rem;vertical-align:middle" onerror="this.style.display=\'none\'">'
+            if crest_url else ""
+        )
+        return f"""<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{{box-sizing:border-box;margin:0;padding:0;}}
+html,body{{font-family:'Nunito',sans-serif;background:transparent;}}
+.wrap{{background:#fff;border-radius:16px;border:2px solid #FFE8C8;overflow:hidden;box-shadow:0 4px 20px rgba(42,32,24,.08);}}
+.hdr{{background:{hdr_bg};padding:.7rem 1rem;font-size:.8rem;font-weight:900;letter-spacing:.05em;text-transform:uppercase;color:#1A1A2E;display:flex;align-items:center;}}
+.bdg{{margin-left:auto;font-size:.6rem;font-weight:800;letter-spacing:.1em;padding:.18rem .6rem;border-radius:100px;background:rgba(0,0,0,.08);}}
+.body{{padding:.75rem .9rem .2rem;}}
+.nav{{display:flex;align-items:center;justify-content:center;gap:.5rem;padding:.45rem 0 .35rem;}}
+.arr{{background:none;border:2px solid #FFE8C8;border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:.85rem;color:#1A1A2E;font-family:inherit;line-height:1;transition:background .15s;display:flex;align-items:center;justify-content:center;}}
+.arr:hover{{background:#FFE8C8;}}
+.dots{{display:flex;gap:.3rem;align-items:center;}}
+.dot{{width:7px;height:7px;border-radius:50%;background:#FFE8C8;border:none;cursor:pointer;transition:all .2s;padding:0;}}
+.dot.on{{background:#1A1A2E;width:18px;border-radius:4px;}}
+.stats{{display:flex;border-top:1px solid #FFE8C8;padding:.55rem .4rem .45rem;}}
+</style></head>
+<body>
+<div class="wrap">
+  <div class="hdr">{crest_tag}{team_name}<span class="bdg">{badge_label}</span></div>
+  <div class="body">
+    {form_html}
+    <div id="carousel">{cards_html}</div>
+    <div class="nav">
+      <button class="arr" onclick="go(cur-1)">&#8592;</button>
+      <div class="dots">
+        <button class="dot on" onclick="go(0)"></button>
+        <button class="dot" onclick="go(1)"></button>
+        <button class="dot" onclick="go(2)"></button>
+        <button class="dot" onclick="go(3)"></button>
+      </div>
+      <button class="arr" onclick="go(cur+1)">&#8594;</button>
+    </div>
+  </div>
+  <div class="stats">{stats_html}</div>
+</div>
+<script>
+var cur=0;
+function go(n){{
+  n=Math.max(0,Math.min(3,n));
+  document.getElementById('c'+cur).style.display='none';
+  document.getElementById('c'+n).style.display='block';
+  document.querySelectorAll('.dot').forEach(function(d,i){{d.classList.toggle('on',i===n);}});
+  cur=n;
+}}
+// Swipe support
+var sx=0;
+document.getElementById('carousel').addEventListener('touchstart',function(e){{sx=e.touches[0].clientX;}},{{passive:true}});
+document.getElementById('carousel').addEventListener('touchend',function(e){{
+  var dx=e.changedTouches[0].clientX-sx;
+  if(Math.abs(dx)>40)dx<0?go(cur+1):go(cur-1);
+}},{{passive:true}});
+</script>
+</body></html>"""
+
+    st.markdown('<div class="div"></div>', unsafe_allow_html=True)
+
+    # ── AI Analysis (Playing Style) ──
+    st.markdown('<div class="sec-label">AI Analysis</div><div class="sec-title">Playing Style</div>', unsafe_allow_html=True)
+
+    with st.spinner("Generating AI analysis…"):
+        style_a_raw = generate_team_style(
+            team_a,
+            da.get("points",0), da.get("played",1), da.get("won",0), da.get("draw",0), da.get("lost",0),
+            da.get("goals_for",0), da.get("goals_against",0), da.get("goal_diff",0), da.get("position",0),
+            prev_pos_a,
+            form_a, scorers_a,
+            extra_a.get("formation"), extra_a.get("gf_avg"), extra_a.get("ga_avg"),
+            extra_a.get("wins_home"), extra_a.get("wins_away"), extra_a.get("top_scoring_slot"),
+            extra_a.get("passes_pct"), extra_a.get("shots_pg"), extra_a.get("shots_on_pg"),
+            extra_a.get("clean_sheets"), extra_a.get("failed_to_score"),
+            home_record=ext_a.get("home_record"), away_record=ext_a.get("away_record"),
+            clean_sheets_recent=ext_a.get("clean_sheets"), gf_avg_recent=ext_a.get("gf_avg_recent"),
+            ga_avg_recent=ext_a.get("ga_avg_recent"), win_pct=ext_a.get("win_pct"),
+        )
+        style_b_raw = generate_team_style(
+            team_b,
+            db.get("points",0), db.get("played",1), db.get("won",0), db.get("draw",0), db.get("lost",0),
+            db.get("goals_for",0), db.get("goals_against",0), db.get("goal_diff",0), db.get("position",0),
+            prev_pos_b,
+            form_b, scorers_b,
+            extra_b.get("formation"), extra_b.get("gf_avg"), extra_b.get("ga_avg"),
+            extra_b.get("wins_home"), extra_b.get("wins_away"), extra_b.get("top_scoring_slot"),
+            extra_b.get("passes_pct"), extra_b.get("shots_pg"), extra_b.get("shots_on_pg"),
+            extra_b.get("clean_sheets"), extra_b.get("failed_to_score"),
+            home_record=ext_b.get("home_record"), away_record=ext_b.get("away_record"),
+            clean_sheets_recent=ext_b.get("clean_sheets"), gf_avg_recent=ext_b.get("gf_avg_recent"),
+            ga_avg_recent=ext_b.get("ga_avg_recent"), win_pct=ext_b.get("win_pct"),
+        )
+
+    # Handle legacy cache returning a plain string
+    if isinstance(style_a_raw, str):
+        style_a_raw = (style_a_raw, "", "", "")
+    if isinstance(style_b_raw, str):
+        style_b_raw = (style_b_raw, "", "", "")
+
+    c1, c2 = st.columns(2)
+    with c1:
+        st.components.v1.html(
+            _build_team_card_html(team_a, "Team A", "#CCFFE9", style_a_raw, form_a, da, da.get("crest","")),
+            height=490
+        )
+    with c2:
+        st.components.v1.html(
+            _build_team_card_html(team_b, "Team B", "#FFE0E0", style_b_raw, form_b, db, db.get("crest","")),
+            height=490
+        )
+
 
 
 # ══════════════════════════════════════════════════════════════════════════════
