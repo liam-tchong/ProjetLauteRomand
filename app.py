@@ -2456,7 +2456,7 @@ def render_tactical_pitch_html(team_name):
 
         pos_anchor = f"?nav=glossaire&pos={abbr.lower()}"
         players_svg += (
-            f'<a href="#" onclick="window.parent.location.href=\'{pos_anchor}\';return false;" class="pitch-player-link">'
+            f'<a href="{pos_anchor}" class="pitch-player-link">'
             f'<g class="{cls}" {filt}>'
             f'{ring}'
             f'{gk_ring}'
@@ -2523,7 +2523,7 @@ def render_tactical_pitch_html(team_name):
             f'</span>'
         )
         if term_key:
-            return f'<a href="#" onclick="window.parent.location.href=\'?term={term_key}&from=main\';return false;" style="text-decoration:none;">{inner}</a>'
+            return f'<a href="?term={term_key}&from=main" style="text-decoration:none;">{inner}</a>'
         return inner
 
     pills = "".join(_make_pill(s) for s in t.get("style_tags", []))
@@ -2605,8 +2605,8 @@ def render_tactical_pitch_html(team_name):
 
         css_lines.append(overlay_css)
 
-    # transform-box ensures CSS transforms on SVG elements use the element's own bounding box
-    css_lines.insert(0, "g,ellipse,path,circle{transform-box:fill-box;transform-origin:center;}")
+    # Scoped to #pitch_{slug} to avoid polluting Streamlit page SVG elements
+    css_lines.insert(0, f"#pitch_{slug} g,#pitch_{slug} ellipse,#pitch_{slug} path,#pitch_{slug} circle{{transform-box:fill-box;transform-origin:center;}}")
     css_block = "<style>" + "".join(css_lines) + "</style>"
 
     svg = (
@@ -2619,7 +2619,7 @@ def render_tactical_pitch_html(team_name):
     formation_val = t["formation"]
     return (
         f'{css_block}'
-        f'<div style="background:#0F1C0F;border-radius:20px;overflow:hidden;'
+        f'<div id="pitch_{slug}" style="background:#0F1C0F;border-radius:20px;overflow:hidden;'
         f'box-shadow:0 8px 32px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.06);">'
         # Header
         f'<div style="padding:.9rem 1.1rem .6rem;display:flex;align-items:center;'
@@ -2629,7 +2629,7 @@ def render_tactical_pitch_html(team_name):
         f'color:{color};margin-bottom:.18rem;">Team Analysis</div>'
         f'<div style="font-size:.95rem;font-weight:900;color:rgba(255,255,255,.92);letter-spacing:-.02em;">{team_name}</div>'
         f'</div>'
-        f'<a href="#" onclick="window.parent.location.href=\'?nav=glossaire&formation={formation_val}\';return false;" style="text-decoration:none;">'
+        f'<a href="?nav=glossaire&formation={formation_val}" style="text-decoration:none;">'
         f'<span style="background:{color};color:white;font-size:.72rem;font-weight:900;'
         f'padding:.3rem .9rem;border-radius:100px;letter-spacing:.06em;cursor:pointer;'
         f'box-shadow:0 2px 10px {color}66;transition:opacity .15s;" '
@@ -4319,20 +4319,11 @@ document.getElementById('carousel').addEventListener('touchend',function(e){{
 
     # ── Terrain ──
     st.markdown('<div class="sec-label">Tactics</div><div class="sec-title">Tactical Pitch</div>', unsafe_allow_html=True)
-    def _wrap_pitch(team_name):
-        inner = render_tactical_pitch_html(team_name)
-        return (
-            "<!DOCTYPE html><html><head><meta charset='utf-8'>"
-            "<style>html,body{margin:0;padding:0;background:transparent;overflow:hidden;}"
-            "g,ellipse,path,circle{transform-box:fill-box;transform-origin:center;}</style>"
-            f"</head><body>{inner}</body></html>"
-        )
-
     pitch_col_a, pitch_col_b = st.columns(2)
     with pitch_col_a:
-        st.components.v1.html(_wrap_pitch(team_a), height=580, scrolling=False)
+        st.markdown(render_tactical_pitch_html(team_a), unsafe_allow_html=True)
     with pitch_col_b:
-        st.components.v1.html(_wrap_pitch(team_b), height=580, scrolling=False)
+        st.markdown(render_tactical_pitch_html(team_b), unsafe_allow_html=True)
 
     st.markdown('<div class="div"></div>', unsafe_allow_html=True)
 
