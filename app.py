@@ -2456,7 +2456,7 @@ def render_tactical_pitch_html(team_name):
 
         pos_anchor = f"?nav=glossaire&pos={abbr.lower()}"
         players_svg += (
-            f'<a href="{pos_anchor}" target="_parent" class="pitch-player-link">'
+            f'<a href="#" onclick="window.parent.location.href=\'{pos_anchor}\';return false;" class="pitch-player-link">'
             f'<g class="{cls}" {filt}>'
             f'{ring}'
             f'{gk_ring}'
@@ -2523,7 +2523,7 @@ def render_tactical_pitch_html(team_name):
             f'</span>'
         )
         if term_key:
-            return f'<a href="?term={term_key}&from=main" target="_parent" style="text-decoration:none;">{inner}</a>'
+            return f'<a href="#" onclick="window.parent.location.href=\'?term={term_key}&from=main\';return false;" style="text-decoration:none;">{inner}</a>'
         return inner
 
     pills = "".join(_make_pill(s) for s in t.get("style_tags", []))
@@ -2616,6 +2616,7 @@ def render_tactical_pitch_html(team_name):
         f'</svg>'
     )
 
+    formation_val = t["formation"]
     return (
         f'{css_block}'
         f'<div style="background:#0F1C0F;border-radius:20px;overflow:hidden;'
@@ -2628,7 +2629,7 @@ def render_tactical_pitch_html(team_name):
         f'color:{color};margin-bottom:.18rem;">Team Analysis</div>'
         f'<div style="font-size:.95rem;font-weight:900;color:rgba(255,255,255,.92);letter-spacing:-.02em;">{team_name}</div>'
         f'</div>'
-        f'<a href="?nav=glossaire&formation={t["formation"]}" target="_parent" style="text-decoration:none;">'
+        f'<a href="#" onclick="window.parent.location.href=\'?nav=glossaire&formation={formation_val}\';return false;" style="text-decoration:none;">'
         f'<span style="background:{color};color:white;font-size:.72rem;font-weight:900;'
         f'padding:.3rem .9rem;border-radius:100px;letter-spacing:.06em;cursor:pointer;'
         f'box-shadow:0 2px 10px {color}66;transition:opacity .15s;" '
@@ -4181,7 +4182,7 @@ def page_main():
                 url = f"?term={term}&from=main&ta={team_a}&tb={team_b}"
                 body = body.replace(
                     f"<b>{term}</b>",
-                    f'<a href="{url}" target="_parent"'
+                    f'<a href="#" onclick="window.parent.location.href=\'{url}\';return false;"'
                     f' style="color:#8B5CF6;font-weight:800;text-decoration:underline dotted 2px">{term}</a>'
                 )
             display = "block" if i == 0 else "none"
