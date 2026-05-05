@@ -4182,8 +4182,8 @@ def page_main():
                 url = f"?term={term}&from=main&ta={team_a}&tb={team_b}"
                 body = body.replace(
                     f"<b>{term}</b>",
-                    f'<a href="#" onclick="window.parent.location.href=\'{url}\';return false;"'
-                    f' style="color:#8B5CF6;font-weight:800;text-decoration:underline dotted 2px">{term}</a>'
+                    f'<a href="#" onclick="window.parent.postMessage({{streamlit_navigate:\'{url}\'}},\'*\');return false;"'
+                    f' style="color:#8B5CF6;font-weight:800;text-decoration:underline dotted 2px;cursor:pointer">{term}</a>'
                 )
             display = "block" if i == 0 else "none"
             cards_html += (
@@ -4263,6 +4263,20 @@ document.getElementById('carousel').addEventListener('touchend',function(e){{
 }},{{passive:true}});
 </script>
 </body></html>"""
+
+    # Bridge: lets card iframes navigate the parent page via postMessage
+    # (st.components.v1.html uses srcdoc iframes where window.parent.location.href is blocked)
+    st.components.v1.html("""<script>
+(function(){
+  if(window.parent._navBridgeInstalled)return;
+  window.parent._navBridgeInstalled=true;
+  window.parent.addEventListener('message',function(e){
+    if(e.data&&e.data.streamlit_navigate){
+      window.parent.location.href=e.data.streamlit_navigate;
+    }
+  });
+})();
+</script>""", height=0)
 
     # ── AI Analysis (Playing Style) ──
     st.markdown('<div class="sec-label">AI Analysis</div><div class="sec-title">Playing Style</div>', unsafe_allow_html=True)
