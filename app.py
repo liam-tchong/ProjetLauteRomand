@@ -557,7 +557,7 @@ def fetch_squad_composition(team_id):
         return {}
 
 
-@st.cache_data(ttl=86400, show_spinner=False)
+@st.cache_data(ttl=3600, show_spinner=False)
 def generate_team_style(team_name, pts, played, won, draw, lost,
                         goals_for, goals_against, goal_diff, position,
                         prev_position,
