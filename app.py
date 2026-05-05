@@ -4456,6 +4456,7 @@ def page_main():
     ga_a, ga_b   = da.get("goals_against",0), db.get("goals_against",0)
     pts_a, pts_b = da.get("points",0), db.get("points",0)
     played_a = da.get("played",1) or 1
+    played_b = db.get("played",1) or 1
 
     def cmp_card(hdr_cls, dot_cls, title, val_a, val_b, max_v, foot, inverted=False):
         pa = bar_pct(val_a, max_v); pb = bar_pct(val_b, max_v)
