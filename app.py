@@ -351,17 +351,26 @@ def fetch_previous_standings(league_code):
 @st.cache_data(ttl=600, show_spinner=False)
 def fetch_schedule(league_code, date_from, date_to):
     """Fetch matches for a league between two dates (yyyy-mm-dd strings)."""
-    try:
-        r = requests.get(
-            f"https://api.football-data.org/v4/competitions/{league_code}/matches",
-            headers=HEADERS,
-            params={"dateFrom": date_from, "dateTo": date_to},
-            timeout=10,
-        )
-        r.raise_for_status()
-        return r.json().get("matches", [])
-    except Exception:
-        return []
+    for attempt in range(4):
+        try:
+            r = requests.get(
+                f"https://api.football-data.org/v4/competitions/{league_code}/matches",
+                headers=HEADERS,
+                params={"dateFrom": date_from, "dateTo": date_to},
+                timeout=10,
+            )
+            if r.status_code == 429:
+                time.sleep(8)
+                continue
+            r.raise_for_status()
+            matches = r.json().get("matches", [])
+            if matches:
+                return matches
+            # Empty but valid response — return it (not an error)
+            return []
+        except Exception:
+            time.sleep(3)
+    return []
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -4519,27 +4528,21 @@ def page_schedule():
 
     st.markdown('<div class="sec-label">5 Leagues</div><div class="sec-title">Match Schedule</div>', unsafe_allow_html=True)
 
-    # ── League filter (toggle buttons) ──
-    if "sched_leagues" not in st.session_state:
-        st.session_state.sched_leagues = set(LEAGUES.keys())
+    # ── League selector (single selection) ──
+    if "sched_league" not in st.session_state:
+        st.session_state.sched_league = "Ligue 1"
 
     btn_cols = st.columns(len(LEAGUES))
     for col, (lname, linfo) in zip(btn_cols, LEAGUES.items()):
         with col:
-            active = lname in st.session_state.sched_leagues
+            active = lname == st.session_state.sched_league
             if st.button(f"{linfo['flag']} {lname}", key=f"sched_btn_{lname}",
                          type="primary" if active else "secondary",
                          use_container_width=True):
-                if active:
-                    st.session_state.sched_leagues.discard(lname)
-                else:
-                    st.session_state.sched_leagues.add(lname)
+                st.session_state.sched_league = lname
                 st.rerun()
 
-    selected = st.session_state.sched_leagues
-    if not selected:
-        st.markdown('<p style="color:var(--mid);text-align:center;padding:2rem 0">Select at least one league above.</p>', unsafe_allow_html=True)
-        return
+    selected = {st.session_state.sched_league}
 
     now       = datetime.now(timezone.utc)
     date_from = (now - timedelta(days=3)).strftime("%Y-%m-%d")
@@ -4548,7 +4551,7 @@ def page_schedule():
     all_standings = {}
     all_matches = []
     with st.spinner("Loading schedule…"):
-        for lname in list(selected):
+        for lname in selected:
             linfo = LEAGUES[lname]
             all_standings[lname] = fetch_standings(linfo["code"])
             matches = fetch_schedule(linfo["code"], date_from, date_to)
@@ -4629,21 +4632,12 @@ def page_schedule():
             md_badge = f'<span class="sched-matchday">MD {m["matchday"]}</span>' if m["matchday"] else ""
 
             cur_standings = all_standings.get(m["league"], {})
-            # Fetch live form for both teams (last 5 matches + extended stats)
-            h_id = cur_standings.get(m["home"], {}).get("id")
-            a_id = cur_standings.get(m["away"], {}).get("id")
-            form_h, ext_h = fetch_team_extended(h_id) if h_id else ([], {})
-            form_a, ext_a = fetch_team_extended(a_id) if a_id else ([], {})
-            probs, pred_meta = predict_match(
-                cur_standings, m["home"], m["away"],
-                form_home=form_h, form_away=form_a,
-                extra_home=ext_h, extra_away=ext_a,
-            )
-            xg = predict_expected_score(
-                cur_standings, m["home"], m["away"],
-                form_home=form_h, form_away=form_a,
-                extra_home=ext_h, extra_away=ext_a,
-            )
+            # Normalize team names (schedule API returns raw names, standings uses mapped names)
+            h_norm = TEAM_NAME_MAP.get(m["home"], m["home"])
+            a_norm = TEAM_NAME_MAP.get(m["away"], m["away"])
+            # Use standings data only — no per-match API calls (prevents rate limiting)
+            probs, pred_meta = predict_match(cur_standings, h_norm, a_norm)
+            xg = predict_expected_score(cur_standings, h_norm, a_norm)
             pred_html = ""
             if probs is not None and status_raw in ("TIMED", "SCHEDULED"):
                 hw = int(probs[0] * 100)
@@ -4675,17 +4669,6 @@ def page_schedule():
                     conf_label = "LOW"
                     conf_col = "#F2827F"
 
-                # Form pills showing last 5 matches
-                def _form_pills(form_list, size=".5rem"):
-                    if not form_list:
-                        return '<span style="font-size:.55rem;color:var(--mid)">—</span>'
-                    color_map = {"W": "#4CAF50", "D": "#FFC107", "L": "#F44336"}
-                    pills = ""
-                    for r in form_list:
-                        c = color_map.get(r, "#888")
-                        pills += f'<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:{c};margin-right:2px"></span>'
-                    return pills
-
                 # Expected score line
                 xg_html = ""
                 if xg:
@@ -4711,17 +4694,9 @@ def page_schedule():
                     f'<span style="color:#F44336">{aw}% {m["away"].split()[-1]}</span>'
                     f'</div>'
                     f'{xg_html}'
-                    f'<div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-top:.35rem;padding-top:.35rem;border-top:1px dashed var(--beige);font-size:.58rem;font-weight:700;">'
-                    f'<div style="display:flex;align-items:center;gap:.35rem;">'
-                    f'<span style="color:var(--mid);letter-spacing:.06em;text-transform:uppercase;">Form</span>'
-                    f'<span>{_form_pills(form_h)}</span>'
-                    f'<span style="color:var(--mid);margin:0 .1rem">·</span>'
-                    f'<span>{_form_pills(form_a)}</span>'
-                    f'</div>'
-                    f'<div style="display:flex;align-items:center;gap:.35rem;">'
+                    f'<div style="display:flex;align-items:center;justify-content:flex-end;gap:.35rem;margin-top:.35rem;padding-top:.35rem;border-top:1px dashed var(--beige);font-size:.58rem;font-weight:700;">'
                     f'<span style="color:{momentum_col};letter-spacing:.02em;">{momentum_txt}</span>'
                     f'<span style="background:{conf_col};color:white;padding:.08rem .35rem;border-radius:3px;font-size:.5rem;letter-spacing:.08em;">{conf_label}</span>'
-                    f'</div>'
                     f'</div>'
                     f'</div>'
                 )
