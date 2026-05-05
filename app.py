@@ -4131,6 +4131,7 @@ def page_main():
         remaining = [t for t in ALL_TEAMS if t != st.session_state.team_a]
         if st.session_state.team_b not in remaining:
             st.session_state.team_b = remaining[0] if remaining else ""
+        team_b = st.session_state.team_b
         db_pre = standings.get(team_b, {})
         img_pre_b = get_crest_img(team_b, 44)
         st.markdown(
