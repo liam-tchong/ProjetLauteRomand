@@ -4441,7 +4441,7 @@ def page_main():
             f'</div>'
             f'</div></div></div>'
             # Bottom: momentum insight
-            f'<div style="margin-top:1rem;padding:.8rem 1rem;background:rgba({",".join(str(int(momentum_col[i:i+2],16)) for i in (1,3,5))},.08);border-left:3px solid {momentum_col};border-radius:8px;">'
+            f'<div style="margin-top:1rem;padding:.8rem 1rem;background:rgba({_hex_to_rgb(momentum_col)},.08);border-left:3px solid {momentum_col};border-radius:8px;">'
             f'<div style="font-size:.58rem;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:{momentum_col};margin-bottom:.2rem;">📊 Model Insight</div>'
             f'<div style="font-size:.82rem;font-weight:600;color:var(--dark);line-height:1.5;">{momentum_msg}. The model adjusted its season-based prediction using live form data from each team\'s last 5 matches and recent home/away records.</div>'
             f'</div>'
