@@ -4165,7 +4165,9 @@ def page_main():
     prev_pos_b    = prev_standings.get(team_b)
 
     def _build_team_card_html(team_name, badge_label, hdr_bg, cards_tuple, form_tuple, stats_dict, crest_url):
-        """Self-contained HTML iframe: team card with 4-card JS carousel. Fixed card height ensures nav is always visible."""
+        """CSS-only carousel rendered via st.markdown — no iframe, so term links navigate natively."""
+        import re as _re
+        slug = _re.sub(r'[^a-z0-9]', '_', team_name.lower())
         pill_style = {"W": "background:#CCFFE9;color:#007A47", "D": "background:#FFF3CC;color:#7A5500", "L": "background:#FFE0E0;color:#CC1F1F"}
         form_html = ""
         if form_tuple:
@@ -4184,19 +4186,17 @@ def page_main():
             ("🎯", "Tactics",       cards_tuple[2] if len(cards_tuple) > 2 else ""),
             ("⭐", "Fun Fact",      cards_tuple[3] if len(cards_tuple) > 3 else ""),
         ]
-        cards_html = ""
+        panels_html = ""
         for i, (icon, label, text) in enumerate(card_defs):
             body = text or "—"
             for term in TACTICAL_TERMS:
                 url = f"?term={term}&from=main&ta={team_a}&tb={team_b}"
                 body = body.replace(
                     f"<b>{term}</b>",
-                    f'<a href="#" onclick="window.parent.postMessage({{streamlit_navigate:\'{url}\'}},\'*\');return false;"'
-                    f' style="color:#8B5CF6;font-weight:800;text-decoration:underline dotted 2px;cursor:pointer">{term}</a>'
+                    f'<a href="{url}" style="color:#8B5CF6;font-weight:800;text-decoration:underline dotted 2px">{term}</a>'
                 )
-            display = "block" if i == 0 else "none"
-            cards_html += (
-                f'<div id="c{i}" style="display:{display};height:210px;overflow-y:auto;padding:.3rem .1rem">'
+            panels_html += (
+                f'<div id="p-{slug}-{i}" class="tc-panel-{slug}">'
                 f'<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem">'
                 f'<span style="font-size:1.6rem;line-height:1">{icon}</span>'
                 f'<span style="font-size:.62rem;font-weight:900;text-transform:uppercase;letter-spacing:.13em;'
@@ -4215,77 +4215,52 @@ def page_main():
                          (stats_dict.get("goals_for","—"),"Goals")]
         )
         crest_tag = (
-            f'<img src="{crest_url}" style="width:20px;height:20px;object-fit:contain;margin-right:.45rem;vertical-align:middle" onerror="this.style.display=\'none\'">'
+            f'<img src="{crest_url}" style="width:20px;height:20px;object-fit:contain;margin-right:.45rem;vertical-align:middle" onerror="this.style.display:none">'
             if crest_url else ""
         )
-        return f"""<!DOCTYPE html>
-<html><head><meta charset="utf-8">
-<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
-<style>
-*{{box-sizing:border-box;margin:0;padding:0;}}
-html,body{{font-family:'Nunito',sans-serif;background:transparent;}}
-.wrap{{background:#fff;border-radius:16px;border:2px solid #FFE8C8;overflow:hidden;box-shadow:0 4px 20px rgba(42,32,24,.08);}}
-.hdr{{background:{hdr_bg};padding:.7rem 1rem;font-size:.8rem;font-weight:900;letter-spacing:.05em;text-transform:uppercase;color:#1A1A2E;display:flex;align-items:center;}}
-.bdg{{margin-left:auto;font-size:.6rem;font-weight:800;letter-spacing:.1em;padding:.18rem .6rem;border-radius:100px;background:rgba(0,0,0,.08);}}
-.body{{padding:.75rem .9rem .2rem;}}
-.nav{{display:flex;align-items:center;justify-content:center;gap:.5rem;padding:.45rem 0 .35rem;}}
-.arr{{background:none;border:2px solid #FFE8C8;border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:.85rem;color:#1A1A2E;font-family:inherit;line-height:1;transition:background .15s;display:flex;align-items:center;justify-content:center;}}
-.arr:hover{{background:#FFE8C8;}}
-.dots{{display:flex;gap:.3rem;align-items:center;}}
-.dot{{width:7px;height:7px;border-radius:50%;background:#FFE8C8;border:none;cursor:pointer;transition:all .2s;padding:0;}}
-.dot.on{{background:#1A1A2E;width:18px;border-radius:4px;}}
-.stats{{display:flex;border-top:1px solid #FFE8C8;padding:.55rem .4rem .45rem;}}
-</style></head>
-<body>
-<div class="wrap">
-  <div class="hdr">{crest_tag}{team_name}<span class="bdg">{badge_label}</span></div>
-  <div class="body">
-    {form_html}
-    <div id="carousel">{cards_html}</div>
-    <div class="nav">
-      <button class="arr" onclick="go(cur-1)">&#8592;</button>
-      <div class="dots">
-        <button class="dot on" onclick="go(0)"></button>
-        <button class="dot" onclick="go(1)"></button>
-        <button class="dot" onclick="go(2)"></button>
-        <button class="dot" onclick="go(3)"></button>
-      </div>
-      <button class="arr" onclick="go(cur+1)">&#8594;</button>
-    </div>
-  </div>
-  <div class="stats">{stats_html}</div>
-</div>
-<script>
-var cur=0;
-function go(n){{
-  n=Math.max(0,Math.min(3,n));
-  document.getElementById('c'+cur).style.display='none';
-  document.getElementById('c'+n).style.display='block';
-  document.querySelectorAll('.dot').forEach(function(d,i){{d.classList.toggle('on',i===n);}});
-  cur=n;
-}}
-var sx=0;
-document.getElementById('carousel').addEventListener('touchstart',function(e){{sx=e.touches[0].clientX;}},{{passive:true}});
-document.getElementById('carousel').addEventListener('touchend',function(e){{
-  var dx=e.changedTouches[0].clientX-sx;
-  if(Math.abs(dx)>40)dx<0?go(cur+1):go(cur-1);
-}},{{passive:true}});
-</script>
-</body></html>"""
-
-    # Bridge: lets card iframes navigate the parent page via postMessage
-    # (st.components.v1.html uses srcdoc iframes where window.parent.location.href is blocked)
-    st.components.v1.html("""<script>
-(function(){
-  if(window.parent._navBridgeInstalled)return;
-  window.parent._navBridgeInstalled=true;
-  window.parent.addEventListener('message',function(e){
-    if(e.data&&e.data.streamlit_navigate){
-      window.parent.location.href=e.data.streamlit_navigate;
-    }
-  });
-})();
-</script>""", height=0)
+        # CSS-only carousel: hidden radio buttons + sibling :checked selector
+        # Radio inputs must be siblings of .tc-wrap-{slug} so ~ selector reaches inside it
+        css = (
+            f'<style>'
+            f'.tc-panel-{slug}{{display:none;min-height:210px;overflow-y:auto;padding:.3rem .1rem}}'
+            f'#tc-r-{slug}-0:checked~.tc-wrap-{slug} #p-{slug}-0,'
+            f'#tc-r-{slug}-1:checked~.tc-wrap-{slug} #p-{slug}-1,'
+            f'#tc-r-{slug}-2:checked~.tc-wrap-{slug} #p-{slug}-2,'
+            f'#tc-r-{slug}-3:checked~.tc-wrap-{slug} #p-{slug}-3'
+            f'{{display:block}}'
+            f'.tc-dot-{slug}{{display:inline-block;width:7px;height:7px;border-radius:50%;'
+            f'background:#FFE8C8;cursor:pointer;transition:all .2s;margin:0 3px;vertical-align:middle}}'
+            f'#tc-r-{slug}-0:checked~.tc-wrap-{slug} label[for="tc-r-{slug}-0"],'
+            f'#tc-r-{slug}-1:checked~.tc-wrap-{slug} label[for="tc-r-{slug}-1"],'
+            f'#tc-r-{slug}-2:checked~.tc-wrap-{slug} label[for="tc-r-{slug}-2"],'
+            f'#tc-r-{slug}-3:checked~.tc-wrap-{slug} label[for="tc-r-{slug}-3"]'
+            f'{{background:#1A1A2E;width:18px;border-radius:4px}}'
+            f'</style>'
+        )
+        radios = "".join(
+            f'<input type="radio" id="tc-r-{slug}-{i}" name="tc-{slug}" {"checked" if i==0 else ""} style="position:absolute;opacity:0;pointer-events:none">'
+            for i in range(4)
+        )
+        dots = "".join(f'<label for="tc-r-{slug}-{i}" class="tc-dot-{slug}"></label>' for i in range(4))
+        return (
+            f'{css}'
+            f'{radios}'
+            f'<div class="tc-wrap-{slug}" style="background:#fff;border-radius:16px;border:2px solid #FFE8C8;'
+            f'overflow:hidden;box-shadow:0 4px 20px rgba(42,32,24,.08);margin-bottom:.5rem">'
+            f'<div style="background:{hdr_bg};padding:.7rem 1rem;font-size:.8rem;font-weight:900;'
+            f'letter-spacing:.05em;text-transform:uppercase;color:#1A1A2E;display:flex;align-items:center">'
+            f'{crest_tag}{team_name}'
+            f'<span style="margin-left:auto;font-size:.6rem;font-weight:800;letter-spacing:.1em;'
+            f'padding:.18rem .6rem;border-radius:100px;background:rgba(0,0,0,.08)">{badge_label}</span>'
+            f'</div>'
+            f'<div style="padding:.75rem .9rem .2rem">'
+            f'{form_html}'
+            f'{panels_html}'
+            f'<div style="display:flex;justify-content:center;padding:.45rem 0 .35rem">{dots}</div>'
+            f'</div>'
+            f'<div style="display:flex;border-top:1px solid #FFE8C8;padding:.55rem .4rem .45rem">{stats_html}</div>'
+            f'</div>'
+        )
 
     # ── AI Analysis (Playing Style) ──
     st.markdown('<div class="sec-label">AI Analysis</div><div class="sec-title">Playing Style</div>', unsafe_allow_html=True)
@@ -4328,14 +4303,14 @@ document.getElementById('carousel').addEventListener('touchend',function(e){{
 
     c1, c2 = st.columns(2)
     with c1:
-        st.components.v1.html(
+        st.markdown(
             _build_team_card_html(team_a, "Team A", "#CCFFE9", style_a_raw, form_a, da, da.get("crest","")),
-            height=490
+            unsafe_allow_html=True
         )
     with c2:
-        st.components.v1.html(
+        st.markdown(
             _build_team_card_html(team_b, "Team B", "#FFE0E0", style_b_raw, form_b, db, db.get("crest","")),
-            height=490
+            unsafe_allow_html=True
         )
 
     st.markdown('<div class="div"></div>', unsafe_allow_html=True)
