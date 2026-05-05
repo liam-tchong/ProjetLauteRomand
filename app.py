@@ -3850,6 +3850,10 @@ def render_nav():
 # ══════════════════════════════════════════════════════════════════════════════
 def page_definition():
     term = st.session_state.active_term
+    if not term or term not in TACTICAL_TERMS:
+        st.session_state.page = st.session_state.get("prev_page", "main")
+        st.rerun()
+        return
     term_data = TACTICAL_TERMS.get(term, {})
     definition      = term_data.get("definition",        "Definition coming soon.") if isinstance(term_data, dict) else term_data
     simple          = term_data.get("simple_explanation", "") if isinstance(term_data, dict) else ""
