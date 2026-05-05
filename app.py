@@ -3735,12 +3735,13 @@ def watch_points(a, b):
     da, db = standings.get(a,{}), standings.get(b,{})
     if not da or not db:
         return ["Data not available."]*3
-    played = da.get("played",1) or 1
+    played_a = da.get("played",1) or 1
+    played_b = db.get("played",1) or 1
     gf_a, gf_b = da["goals_for"], db["goals_for"]
     ga_a, ga_b = da["goals_against"], db["goals_against"]
     pts_a, pts_b = da["points"], db["points"]
     return [
-        f"<b>{a if gf_a>=gf_b else b}</b> leads offensively: {gf_a} goals for {a} vs {gf_b} for {b} ({gf_a/played:.1f} vs {gf_b/played:.1f} per match).",
+        f"<b>{a if gf_a>=gf_b else b}</b> leads offensively: {gf_a} goals for {a} vs {gf_b} for {b} ({gf_a/played_a:.1f} vs {gf_b/played_b:.1f} per match).",
         f"Defensive solidity: <b>{a if ga_a<=ga_b else b}</b> concedes less ({ga_a} vs {ga_b} goals conceded). Gap of {abs(ga_a-ga_b)} goals.",
         f"In the standings, <b>{a if pts_a>=pts_b else b}</b> is ahead ({pts_a} pts vs {pts_b} pts). Goal difference: {da['goal_diff']:+} vs {db['goal_diff']:+}.",
     ]
