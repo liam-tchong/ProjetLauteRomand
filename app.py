@@ -690,13 +690,22 @@ Format (reply with exactly these 2 blocks, nothing else):
             max_tokens=180,
             messages=[{"role": "user", "content": prompt}]
         )
-        lines = [l.strip() for l in msg.content[0].text.strip().split("\n") if l.strip()]
-        def _extract(line, team):
-            if ":" in line:
-                return line.split(":", 1)[1].strip()
-            return line.strip()
-        challenge_a = _extract(lines[0], team_a) if len(lines) > 0 else "Stay compact and limit space in behind. Defensive organisation will be key."
-        challenge_b = _extract(lines[1], team_b) if len(lines) > 1 else "Be clinical in the final third. Creating clear chances will decide the match."
+        raw = msg.content[0].text.strip()
+        sep_a = raw.find(f"{team_a}:")
+        sep_b = raw.find(f"{team_b}:")
+        if sep_a != -1 and sep_b != -1:
+            if sep_a < sep_b:
+                challenge_a = raw[sep_a + len(team_a) + 1 : sep_b].strip()
+                challenge_b = raw[sep_b + len(team_b) + 1 :].strip()
+            else:
+                challenge_b = raw[sep_b + len(team_b) + 1 : sep_a].strip()
+                challenge_a = raw[sep_a + len(team_a) + 1 :].strip()
+        else:
+            lines = [l.strip() for l in raw.split("\n") if l.strip()]
+            challenge_a = lines[0].split(":", 1)[-1].strip() if lines else ""
+            challenge_b = lines[1].split(":", 1)[-1].strip() if len(lines) > 1 else ""
+        challenge_a = challenge_a or "Stay compact and limit space in behind. Defensive organisation will be key."
+        challenge_b = challenge_b or "Be clinical in the final third. Creating clear chances will decide the match."
         return challenge_a, challenge_b
     except Exception:
         return (
