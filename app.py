@@ -4219,29 +4219,50 @@ def page_main():
             if crest_url else ""
         )
         # CSS-only carousel: hidden radio buttons + sibling :checked selector
-        # Radio inputs must be siblings of .tc-wrap-{slug} so ~ selector reaches inside it
+        # Arrows: 4 labels per side stacked position:absolute, only the active one shown
+        arr_base = (
+            f'position:absolute;inset:0;display:none;align-items:center;justify-content:center;'
+            f'cursor:pointer;background:none;border:2px solid #FFE8C8;border-radius:50%;'
+            f'font-size:.9rem;color:#1A1A2E;transition:background .15s;'
+        )
+        show_rules = "".join(
+            f'#tc-r-{slug}-{i}:checked~.tc-wrap-{slug} .tc-p-{slug}-{i},'
+            f'#tc-r-{slug}-{i}:checked~.tc-wrap-{slug} .tc-n-{slug}-{i}{{display:flex}}'
+            for i in range(4)
+        )
+        dot_active = "".join(
+            f'#tc-r-{slug}-{i}:checked~.tc-wrap-{slug} .tc-dot-{slug}-{i}'
+            f'{{background:#1A1A2E;width:18px;border-radius:4px}}'
+            for i in range(4)
+        )
         css = (
             f'<style>'
             f'.tc-panel-{slug}{{display:none;min-height:210px;overflow-y:auto;padding:.3rem .1rem}}'
             f'#tc-r-{slug}-0:checked~.tc-wrap-{slug} #p-{slug}-0,'
             f'#tc-r-{slug}-1:checked~.tc-wrap-{slug} #p-{slug}-1,'
             f'#tc-r-{slug}-2:checked~.tc-wrap-{slug} #p-{slug}-2,'
-            f'#tc-r-{slug}-3:checked~.tc-wrap-{slug} #p-{slug}-3'
-            f'{{display:block}}'
+            f'#tc-r-{slug}-3:checked~.tc-wrap-{slug} #p-{slug}-3{{display:block}}'
             f'.tc-dot-{slug}{{display:inline-block;width:7px;height:7px;border-radius:50%;'
             f'background:#FFE8C8;cursor:pointer;transition:all .2s;margin:0 3px;vertical-align:middle}}'
-            f'#tc-r-{slug}-0:checked~.tc-wrap-{slug} label[for="tc-r-{slug}-0"],'
-            f'#tc-r-{slug}-1:checked~.tc-wrap-{slug} label[for="tc-r-{slug}-1"],'
-            f'#tc-r-{slug}-2:checked~.tc-wrap-{slug} label[for="tc-r-{slug}-2"],'
-            f'#tc-r-{slug}-3:checked~.tc-wrap-{slug} label[for="tc-r-{slug}-3"]'
-            f'{{background:#1A1A2E;width:18px;border-radius:4px}}'
+            f'{dot_active}'
+            f'.tc-arr-{slug}{{display:none;{arr_base}}}'
+            f'.tc-arr-{slug}:hover{{background:#FFE8C8}}'
+            f'{show_rules}'
             f'</style>'
         )
         radios = "".join(
             f'<input type="radio" id="tc-r-{slug}-{i}" name="tc-{slug}" {"checked" if i==0 else ""} style="position:absolute;opacity:0;pointer-events:none">'
             for i in range(4)
         )
-        dots = "".join(f'<label for="tc-r-{slug}-{i}" class="tc-dot-{slug}"></label>' for i in range(4))
+        dots = "".join(f'<label for="tc-r-{slug}-{i}" class="tc-dot-{slug} tc-dot-{slug}-{i}"></label>' for i in range(4))
+        prev_labels = "".join(
+            f'<label for="tc-r-{slug}-{(i-1)%4}" class="tc-arr-{slug} tc-p-{slug}-{i}">&#8592;</label>'
+            for i in range(4)
+        )
+        next_labels = "".join(
+            f'<label for="tc-r-{slug}-{(i+1)%4}" class="tc-arr-{slug} tc-n-{slug}-{i}">&#8594;</label>'
+            for i in range(4)
+        )
         return (
             f'{css}'
             f'{radios}'
@@ -4256,7 +4277,11 @@ def page_main():
             f'<div style="padding:.75rem .9rem .2rem">'
             f'{form_html}'
             f'{panels_html}'
-            f'<div style="display:flex;justify-content:center;padding:.45rem 0 .35rem">{dots}</div>'
+            f'<div style="display:flex;align-items:center;justify-content:center;gap:.5rem;padding:.45rem 0 .35rem">'
+            f'<div style="position:relative;width:28px;height:28px">{prev_labels}</div>'
+            f'<div style="display:flex;gap:.3rem;align-items:center">{dots}</div>'
+            f'<div style="position:relative;width:28px;height:28px">{next_labels}</div>'
+            f'</div>'
             f'</div>'
             f'<div style="display:flex;border-top:1px solid #FFE8C8;padding:.55rem .4rem .45rem">{stats_html}</div>'
             f'</div>'
