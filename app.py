@@ -4165,7 +4165,7 @@ def page_main():
     prev_pos_b    = prev_standings.get(team_b)
 
     def _build_team_card_html(team_name, badge_label, hdr_bg, cards_tuple, form_tuple, stats_dict, crest_url):
-        """CSS-only carousel rendered via st.markdown — no iframe, so term links navigate natively."""
+        """CSS :target carousel — each panel owns its nav so prev/next arrows always point to the right card."""
         import re as _re
         slug = _re.sub(r'[^a-z0-9]', '_', team_name.lower())
         pill_style = {"W": "background:#CCFFE9;color:#007A47", "D": "background:#FFF3CC;color:#7A5500", "L": "background:#FFE0E0;color:#CC1F1F"}
@@ -4186,6 +4186,14 @@ def page_main():
             ("🎯", "Tactics",       cards_tuple[2] if len(cards_tuple) > 2 else ""),
             ("⭐", "Fun Fact",      cards_tuple[3] if len(cards_tuple) > 3 else ""),
         ]
+        arr_style = (
+            "display:inline-flex;align-items:center;justify-content:center;"
+            "width:28px;height:28px;border-radius:50%;border:2px solid #FFE8C8;"
+            "font-size:.9rem;color:#1A1A2E;text-decoration:none;cursor:pointer;"
+            "background:none;transition:background .15s;flex-shrink:0"
+        )
+        dot_base = "display:inline-block;width:7px;height:7px;border-radius:50%;background:#FFE8C8;margin:0 3px;transition:all .2s;text-decoration:none"
+        dot_active = "display:inline-block;width:18px;height:7px;border-radius:4px;background:#1A1A2E;margin:0 3px;transition:all .2s;text-decoration:none"
         panels_html = ""
         for i, (icon, label, text) in enumerate(card_defs):
             body = text or "—"
@@ -4195,14 +4203,30 @@ def page_main():
                     f"<b>{term}</b>",
                     f'<a href="{url}" style="color:#8B5CF6;font-weight:800;text-decoration:underline dotted 2px">{term}</a>'
                 )
+            prev_id = f"p-{slug}-{(i-1)%4}"
+            next_id = f"p-{slug}-{(i+1)%4}"
+            dots = "".join(
+                f'<a href="#p-{slug}-{j}" style="{dot_active if j==i else dot_base}"></a>'
+                for j in range(4)
+            )
+            nav = (
+                f'<div style="display:flex;align-items:center;justify-content:center;gap:.5rem;padding:.45rem 0 .2rem">'
+                f'<a href="#{prev_id}" style="{arr_style}">&#8592;</a>'
+                f'<span style="display:flex;align-items:center">{dots}</span>'
+                f'<a href="#{next_id}" style="{arr_style}">&#8594;</a>'
+                f'</div>'
+            )
             panels_html += (
                 f'<div id="p-{slug}-{i}" class="tc-panel-{slug}">'
+                f'<div style="height:210px;overflow-y:auto;padding:.3rem .1rem">'
                 f'<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem">'
                 f'<span style="font-size:1.6rem;line-height:1">{icon}</span>'
                 f'<span style="font-size:.62rem;font-weight:900;text-transform:uppercase;letter-spacing:.13em;'
                 f'color:#5A5A7A;background:#FFE8C8;padding:.18rem .7rem;border-radius:100px">{label}</span>'
                 f'</div>'
                 f'<div style="font-size:1.05rem;font-weight:700;line-height:1.7;color:#1A1A2E">{body}</div>'
+                f'</div>'
+                f'{nav}'
                 f'</div>'
             )
         stats_html = "".join(
@@ -4215,57 +4239,19 @@ def page_main():
                          (stats_dict.get("goals_for","—"),"Goals")]
         )
         crest_tag = (
-            f'<img src="{crest_url}" style="width:20px;height:20px;object-fit:contain;margin-right:.45rem;vertical-align:middle" onerror="this.style.display:none">'
+            f'<img src="{crest_url}" style="width:20px;height:20px;object-fit:contain;margin-right:.45rem;vertical-align:middle" onerror="this.style.display=\'none\'">'
             if crest_url else ""
         )
-        # CSS-only carousel: hidden radio buttons + sibling :checked selector
-        # Arrows: 4 labels per side stacked position:absolute, only the active one shown
-        arr_base = (
-            f'position:absolute;inset:0;display:none;align-items:center;justify-content:center;'
-            f'cursor:pointer;background:none;border:2px solid #FFE8C8;border-radius:50%;'
-            f'font-size:.9rem;color:#1A1A2E;transition:background .15s;'
-        )
-        show_rules = "".join(
-            f'#tc-r-{slug}-{i}:checked~.tc-wrap-{slug} .tc-p-{slug}-{i},'
-            f'#tc-r-{slug}-{i}:checked~.tc-wrap-{slug} .tc-n-{slug}-{i}{{display:flex}}'
-            for i in range(4)
-        )
-        dot_active = "".join(
-            f'#tc-r-{slug}-{i}:checked~.tc-wrap-{slug} .tc-dot-{slug}-{i}'
-            f'{{background:#1A1A2E;width:18px;border-radius:4px}}'
-            for i in range(4)
-        )
+        # :target shows the navigated panel; :has() shows panel 0 when none is targeted (modern browsers)
         css = (
             f'<style>'
-            f'.tc-panel-{slug}{{display:none;min-height:210px;overflow-y:auto;padding:.3rem .1rem}}'
-            f'#tc-r-{slug}-0:checked~.tc-wrap-{slug} #p-{slug}-0,'
-            f'#tc-r-{slug}-1:checked~.tc-wrap-{slug} #p-{slug}-1,'
-            f'#tc-r-{slug}-2:checked~.tc-wrap-{slug} #p-{slug}-2,'
-            f'#tc-r-{slug}-3:checked~.tc-wrap-{slug} #p-{slug}-3{{display:block}}'
-            f'.tc-dot-{slug}{{display:inline-block;width:7px;height:7px;border-radius:50%;'
-            f'background:#FFE8C8;cursor:pointer;transition:all .2s;margin:0 3px;vertical-align:middle}}'
-            f'{dot_active}'
-            f'.tc-arr-{slug}{{display:none;{arr_base}}}'
-            f'.tc-arr-{slug}:hover{{background:#FFE8C8}}'
-            f'{show_rules}'
+            f'.tc-panel-{slug}{{display:none}}'
+            f'.tc-panel-{slug}:target{{display:block}}'
+            f'.tc-wrap-{slug}:not(:has(.tc-panel-{slug}:target)) #p-{slug}-0{{display:block}}'
             f'</style>'
-        )
-        radios = "".join(
-            f'<input type="radio" id="tc-r-{slug}-{i}" name="tc-{slug}" {"checked" if i==0 else ""} style="position:absolute;opacity:0;pointer-events:none">'
-            for i in range(4)
-        )
-        dots = "".join(f'<label for="tc-r-{slug}-{i}" class="tc-dot-{slug} tc-dot-{slug}-{i}"></label>' for i in range(4))
-        prev_labels = "".join(
-            f'<label for="tc-r-{slug}-{(i-1)%4}" class="tc-arr-{slug} tc-p-{slug}-{i}">&#8592;</label>'
-            for i in range(4)
-        )
-        next_labels = "".join(
-            f'<label for="tc-r-{slug}-{(i+1)%4}" class="tc-arr-{slug} tc-n-{slug}-{i}">&#8594;</label>'
-            for i in range(4)
         )
         return (
             f'{css}'
-            f'{radios}'
             f'<div class="tc-wrap-{slug}" style="background:#fff;border-radius:16px;border:2px solid #FFE8C8;'
             f'overflow:hidden;box-shadow:0 4px 20px rgba(42,32,24,.08);margin-bottom:.5rem">'
             f'<div style="background:{hdr_bg};padding:.7rem 1rem;font-size:.8rem;font-weight:900;'
@@ -4277,11 +4263,6 @@ def page_main():
             f'<div style="padding:.75rem .9rem .2rem">'
             f'{form_html}'
             f'{panels_html}'
-            f'<div style="display:flex;align-items:center;justify-content:center;gap:.5rem;padding:.45rem 0 .35rem">'
-            f'<div style="position:relative;width:28px;height:28px">{prev_labels}</div>'
-            f'<div style="display:flex;gap:.3rem;align-items:center">{dots}</div>'
-            f'<div style="position:relative;width:28px;height:28px">{next_labels}</div>'
-            f'</div>'
             f'</div>'
             f'<div style="display:flex;border-top:1px solid #FFE8C8;padding:.55rem .4rem .45rem">{stats_html}</div>'
             f'</div>'
