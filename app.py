@@ -475,6 +475,8 @@ def fetch_competition_scorers(league_code):
         return {}
 
 
+# Pulls advanced Ligue 1 stats (formation, pass %, shots, clean sheets) from api-sports.io.
+# Used in the AI analysis prompt and the Offensive/Defensive stats comparison cards.
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch_api_football_stats(team_name, league_code="FL1"):
     """Advanced stats from API-Football: formation, passes, shots, clean sheets."""
