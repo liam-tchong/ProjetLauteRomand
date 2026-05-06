@@ -2685,6 +2685,8 @@ def render_tactical_pitch_html(team_name):
         f'</div>'
     )
 
+# Renders the SVG tactical illustration on the term Definition page — one unique animation
+# per tactical concept (pressing, pivot, false nine, through ball, etc.).
 def render_term_animation_html(term):
     """Generate a premium animated SVG tactical illustration matching the tactical pitch card style."""
     # ── Dimensions (landscape pitch) ──
