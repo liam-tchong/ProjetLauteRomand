@@ -2261,6 +2261,8 @@ def _hex_to_rgb(hx):
     h = hx.lstrip('#')
     return f"{int(h[0:2],16)},{int(h[2:4],16)},{int(h[4:6],16)}"
 
+# Renders the animated SVG tactical pitch on the Analysis page — shows formation, labelled
+# player positions, movement arrows, and heat zones for the selected team.
 def render_tactical_pitch_html(team_name):
     """Generate a premium animated SVG tactical pitch for a given team."""
     import math
