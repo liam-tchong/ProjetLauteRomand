@@ -4786,6 +4786,8 @@ FOOTBALL_RULES = [
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE RULES
 # ══════════════════════════════════════════════════════════════════════════════
+# Renders the Rules page — iterates FOOTBALL_RULES and displays each as an expandable
+# card with emoji, title, and plain-English description.
 def page_regles():
     st.markdown('<div class="sec-label">Football Basics</div><div class="sec-title">Rules of the Game</div>', unsafe_allow_html=True)
     st.markdown("""<style>
