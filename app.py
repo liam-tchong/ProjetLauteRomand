@@ -963,10 +963,7 @@ TEAM_STYLES = {
 DEFAULT_STYLE = "Playing style to be documented."
 WATCH_COLORS = ["#7CC99A", "#F5D06E", "#F2827F"]
 
-# ── Tactical pitch data ───────────────────────────────────────────────────────
-# Each team: formation, color, style_tags, players [(x%, y%, label)],
-# moves [(player_idx, to_x%, to_y%)], zones [(cx%, cy%, rx%, ry%, opacity)]
-TEAM_TACTICS = {
+_TEAM_TACTICS_SENTINEL = {
     "Paris Saint-Germain": {
         "formation": "4-3-3", "color": "#004E9A",
         "style_tags": ["High Press", "False 9", "Possession"],
