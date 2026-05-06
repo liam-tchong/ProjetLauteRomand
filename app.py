@@ -4749,6 +4749,7 @@ def page_schedule():
 # ══════════════════════════════════════════════════════════════════════════════
 # FOOTBALL RULES DATA
 # ══════════════════════════════════════════════════════════════════════════════
+# 30 rule entries (title, emoji, description) rendered as expandable cards on the Rules page.
 FOOTBALL_RULES = [
     ("The Objective", "⚽", "Score more goals than the opponent before time runs out. A goal is scored when the ball fully crosses the opponent's goal line between the posts and under the crossbar. The team with the most goals wins. If both teams score the same number, the match is a draw — unless a winner must be decided (knockout round), in which case extra time or a penalty shootout follows."),
     ("The Duration", "⏱️", "A match lasts 90 minutes, split into two halves of 45 minutes each, with a 15-minute break at half-time. The referee adds extra minutes at the end of each half (called added time or stoppage time) to compensate for injuries, substitutions, or time-wasting. These extra minutes are displayed on a board by the 4th official on the touchline."),
