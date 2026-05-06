@@ -359,7 +359,7 @@ def fetch_previous_standings(league_code):
 @st.cache_data(ttl=600, show_spinner=False)
 def fetch_schedule(league_code, date_from, date_to):
     """Fetch matches for a league between two dates (yyyy-mm-dd strings)."""
-    for attempt in range(4):
+    for _ in range(4):
         try:
             r = requests.get(
                 f"https://api.football-data.org/v4/competitions/{league_code}/matches",
