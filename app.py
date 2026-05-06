@@ -3913,6 +3913,8 @@ def page_definition():
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE GLOSSAIRE
 # ══════════════════════════════════════════════════════════════════════════════
+# Renders the 3-tab Glossary: tactical terms (with clickable cards), player positions
+# (with live squad names from API), and formations with descriptions.
 def page_glossaire():
     # ── Consume anchor set when navigating from pitch page ────────────────────
     anchor = st.session_state.get("glossaire_anchor") or None
