@@ -73,6 +73,8 @@ def _form_score(form_list):
     return sum(pts.get(r, 0.5) * w for r, w in zip(form_list, weights)) / total_w
 
 
+# Powers the "Expected Score" block in the Match Prediction card — estimates goals using
+# attack vs. defence averages, recent form, and a Poisson-like model.
 def predict_expected_score(standings, home_team, away_team,
                             form_home=None, form_away=None,
                             extra_home=None, extra_away=None):
