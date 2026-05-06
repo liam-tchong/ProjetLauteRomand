@@ -4044,6 +4044,8 @@ def page_glossaire():
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE CLASSEMENT
 # ══════════════════════════════════════════════════════════════════════════════
+# Renders the Standings page — one tab per league showing the full table with crests,
+# highlights for the selected teams, and a Claude-generated narrative summary per league.
 def page_classement():
     selected_league = st.session_state.get("league", "Ligue 1")
     team_a = st.session_state.team_a
