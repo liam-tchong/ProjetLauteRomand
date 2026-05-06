@@ -241,6 +241,8 @@ def predict_match(standings, home_team, away_team, form_home=None, form_away=Non
     except Exception:
         return None, None
 
+# Populates the standings table, team selectors, stats cards, and every crest image.
+# Single source of truth for position, points, goals, and team IDs across the app.
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch_standings(league_code):
     name_map = TEAM_NAME_MAP
