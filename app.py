@@ -681,6 +681,8 @@ Reply with EXACTLY 4 sections separated by "|||", nothing else."""
         return (fallback, "", "", "")
 
 
+# Calls Claude Haiku to produce the per-team tactical challenge blurbs rendered at the
+# bottom of the "Key points to watch" card on the Analysis page.
 @st.cache_data(ttl=86400, show_spinner=False)
 def generate_key_challenges(team_a, team_b, pts_a, pts_b, gf_a, gf_b, ga_a, ga_b):
     """Generates a short challenge paragraph (2-3 sentences) per team for this specific matchup."""
