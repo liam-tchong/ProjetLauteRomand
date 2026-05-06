@@ -381,6 +381,8 @@ def fetch_schedule(league_code, date_from, date_to):
     return []
 
 
+# Supplies the "Recent Form" pills, home/away split, and per-match goal averages used in
+# the Match Prediction card and as live inputs to the AI analysis prompt.
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch_team_extended(team_id):
     """Last 15 finished matches: returns (form_5, extended_stats_dict)."""
