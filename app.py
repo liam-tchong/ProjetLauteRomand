@@ -138,6 +138,8 @@ def predict_expected_score(standings, home_team, away_team,
         return None
 
 
+# Drives the win-probability bar (H% / D% / A%) in the Match Prediction card — XGBoost base
+# probabilities adjusted live with recent form, home/away record, and attacking momentum.
 def predict_match(standings, home_team, away_team, form_home=None, form_away=None,
                   extra_home=None, extra_away=None):
     """Match prediction combining season stats + live form + tactical context.
