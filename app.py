@@ -449,6 +449,8 @@ def fetch_team_form(team_id):
     return form
 
 
+# Provides the top-scorer list (name, goals, assists) fed into the Claude prompt for
+# AI team-style generation; top 3 per team are shown in the analysis context.
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch_competition_scorers(league_code):
     name_map = TEAM_NAME_MAP
