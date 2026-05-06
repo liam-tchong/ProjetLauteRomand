@@ -4118,6 +4118,8 @@ def page_classement():
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE PRINCIPALE
 # ══════════════════════════════════════════════════════════════════════════════
+# The primary Analysis page: league + team selector, AI style cards, tactical pitches,
+# ML match prediction, stats comparison bars, and the "Key points to watch" card.
 def page_main():
     team_a = st.session_state.team_a
     team_b = st.session_state.team_b
