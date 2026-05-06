@@ -571,6 +571,8 @@ def fetch_squad_composition(team_id):
         return {}
 
 
+# Calls Claude Haiku to generate the 4-panel team card content (The Club / How They Play ×2 /
+# Fun Fact) displayed on the Analysis page for each selected team.
 @st.cache_data(ttl=3600, show_spinner=False)
 def generate_team_style(team_name, pts, played, won, draw, lost,
                         goals_for, goals_against, goal_diff, position,
