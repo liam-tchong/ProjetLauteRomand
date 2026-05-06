@@ -4549,6 +4549,8 @@ def page_main():
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE SCHEDULE
 # ══════════════════════════════════════════════════════════════════════════════
+# Renders the Schedule page — match cards grouped by date with live scores, ML win-probability
+# bars, expected score lines, and momentum indicators for upcoming fixtures.
 def page_schedule():
     from datetime import datetime, timedelta, timezone
     from collections import defaultdict
