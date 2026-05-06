@@ -3880,6 +3880,8 @@ def render_nav():
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE DÉFINITION
 # ══════════════════════════════════════════════════════════════════════════════
+# Renders the individual tactical term detail page — definition, plain-English summary,
+# real-world example, and the SVG illustration from render_term_animation_html().
 def page_definition():
     term = st.session_state.active_term
     if not term or term not in TACTICAL_TERMS:
