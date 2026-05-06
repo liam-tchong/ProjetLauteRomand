@@ -5,6 +5,7 @@ import anthropic
 import time
 import os
 import pickle
+from tactical_data import TEAM_TACTICS
 
 _model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "MachineLearning", "model.pkl")
 try:
