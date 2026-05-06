@@ -354,6 +354,8 @@ def fetch_previous_standings(league_code):
         return {}
 
 
+# Feeds the Schedule page — returns upcoming and recent matches for a 17-day window
+# (3 days back, 14 days forward) including live scores and match status.
 @st.cache_data(ttl=600, show_spinner=False)
 def fetch_schedule(league_code, date_from, date_to):
     """Fetch matches for a league between two dates (yyyy-mm-dd strings)."""
