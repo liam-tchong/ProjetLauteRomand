@@ -431,10 +431,11 @@ def generate_standings_summary(league_name, standings_tuple):
         f"Gap between safety and drop zone: {rel_border[2]-rel_zone[0][2]} pts\n"
     )
     prompt = (
-        "You are a sharp European football analyst writing for a quality sports publication. "
-        "Based on the standings data below, respond in exactly this format — two lines, nothing else:\n"
-        "TITLE: [a punchy 6-10 word headline capturing the key storyline of the season]\n"
-        "BODY: [3-4 sentences of flowing analysis covering the title race, European spots battle, and relegation drama. Be specific with team names and points gaps. No bullet points.]\n\n"
+        "Write 3-4 sentences about this league season, like a football fan texting a friend.\n"
+        "No structure. No headline. Just talk.\n"
+        "Start with the most interesting thing happening right now. Start mid-thought if you want.\n"
+        "Use team names and point gaps. Be specific.\n"
+        "Don't start with 'The' or 'In'.\n\n"
         + context
     )
     try:
@@ -444,15 +445,7 @@ def generate_standings_summary(league_name, standings_tuple):
             max_tokens=260,
             messages=[{"role": "user", "content": prompt}]
         )
-        raw = msg.content[0].text.strip()
-        title, body = "", raw
-        for line in raw.split("\n"):
-            line = line.strip()
-            if line.upper().startswith("TITLE:"):
-                title = line[6:].strip()
-            elif line.upper().startswith("BODY:"):
-                body = line[5:].strip()
-        return f"{title}|||{body}" if title else body
+        return msg.content[0].text.strip()
     except Exception:
         return ""
 
@@ -813,21 +806,17 @@ Recent form (last 5 matches): {form_str}"""
 
     terms = ", ".join(TACTICAL_TERMS.keys())
 
-    prompt = f"""You are explaining a football team to someone who has NEVER watched football before. Use simple, friendly, everyday language — like talking to a curious 12-year-old. No complicated words unless you explain them simply.
+    prompt = f"""You're writing quick takes on a football team for someone who has never watched football. 4 short sections, separated by "|||". No structure labels, no numbered sections, no intro phrases.
 
 {stats_block}
 
-Write EXACTLY 4 sections separated by "|||". Each section: MAX 2 short sentences. Be very brief. No titles, no numbers, no bullet points.
+Section 1: just state who this club is. One or two blunt sentences. No fluff.
+Section 2: how do they play? Use 2-3 terms from: {terms}, each wrapped in <b>tags</b> with a one-clause explanation in parentheses. Be opinionated.
+Section 3: go deeper. Name one real player. What do they actually do on the pitch? Use 3-4 terms from: {terms} in <b>tags</b>.
+Section 4: one thing about this club that's genuinely surprising or counterintuitive this season. Not Wikipedia trivia.
 
-SECTION 1 — THE CLUB: Famous or not? Recent success or struggling? One sentence on their vibe.
-
-SECTION 2 — HOW THEY PLAY (simple): 2-3 sentences. Do they attack or defend? Fast or patient? Use 2-3 terms from this list: {terms} — wrap each like <b>term</b> and explain it in simple words right after (e.g. "<b>pressing</b> (hunting the ball immediately when they lose it)").
-
-SECTION 3 — HOW THEY PLAY (details): 3-4 sentences. Go a bit deeper. Name 1-2 real players and what they do. Use 3-4 terms from: {terms} — wrap each like <b>term</b> with a short simple explanation. Make the glossary terms feel natural in the sentences.
-
-SECTION 4 — FUN FACT: One fun or surprising thing about this club in 1-2 sentences.
-
-Reply with EXACTLY 4 sections separated by "|||", nothing else."""
+No em-dashes. No "what makes them special". No "essentially". Short sentences only.
+Reply with exactly 4 sections separated by "|||"."""
 
     try:
         client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
@@ -856,16 +845,13 @@ def generate_key_challenges(team_a, team_b, pts_a, pts_b, gf_a, gf_b, ga_a, ga_b
             f"{team_a} must stay compact and limit space in behind. Defensive organisation will be key.",
             f"{team_b} must be clinical in the final third. Creating clear chances will decide the match.",
         )
-    prompt = f"""You are a concise football analyst. Given these two teams and their season stats, write a short challenge for each team in this specific matchup.
+    prompt = f"""One sentence per team. Maximum. No "stay compact", no "be clinical", no "defensive unit".
+Start each sentence with the team name.
+Make it specific to how these two teams actually compare this season.
+Just two lines, nothing else.
 
-{team_a}: {pts_a} pts, {gf_a} goals scored, {ga_a} goals conceded this season.
-{team_b}: {pts_b} pts, {gf_b} goals scored, {ga_b} goals conceded this season.
-
-For each team write 2 sentences maximum — the main tactical challenge they face and one concrete consequence if they fail to meet it. Be direct and specific to this matchup.
-
-Format (reply with exactly these 2 blocks, nothing else):
-{team_a}: <2 sentences>
-{team_b}: <2 sentences>"""
+{team_a}: {pts_a} pts, scored {gf_a}, conceded {ga_a}
+{team_b}: {pts_b} pts, scored {gf_b}, conceded {ga_b}"""
     try:
         client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
         msg = client.messages.create(
@@ -1759,7 +1745,6 @@ def render_tactical_pitch_html(team_name):
         f'justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.07);">'
         f'<div>'
         f'<div style="font-size:.64rem;font-weight:800;letter-spacing:.18em;text-transform:uppercase;'
-        f'color:{color};margin-bottom:.18rem;">Team Analysis</div>'
         f'<div style="font-size:.95rem;font-weight:900;color:rgba(255,255,255,.92);letter-spacing:-.02em;">{team_name}</div>'
         f'</div>'
         f'<a href="?nav=glossaire&formation={formation_val}" style="text-decoration:none;">'
@@ -1775,7 +1760,7 @@ def render_tactical_pitch_html(team_name):
         # Footer: pills only
         f'<div style="padding:.55rem 1rem .75rem;border-top:1px solid rgba(255,255,255,.06);">'
         f'<div style="font-size:.52rem;font-weight:800;letter-spacing:.16em;color:rgba(255,255,255,.25);'
-        f'text-transform:uppercase;margin-bottom:.28rem;">Playing style · click a tag to learn more</div>'
+        f'text-transform:uppercase;margin-bottom:.28rem;">click any tag to learn more</div>'
         f'{pills}</div>'
         f'</div>'
     )
@@ -2515,7 +2500,7 @@ def render_term_animation_html(term):
             f'<div style="position:absolute;bottom:0;left:0;right:0;'
             f'background:linear-gradient(to top,rgba(15,28,15,.92) 0%,rgba(30,92,30,.0) 100%);'
             f'padding:1rem .7rem .5rem;">'
-            f'<div style="font-size:.56rem;color:rgba(255,255,255,.5);font-weight:600;line-height:1.4;">⚽ {anim_idea}</div>'
+            f'<div style="font-size:.56rem;color:rgba(255,255,255,.5);font-weight:600;line-height:1.4;">{anim_idea}</div>'
             f'</div>'
         )
 
@@ -2547,7 +2532,6 @@ def render_term_animation_html(term):
         f'justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.07);">'
         f'<div>'
         f'<div style="font-size:.64rem;font-weight:800;letter-spacing:.18em;text-transform:uppercase;'
-        f'color:{color};margin-bottom:.18rem;">Tactical Concept</div>'
         f'<div style="font-size:.95rem;font-weight:900;color:rgba(255,255,255,.92);letter-spacing:-.02em;">{term.capitalize()}</div>'
         f'</div>'
         f'<span style="background:{color};color:white;font-size:.72rem;font-weight:900;'
@@ -2558,8 +2542,6 @@ def render_term_animation_html(term):
         f'<div style="position:relative;">{svg}{g_overlay}</div>'
         # Footer — pills only
         f'<div style="padding:.55rem 1rem .75rem;border-top:1px solid rgba(255,255,255,.06);">'
-        f'<div style="font-size:.52rem;font-weight:800;letter-spacing:.16em;color:rgba(255,255,255,.25);'
-        f'text-transform:uppercase;margin-bottom:.28rem;">Key attributes</div>'
         f'{pills}</div>'
         f'</div>'
     )
@@ -2596,7 +2578,7 @@ st.markdown("""
 .block-container{padding-top:0!important;padding-bottom:3rem;max-width:1200px;margin:0 auto;}
 html,body,[data-testid="stAppViewContainer"],[data-testid="stMain"]{background-color:var(--bg)!important;font-family:'Nunito',sans-serif!important;}
 [data-testid="stVerticalBlock"]{background:transparent;}
-[data-testid="stMain"]::before{content:'';display:block;height:5px;background:linear-gradient(90deg,var(--green) 0%,var(--yellow) 40%,var(--red) 70%,var(--purple) 100%);border-radius:0 0 8px 8px;margin-bottom:1.5rem;}
+[data-testid="stMain"]::before{content:'';display:block;height:3px;background:var(--green);margin-bottom:1.5rem;}
 
 /* Live dot */
 @keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.4;transform:scale(.75);}}
@@ -2682,8 +2664,8 @@ div[data-testid="stHorizontalBlock"] button[kind="primary"]{
 .style-details{margin-top:.8rem;border-top:1px solid var(--beige);padding-top:.8rem;}
 details.style-acc summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;font-size:.72rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--dark);background:var(--beige);border-radius:100px;padding:.25rem .75rem;margin-top:.5rem;user-select:none;}
 details.style-acc summary::-webkit-details-marker{display:none;}
-details.style-acc summary::after{content:'+ More details';}
-details.style-acc[open] summary::after{content:'− Less';}
+details.style-acc summary::after{content:'Show more';}
+details.style-acc[open] summary::after{content:'Show less';}
 details.style-acc .style-details{animation:fadeIn .2s ease;}
 @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
 .card-a .team-card-header{background:var(--green-lt);}
@@ -2866,13 +2848,24 @@ def watch_points(a, b):
     gf_a, gf_b = da["goals_for"], db["goals_for"]
     ga_a, ga_b = da["goals_against"], db["goals_against"]
     pts_a, pts_b = da["points"], db["points"]
-    return [
-        f"<b>{a if gf_a>=gf_b else b}</b> leads offensively: {gf_a} goals for {a} vs {gf_b} for {b} ({gf_a/played_a:.1f} vs {gf_b/played_b:.1f} per match).",
-        f"Defensive solidity: <b>{a if ga_a<=ga_b else b}</b> concedes less ({ga_a} vs {ga_b} goals conceded). Gap of {abs(ga_a-ga_b)} goals.",
-        f"In the standings, <b>{a if pts_a>=pts_b else b}</b> is ahead ({pts_a} pts vs {pts_b} pts). Goal difference: {da['goal_diff']:+} vs {db['goal_diff']:+}.",
+    attacker = a if gf_a >= gf_b else b
+    defender = a if ga_a <= ga_b else b
+    leader   = a if pts_a >= pts_b else b
+    trailer  = b if pts_a >= pts_b else a
+    gap      = abs(pts_a - pts_b)
+    pts_line = (
+        f"{leader} are {gap} point{'s' if gap != 1 else ''} ahead in the table. This match matters more for {trailer}."
+        if gap <= 15 else ""
+    )
+    result = [
+        f"{attacker} have been more dangerous going forward — {gf_a} goals for {a} vs {gf_b} for {b} this season.",
+        f"{defender} have the tighter defence. {abs(ga_a-ga_b)} goals separate them on the season ({ga_a} vs {ga_b} conceded).",
     ]
+    if pts_line:
+        result.append(pts_line)
+    return result
 
-GLOS_ICONS = ["⚡","🎯","🔄","💨","🛡️"]
+GLOS_ICONS = ["", "", "", "", ""]
 GLOS_COLORS = ["var(--yellow-lt)","var(--green-lt)","var(--red-lt)","var(--beige)","var(--green-lt)"]
 
 # ── Position cards data ────────────────────────────────────────────────────────
@@ -2951,23 +2944,23 @@ def render_nav():
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
         t = "primary" if page == "main" else "secondary"
-        if st.button("⚽  Analysis", type=t, use_container_width=True, key="nav_main"):
+        if st.button("Analysis", type=t, use_container_width=True, key="nav_main"):
             st.session_state.page = "main"; st.rerun()
     with c2:
         t = "primary" if page == "classement" else "secondary"
-        if st.button("📊  Standings", type=t, use_container_width=True, key="nav_class"):
+        if st.button("Standings", type=t, use_container_width=True, key="nav_class"):
             st.session_state.page = "classement"; st.rerun()
     with c3:
         t = "primary" if page == "schedule" else "secondary"
-        if st.button("📅  Schedule", type=t, use_container_width=True, key="nav_sched"):
+        if st.button("Schedule", type=t, use_container_width=True, key="nav_sched"):
             st.session_state.page = "schedule"; st.rerun()
     with c4:
         t = "primary" if page == "regles" else "secondary"
-        if st.button("📋  Rules", type=t, use_container_width=True, key="nav_regles"):
+        if st.button("Rules", type=t, use_container_width=True, key="nav_regles"):
             st.session_state.page = "regles"; st.rerun()
     with c5:
         t = "primary" if page == "glossaire" else "secondary"
-        if st.button("📖  Glossary", type=t, use_container_width=True, key="nav_glos"):
+        if st.button("Glossary", type=t, use_container_width=True, key="nav_glos"):
             st.session_state.page = "glossaire"; st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -2993,14 +2986,14 @@ def page_definition():
         st.session_state.active_term = None
         st.rerun()
 
-    st.markdown(f"""<div class="def-hero"><span class="pill pill-yellow">Tactical term</span><div class="def-title">{term.capitalize()}</div><div class="def-category">Glossary · Ligue 1</div></div>""", unsafe_allow_html=True)
+    st.markdown(f"""<div class="def-hero"><div class="def-title">{term.capitalize()}</div></div>""", unsafe_allow_html=True)
     st.markdown(f'<div class="def-text">{definition}</div>', unsafe_allow_html=True)
     if simple:
-        st.markdown(f'<div class="def-simple"><span class="def-tag def-tag-green">💡 In simple terms</span><p>{simple}</p></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="def-simple"><span class="def-tag def-tag-green">In plain English</span><p>{simple}</p></div>', unsafe_allow_html=True)
     if example:
-        st.markdown(f'<div class="def-example"><span class="def-tag def-tag-yellow">⚽ Example</span><p>{example}</p></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="def-example"><span class="def-tag def-tag-yellow">Real example</span><p>{example}</p></div>', unsafe_allow_html=True)
     st.markdown('<div class="div"></div>', unsafe_allow_html=True)
-    st.markdown('<div class="sec-label">Visualization</div><div class="sec-title">Tactical illustration</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec-title">Tactical illustration</div>', unsafe_allow_html=True)
     st.markdown(render_term_animation_html(term), unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -3015,20 +3008,20 @@ def page_glossaire():
     anchor = st.session_state.get("glossaire_anchor") or None
     st.session_state.glossaire_anchor = None
 
-    st.markdown('<div class="sec-label">Vocabulary</div><div class="sec-title">Tactical Glossary</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec-title">Tactical Glossary</div>', unsafe_allow_html=True)
 
     # ── Tab switcher (same button pattern as nav bar) ─────────────────────────
     active_tab = st.session_state.get("glossaire_tab", 0)
     st.markdown('<div style="background:var(--white);border:2px solid var(--beige);border-radius:22px;padding:.5rem .6rem;margin-bottom:1.5rem;box-shadow:0 4px 20px rgba(42,32,24,0.08);display:flex;gap:.4rem">', unsafe_allow_html=True)
     tc1, tc2, tc3 = st.columns(3)
     with tc1:
-        if st.button("📖  Tactics", type="primary" if active_tab == 0 else "secondary", use_container_width=True, key="glos_tab0"):
+        if st.button("Tactics", type="primary" if active_tab == 0 else "secondary", use_container_width=True, key="glos_tab0"):
             st.session_state.glossaire_tab = 0; st.rerun()
     with tc2:
-        if st.button("🧍  Positions", type="primary" if active_tab == 1 else "secondary", use_container_width=True, key="glos_tab1"):
+        if st.button("Positions", type="primary" if active_tab == 1 else "secondary", use_container_width=True, key="glos_tab1"):
             st.session_state.glossaire_tab = 1; st.rerun()
     with tc3:
-        if st.button("📐  Composition", type="primary" if active_tab == 2 else "secondary", use_container_width=True, key="glos_tab2"):
+        if st.button("Formations", type="primary" if active_tab == 2 else "secondary", use_container_width=True, key="glos_tab2"):
             st.session_state.glossaire_tab = 2; st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -3042,9 +3035,8 @@ def page_glossaire():
                 f'<a href="?term={term}&from=glossaire" style="text-decoration:none;color:inherit">'
                 f'<div class="glos-card">'
                 f'<div class="glos-card-header">'
-                f'<div class="glos-card-icon" style="background:{bg}">{icon}</div>'
+                f'<div class="glos-card-icon" style="background:{bg};display:flex;align-items:center;justify-content:center"><span style="width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block"></span></div>'
                 f'<span class="glos-card-term">{term.capitalize()}</span>'
-                f'<span class="pill pill-yellow" style="margin-left:auto">Tactical →</span>'
                 f'</div>'
                 f'<div class="glos-card-body">{definition}</div>'
                 f'</div>'
@@ -3146,7 +3138,7 @@ def page_classement():
     team_a = st.session_state.team_a
     team_b = st.session_state.team_b
 
-    st.markdown('<div class="sec-label">5 Leagues</div><div class="sec-title">Standings 2025/26</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec-title">Standings 2025/26</div>', unsafe_allow_html=True)
 
     tab_labels = [f"{LEAGUES[l]['flag']} {l}" for l in LEAGUES]
     tabs = st.tabs(tab_labels)
@@ -3182,7 +3174,7 @@ def page_classement():
 
             st.markdown(
                 f'<div class="standings-card">'
-                f'<div class="standings-header"><span class="standings-header-title">Full standings — Matchday {first_team_data.get("played","?")}</span></div>'
+                f'<div class="standings-header"><span class="standings-header-title">Matchday {first_team_data.get("played","?")}</span></div>'
                 f'{hdr}{rows}'
                 f'</div>',
                 unsafe_allow_html=True
@@ -3193,17 +3185,12 @@ def page_classement():
                 (name, d["position"], d["points"], d["played"], d["won"], d["goal_diff"])
                 for name, d in league_standings.items()
             )
-            with st.spinner("Generating league summary…"):
+            with st.spinner("Loading…"):
                 summary = generate_standings_summary(league_name, standings_tuple)
             if summary:
-                parts = summary.split("|||", 1)
-                s_title = parts[0] if len(parts) > 1 else ""
-                s_body  = parts[1] if len(parts) > 1 else parts[0]
-                title_html = f'<div class="standings-summary-title">📊 {s_title}</div>' if s_title else ""
                 st.markdown(
                     f'<div class="standings-summary">'
-                    f'{title_html}'
-                    f'<p>{s_body}</p>'
+                    f'<p>{summary}</p>'
                     f'</div>',
                     unsafe_allow_html=True
                 )
@@ -3238,19 +3225,27 @@ def page_main():
         st.rerun()
 
     # ── Integrated VS team selector ──
+    if "home_is_a" not in st.session_state:
+        st.session_state.home_is_a = True
+    _home_is_a_pre = st.session_state.home_is_a
+
     col_a, col_mid, col_b = st.columns([10, 1, 10])
 
     with col_a:
         da_pre = standings.get(team_a, {})
         img_pre_a = get_crest_img(team_a, 44)
+        venue_a = "Home" if _home_is_a_pre else "Away"
+        venue_col_a = "var(--green)" if _home_is_a_pre else "var(--mid)"
         st.markdown(
             f'<div class="team-pick-card team-pick-a">'
-            f'<span class="team-pick-label team-pick-label-a">Team A</span>'
             f'<div class="team-pick-info">{img_pre_a}'
             f'<div class="team-pick-meta">'
             f'<div class="team-pick-name">{team_a}</div>'
             f'<div class="team-pick-stat">#{da_pre.get("position","—")} · {da_pre.get("points","—")} pts</div>'
-            f'</div></div></div>',
+            f'</div></div>'
+            f'<div style="font-size:.6rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;'
+            f'color:{venue_col_a};margin-top:.4rem;">{venue_a}</div>'
+            f'</div>',
             unsafe_allow_html=True
         )
         idx_a = ALL_TEAMS.index(team_a) if team_a in ALL_TEAMS else 0
@@ -3260,11 +3255,8 @@ def page_main():
             st.rerun()
 
     with col_mid:
-        if "home_is_a" not in st.session_state:
-            st.session_state.home_is_a = True
         st.markdown('<div class="vs-mid-pill">VS</div>', unsafe_allow_html=True)
-        home_label = "🏠 A" if st.session_state.home_is_a else "🏠 B"
-        if st.button(home_label, key="toggle_home", help="Click to swap home team", use_container_width=True):
+        if st.button("⇄", key="toggle_home", help="Swap home team", use_container_width=True):
             st.session_state.home_is_a = not st.session_state.home_is_a
             st.rerun()
 
@@ -3275,14 +3267,18 @@ def page_main():
         team_b = st.session_state.team_b
         db_pre = standings.get(team_b, {})
         img_pre_b = get_crest_img(team_b, 44)
+        venue_b = "Away" if _home_is_a_pre else "Home"
+        venue_col_b = "var(--mid)" if _home_is_a_pre else "var(--green)"
         st.markdown(
             f'<div class="team-pick-card team-pick-b">'
-            f'<span class="team-pick-label team-pick-label-b">Team B</span>'
             f'<div class="team-pick-info">{img_pre_b}'
             f'<div class="team-pick-meta">'
             f'<div class="team-pick-name">{team_b}</div>'
             f'<div class="team-pick-stat">#{db_pre.get("position","—")} · {db_pre.get("points","—")} pts</div>'
-            f'</div></div></div>',
+            f'</div></div>'
+            f'<div style="font-size:.6rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;'
+            f'color:{venue_col_b};margin-top:.4rem;text-align:right;">{venue_b}</div>'
+            f'</div>',
             unsafe_allow_html=True
         )
         idx_b = remaining.index(st.session_state.team_b) if st.session_state.team_b in remaining else 0
@@ -3336,10 +3332,10 @@ def page_main():
                 f'Recent form &nbsp;{pills}</div>'
             )
         card_defs = [
-            ("🏆", "The Club",      cards_tuple[0] if len(cards_tuple) > 0 else ""),
-            ("⚽", "How They Play", cards_tuple[1] if len(cards_tuple) > 1 else ""),
-            ("🎯", "Tactics",       cards_tuple[2] if len(cards_tuple) > 2 else ""),
-            ("⭐", "Fun Fact",      cards_tuple[3] if len(cards_tuple) > 3 else ""),
+            ("Club",         cards_tuple[0] if len(cards_tuple) > 0 else ""),
+            ("Their game",   cards_tuple[1] if len(cards_tuple) > 1 else ""),
+            ("In depth",     cards_tuple[2] if len(cards_tuple) > 2 else ""),
+            ("Worth knowing",cards_tuple[3] if len(cards_tuple) > 3 else ""),
         ]
         arr_style = (
             "display:inline-flex;align-items:center;justify-content:center;"
@@ -3350,7 +3346,7 @@ def page_main():
         dot_base = "display:inline-block;width:7px;height:7px;border-radius:50%;background:#FFE8C8;margin:0 3px;transition:all .2s;text-decoration:none"
         dot_active = "display:inline-block;width:18px;height:7px;border-radius:4px;background:#1A1A2E;margin:0 3px;transition:all .2s;text-decoration:none"
         panels_html = ""
-        for i, (icon, label, text) in enumerate(card_defs):
+        for i, (label, text) in enumerate(card_defs):
             body = text or "—"
             for term in TACTICAL_TERMS:
                 url = f"?term={term}&from=main&ta={team_a}&tb={team_b}"
@@ -3375,7 +3371,6 @@ def page_main():
                 f'<div id="p-{slug}-{i}" class="tc-panel-{slug}">'
                 f'<div style="height:210px;overflow-y:auto;padding:.3rem .1rem">'
                 f'<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem">'
-                f'<span style="font-size:1.6rem;line-height:1">{icon}</span>'
                 f'<span style="font-size:.62rem;font-weight:900;text-transform:uppercase;letter-spacing:.13em;'
                 f'color:#5A5A7A;background:#FFE8C8;padding:.18rem .7rem;border-radius:100px">{label}</span>'
                 f'</div>'
@@ -3423,10 +3418,9 @@ def page_main():
             f'</div>'
         )
 
-    # ── AI Analysis (Playing Style) ──
-    st.markdown('<div class="sec-label">AI Analysis</div><div class="sec-title">Playing Style</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec-title">Playing Style</div>', unsafe_allow_html=True)
 
-    with st.spinner("Generating AI analysis…"):
+    with st.spinner("Loading…"):
         style_a_raw = generate_team_style(
             team_a,
             da.get("points",0), da.get("played",1), da.get("won",0), da.get("draw",0), da.get("lost",0),
@@ -3465,12 +3459,12 @@ def page_main():
     c1, c2 = st.columns(2)
     with c1:
         st.markdown(
-            _build_team_card_html(team_a, "Team A", "#CCFFE9", style_a_raw, form_a, da, da.get("crest","")),
+            _build_team_card_html(team_a, f"#{da.get('position','—')} · {da.get('points','—')} pts", "#CCFFE9", style_a_raw, form_a, da, da.get("crest","")),
             unsafe_allow_html=True
         )
     with c2:
         st.markdown(
-            _build_team_card_html(team_b, "Team B", "#FFE0E0", style_b_raw, form_b, db, db.get("crest","")),
+            _build_team_card_html(team_b, f"#{db.get('position','—')} · {db.get('points','—')} pts", "#FFE0E0", style_b_raw, form_b, db, db.get("crest","")),
             unsafe_allow_html=True
         )
 
@@ -3488,7 +3482,7 @@ def page_main():
 
 
     # ── ML Prediction Card ──
-    st.markdown('<div class="sec-label">Machine Learning</div><div class="sec-title">Match Prediction</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec-label">Machine Learning</div><div class="sec-title">How this could go</div>', unsafe_allow_html=True)
 
     ml_probs, ml_meta = predict_match(
         standings, home_team, away_team,
@@ -3524,17 +3518,6 @@ def page_main():
             momentum_msg = "Both teams in similar form — xG reflects venue & season stats"
             momentum_col = "#5A5A7A"
 
-        conf = ml_meta.get("confidence", 0)
-        if conf > 0.20:
-            conf_label = "High confidence"
-            conf_col = "#00C875"
-        elif conf > 0.10:
-            conf_label = "Medium confidence"
-            conf_col = "#FFB800"
-        else:
-            conf_label = "Low confidence · close match"
-            conf_col = "#F2827F"
-
         def _form_pills_main(form_list):
             if not form_list:
                 return '<span style="color:var(--mid);font-size:.75rem">—</span>'
@@ -3550,40 +3533,47 @@ def page_main():
             # mls is [home_score, away_score] — remap to team_a / team_b
             score_a = mls[0] if home_is_a else mls[1]
             score_b = mls[1] if home_is_a else mls[0]
-            xg_a = ml_xg["xg_home"] if home_is_a else ml_xg["xg_away"]
-            xg_b = ml_xg["xg_away"] if home_is_a else ml_xg["xg_home"]
-            home_badge = f' <span style="font-size:.55rem;background:#EEE;color:#666;padding:.1rem .3rem;border-radius:4px;margin-left:.3rem">{"🏠" if home_is_a else "✈️"} A</span>'
-            away_badge = f' <span style="font-size:.55rem;background:#EEE;color:#666;padding:.1rem .3rem;border-radius:4px;margin-left:.3rem">{"✈️" if home_is_a else "🏠"} B</span>'
             xg_block = (
                 f'<div style="flex:1;background:var(--bg);border-radius:14px;padding:1rem 1.2rem;text-align:center;">'
-                f'<div style="font-size:.58rem;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:var(--mid);margin-bottom:.4rem;">Expected Score</div>'
+                f'<div style="font-size:.58rem;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:var(--mid);margin-bottom:.4rem;">On paper</div>'
                 f'<div style="font-size:2rem;font-weight:900;color:var(--dark);letter-spacing:.05em;line-height:1;">{score_a} <span style="color:var(--mid);font-size:1.2rem;">–</span> {score_b}</div>'
-                f'<div style="font-size:.62rem;color:var(--mid);font-weight:700;margin-top:.4rem;">xG {xg_a} · {xg_b}</div>'
                 f'</div>'
             )
 
+        # Favourite sentence
+        if hw >= 50:
+            fav_team, fav_pct = team_a, hw
+        elif aw >= 50:
+            fav_team, fav_pct = team_b, aw
+        else:
+            fav_team, fav_pct = None, dr
+        if fav_team and fav_pct >= 55:
+            fav_sentence = f"{fav_team} are the favourites here."
+        elif fav_team:
+            fav_sentence = f"Slight edge to {fav_team}, but this is close."
+        else:
+            fav_sentence = "Hard to call. Either team could take this."
+
         st.markdown(
             f'<div style="background:var(--white);border-radius:var(--radius);border:2px solid var(--beige);box-shadow:var(--shadow);padding:1.4rem 1.6rem;">'
-            # Top row: probability bar
-            f'<div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.4rem;">'
-            f'<span style="font-size:.62rem;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:var(--mid);">Win probability</span>'
-            f'<span style="background:{conf_col};color:white;padding:.15rem .55rem;border-radius:100px;font-size:.58rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase;">{conf_label}</span>'
+            f'<div style="font-size:.72rem;font-weight:800;color:var(--dark);margin-bottom:.6rem;">{fav_sentence}</div>'
+            # Probability bar — no raw numbers, no confidence label
+            f'<div style="font-size:.6rem;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:var(--mid);margin-bottom:.35rem;">Who\'s likely to win</div>'
+            f'<div style="display:flex;height:28px;border-radius:10px;overflow:hidden;">'
+            f'<div style="width:{hw}%;background:#00C875;border-radius:8px 0 0 8px;"></div>'
+            f'<div style="width:{dr}%;background:#FFB800;"></div>'
+            f'<div style="width:{aw}%;background:#FF5C5C;border-radius:0 8px 8px 0;"></div>'
             f'</div>'
-            f'<div style="display:flex;height:30px;border-radius:10px;overflow:hidden;box-shadow:inset 0 1px 3px rgba(0,0,0,.08);">'
-            f'<div style="width:{hw}%;background:linear-gradient(90deg,#00C875,#00A862);display:flex;align-items:center;justify-content:center;color:white;font-weight:900;font-size:.78rem;">{hw}%</div>'
-            f'<div style="width:{dr}%;background:linear-gradient(90deg,#FFB800,#F5A500);display:flex;align-items:center;justify-content:center;color:white;font-weight:900;font-size:.78rem;">{dr}%</div>'
-            f'<div style="width:{aw}%;background:linear-gradient(90deg,#FF5C5C,#E63F3F);display:flex;align-items:center;justify-content:center;color:white;font-weight:900;font-size:.78rem;">{aw}%</div>'
-            f'</div>'
-            f'<div style="display:flex;justify-content:space-between;margin-top:.4rem;font-size:.7rem;font-weight:800;">'
-            f'<span style="color:#00A862;">{team_a} win</span>'
+            f'<div style="display:flex;justify-content:space-between;margin-top:.4rem;font-size:.68rem;font-weight:800;">'
+            f'<span style="color:#00A862;">{team_a}</span>'
             f'<span style="color:#F5A500;">Draw</span>'
-            f'<span style="color:#E63F3F;">{team_b} win</span>'
+            f'<span style="color:#E63F3F;">{team_b}</span>'
             f'</div>'
-            # Middle row: expected score + recent form
+            # Middle row: score + form
             f'<div style="display:flex;gap:1rem;margin-top:1.2rem;">'
             f'{xg_block}'
             f'<div style="flex:1.5;background:var(--bg);border-radius:14px;padding:1rem 1.2rem;">'
-            f'<div style="font-size:.58rem;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:var(--mid);margin-bottom:.5rem;">Recent Form · Last 5</div>'
+            f'<div style="font-size:.58rem;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:var(--mid);margin-bottom:.5rem;">Last 5</div>'
             f'<div style="display:flex;align-items:center;justify-content:space-between;">'
             f'<div style="display:flex;flex-direction:column;gap:.3rem;">'
             f'<span style="font-size:.72rem;font-weight:800;color:var(--dark);">{team_a}</span>'
@@ -3594,11 +3584,6 @@ def page_main():
             f'<div>{_form_pills_main(form_b)}</div>'
             f'</div>'
             f'</div></div></div>'
-            # Bottom: momentum insight
-            f'<div style="margin-top:1rem;padding:.8rem 1rem;background:rgba({_hex_to_rgb(momentum_col)},.08);border-left:3px solid {momentum_col};border-radius:8px;">'
-            f'<div style="font-size:.58rem;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:{momentum_col};margin-bottom:.2rem;">📊 Model Insight</div>'
-            f'<div style="font-size:.82rem;font-weight:600;color:var(--dark);line-height:1.5;">{momentum_msg}. Win % is calculated directly from xG via Poisson — score and probabilities are always consistent.</div>'
-            f'</div>'
             f'</div>',
             unsafe_allow_html=True
         )
@@ -3653,7 +3638,7 @@ def page_main():
     )
     st.markdown(
         f'<div class="watch-card">'
-        f'<div class="watch-header"><div class="watch-icon">👁</div><div><div class="watch-title">Key points to watch</div><div class="watch-subtitle">{team_a} vs {team_b}</div></div></div>'
+        f'<div class="watch-header"><div class="watch-icon">👁</div><div><div class="watch-title">What to look for</div><div class="watch-subtitle">{team_a} vs {team_b}</div></div></div>'
         f'<div class="watch-item"><div class="watch-num">01</div><div class="watch-dot" style="background:{WATCH_COLORS[0]}"></div><div class="watch-text">{points[0]}</div></div>'
         f'<div class="watch-item"><div class="watch-num">02</div><div class="watch-dot" style="background:{WATCH_COLORS[1]}"></div><div class="watch-text">{points[1]}</div></div>'
         f'<div class="watch-item"><div class="watch-num">03</div><div class="watch-dot" style="background:{WATCH_COLORS[2]}"></div><div class="watch-text">{points[2]}</div></div>'
@@ -3679,7 +3664,7 @@ def page_schedule():
     from datetime import datetime, timedelta, timezone
     from collections import defaultdict
 
-    st.markdown('<div class="sec-label">5 Leagues</div><div class="sec-title">Match Schedule</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec-title">Match Schedule</div>', unsafe_allow_html=True)
 
     # ── League selector (single selection) ──
     if "sched_league" not in st.session_state:
@@ -3775,14 +3760,14 @@ def page_schedule():
             elif status_raw in ("IN_PLAY", "PAUSED"):
                 score_html = f'<div class="sched-score">{m["score_h"]} – {m["score_a"]}</div>'
             else:
-                score_html = f'<div class="sched-score" style="color:var(--mid);font-size:.8rem">{m["local_time"]}</div>'
+                score_html = f'<div class="sched-score" style="color:var(--mid);font-size:.8rem"></div>'
 
             if status_raw in ("TIMED", "SCHEDULED"):
                 status_badge = f'<span class="sched-status {status_cls}">{m["local_time"]}</span>'
             else:
                 status_badge = f'<span class="sched-status {status_cls}">{status_txt}</span>'
 
-            md_badge = f'<span class="sched-matchday">MD {m["matchday"]}</span>' if m["matchday"] else ""
+            md_badge = f'<span class="sched-matchday">Matchday {m["matchday"]}</span>' if m["matchday"] else ""
 
             cur_standings = all_standings.get(m["league"], {})
             # Normalize team names (schedule API returns raw names, standings uses mapped names)
@@ -3818,40 +3803,14 @@ def page_schedule():
                 dr = int(probs[1] * 100)
                 aw = int(probs[2] * 100)
 
-                # Build momentum indicator — shows how much recent form affected the prediction
-                shift = pred_meta.get("total_shift", 0) if pred_meta else 0
-                shift_pct = abs(int(shift * 100))
-                if shift > 0.05:
-                    momentum_txt = f"↑ {m['home'].split()[-1]} in form (+{shift_pct}%)"
-                    momentum_col = "#4CAF50"
-                elif shift < -0.05:
-                    momentum_txt = f"↑ {m['away'].split()[-1]} in form (+{shift_pct}%)"
-                    momentum_col = "#F44336"
-                else:
-                    momentum_txt = "Form balanced"
-                    momentum_col = "var(--mid)"
-
-                # Confidence label
-                conf = pred_meta.get("confidence", 0) if pred_meta else 0
-                if conf > 0.20:
-                    conf_label = "HIGH"
-                    conf_col = "#00C875"
-                elif conf > 0.10:
-                    conf_label = "MEDIUM"
-                    conf_col = "#FFB800"
-                else:
-                    conf_label = "LOW"
-                    conf_col = "#F2827F"
-
-                # Expected score line
-                xg_html = ""
+                # Likely score line
+                score_line = ""
                 if xg:
                     mls = xg["most_likely_score"]
-                    xg_html = (
+                    score_line = (
                         f'<div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-top:.3rem;padding-top:.3rem;border-top:1px dashed var(--beige);">'
-                        f'<span style="font-size:.58rem;color:var(--mid);letter-spacing:.06em;text-transform:uppercase;font-weight:800;">Expected score</span>'
+                        f'<span style="font-size:.58rem;color:var(--mid);letter-spacing:.06em;text-transform:uppercase;font-weight:800;">Likely score</span>'
                         f'<span style="font-size:.85rem;font-weight:900;color:var(--dark);letter-spacing:.05em;">{mls[0]} – {mls[1]}</span>'
-                        f'<span style="font-size:.52rem;color:var(--mid);font-weight:700;">xG {xg["xg_home"]} · {xg["xg_away"]}</span>'
                         f'</div>'
                     )
 
@@ -3863,15 +3822,11 @@ def page_schedule():
                     f'<div style="width:{aw}%;background:#F44336;border-radius:0 4px 4px 0"></div>'
                     f'</div>'
                     f'<div class="sched-pred-labels">'
-                    f'<span style="color:#4CAF50">{m["home"].split()[-1]} {hw}%</span>'
-                    f'<span style="color:#FFC107">D {dr}%</span>'
-                    f'<span style="color:#F44336">{aw}% {m["away"].split()[-1]}</span>'
+                    f'<span style="color:#4CAF50">{m["home"].split()[-1]}</span>'
+                    f'<span style="color:#FFC107">Draw</span>'
+                    f'<span style="color:#F44336">{m["away"].split()[-1]}</span>'
                     f'</div>'
-                    f'{xg_html}'
-                    f'<div style="display:flex;align-items:center;justify-content:flex-end;gap:.35rem;margin-top:.35rem;padding-top:.35rem;border-top:1px dashed var(--beige);font-size:.58rem;font-weight:700;">'
-                    f'<span style="color:{momentum_col};letter-spacing:.02em;">{momentum_txt}</span>'
-                    f'<span style="background:{conf_col};color:white;padding:.08rem .35rem;border-radius:3px;font-size:.5rem;letter-spacing:.08em;">{conf_label}</span>'
-                    f'</div>'
+                    f'{score_line}'
                     f'</div>'
                 )
 
@@ -3896,35 +3851,33 @@ def page_schedule():
 # ══════════════════════════════════════════════════════════════════════════════
 # 30 rule entries (title, emoji, description) rendered as expandable cards on the Rules page.
 FOOTBALL_RULES = [
-    ("The Objective", "⚽", "Score more goals than the opponent before time runs out. A goal is scored when the ball fully crosses the opponent's goal line between the posts and under the crossbar. The team with the most goals wins. If both teams score the same number, the match is a draw — unless a winner must be decided (knockout round), in which case extra time or a penalty shootout follows."),
-    ("The Duration", "⏱️", "A match lasts 90 minutes, split into two halves of 45 minutes each, with a 15-minute break at half-time. The referee adds extra minutes at the end of each half (called added time or stoppage time) to compensate for injuries, substitutions, or time-wasting. These extra minutes are displayed on a board by the 4th official on the touchline."),
-    ("The Teams", "👥", "Each team fields 11 players on the pitch at any one time, including one goalkeeper. A team needs at least 7 players to continue a match — if a team drops below 7 (due to red cards or injuries with no substitutes left), the game is abandoned. Both teams must wear different coloured kits so they are easy to tell apart."),
-    ("The Goalkeeper", "🧤", "The goalkeeper is the only player allowed to handle the ball with their hands — but only inside their own penalty area. Outside the area, they must play like any other outfield player. They wear a different colour shirt to distinguish themselves. The keeper cannot pick up the ball with their hands if a teammate deliberately passes it back to them with their feet (back-pass rule)."),
-    ("Handball", "✋", "A handball is called when the ball touches a player's hand or arm in an unnatural position — meaning the arm is making the body bigger or in a position that was not expected. Accidental handballs are not always penalised. However, if a player scores directly after an accidental handball by a teammate, the goal is disallowed. Deliberate handball is always a foul. Goalkeepers can handle the ball freely inside their penalty area."),
-    ("Offside", "🚩", "A player is offside if, at the moment the ball is played to them, any part of their body that can score a goal (head, torso, legs) is closer to the opponent's goal line than both the ball AND the second-to-last defender (usually the last outfield player). Being offside is not a foul by itself — it only becomes an offside infringement if the player is actively involved in play (receives the ball, influences an opponent, or gains an advantage). You cannot be offside from a throw-in, corner, or goal kick."),
-    ("The Foul", "🦵", "A foul is an unfair act against an opponent, judged by the referee. Common fouls include: kicking, tripping, pushing, holding, or charging an opponent in a careless, reckless, or excessively forceful way. Fouls result in a free kick (or penalty if committed inside the penalty area) for the opposing team. The severity of the foul determines whether a yellow or red card is shown."),
-    ("The Free Kick", "🎯", "Awarded to a team after a foul or infringement by the opponent. There are two types: a direct free kick (can be shot directly into goal) and an indirect free kick (must touch another player before a goal can be scored). The opposing players must stand at least 9.15 metres (10 yards) from the ball. The kick must be taken from where the foul occurred."),
-    ("The Penalty Area", "📐", "The large rectangle in front of each goal (18-yard box). Inside this area, the goalkeeper can handle the ball. Any foul committed by a defending player inside this box results in a penalty kick for the attacking team. The smaller box inside it (6-yard box) marks the goal area, from where goal kicks are taken."),
-    ("The Penalty", "💥", "Awarded when a defending player commits a direct free kick foul inside their own penalty area. The ball is placed on the penalty spot (12 yards from goal). Only the penalty taker and the opposing goalkeeper are allowed in the area at the moment of the kick. All other players must be outside the penalty area and the penalty arc. The goalkeeper must stay on their goal line until the ball is kicked."),
-    ("The Yellow Card", "🟨", "A formal warning shown by the referee, also called a caution. A player receives a yellow card for: persistent fouling, unsporting behaviour (diving, time-wasting, pulling a shirt), showing dissent towards the referee, entering or leaving the pitch without permission, or deliberately handling the ball. If a player receives two yellow cards in the same match, they are immediately shown a red card and sent off."),
-    ("The Red Card", "🟥", "Shown for serious offences that result in immediate dismissal from the match. A player receives a direct red card (no prior yellow needed) for: violent conduct (punching, headbutting, biting), serious foul play (a tackle that endangers the opponent's safety), spitting, using offensive or abusive language or gestures, or denying an obvious goal-scoring opportunity by deliberate handball or a foul (DOGSO). After a red card, the team plays with 10 players and cannot replace the sent-off player."),
-    ("Expulsion", "🚫", "When a player receives a red card — either directly or after two yellow cards — they must immediately leave the pitch and the technical area. They cannot be replaced by a substitute, so their team plays with one fewer player for the rest of the match. The player is also automatically suspended for at least one subsequent match, sometimes more depending on the seriousness of the offence."),
-    ("The Corner", "🚩", "Awarded to the attacking team when the ball goes out of play over the goal line and was last touched by a defending player. The ball is placed in the corner arc (a small quarter-circle in the corner of the pitch) and kicked back into play. A goal can be scored directly from a corner. Defending players must stand at least 9.15 metres from the corner arc until the ball is in play."),
-    ("The Throw-In", "🤾", "Awarded when the ball goes out of play over the touchline (the long sides of the pitch). The throw-in is taken by the team that did not touch the ball last. The player must throw the ball with both hands, from behind and over their head, and both feet must be on or behind the touchline at the moment of release. A goal cannot be scored directly from a throw-in."),
-    ("The Goal", "🥅", "A goal is scored when the entire ball crosses the goal line between the goalposts and under the crossbar, provided no infringement (offside, foul, handball) occurred in the build-up. The goal counts the moment the ball fully crosses the line — even if it bounces back out. Goal-line technology or VAR may be used to confirm whether the ball crossed the line."),
-    ("The Ball", "⚪", "A standard football is spherical, made of leather or a similar material, with a circumference of 68–70 cm and a weight of 410–450 grams at the start of the match. If the ball bursts or deflates during play, the game is stopped and restarted with a new ball. The restart depends on where the ball was when it stopped — usually a dropped ball from where it became defective."),
-    ("The Substitute", "🔄", "Teams can make up to 5 substitutions per match (in most competitions), with a sixth allowed in extra time. Substitutions can only be made during a stoppage in play and must be confirmed with the 4th official. Once a player is substituted off, they cannot return to the match. A player who receives a red card cannot be replaced by a substitute — the team simply plays with fewer players."),
-    ("Extra Time", "⏰", "If a knockout match is level after 90 minutes, the game goes into extra time: two additional periods of 15 minutes each (30 minutes total). If the score is still level after extra time, the match is decided by a penalty shootout. Unlike regular time, a goal scored in extra time does not end the game immediately — both periods must be played."),
-    ("Penalty Shootout", "🥊", "Used to decide a knockout match that is still level after extra time. Each team takes turns shooting 5 penalties alternately. If still level after 5 each, it goes to sudden death (one penalty at a time, the first team to score while the other misses wins). Only players on the pitch at the end of extra time are eligible to take penalties (except the expelled players)."),
-    ("The Referee", "👨‍⚖️", "The referee is the authority on the pitch. They enforce the rules, start and stop play, award free kicks and penalties, show yellow and red cards, and add stoppage time. The referee's decision is final on the pitch. They can change a decision if they realise it was wrong, as long as play has not resumed. The referee is assisted by two assistant referees and, in top competitions, a VAR team."),
-    ("The Assistant Referee", "🚩", "Two assistant referees (ARs) patrol the touchlines during a match, one on each side. Their main jobs are to signal when the ball goes out of play (and which team gets the throw-in or corner), to flag for offside, and to assist the referee with decisions near their side of the pitch. They communicate with the referee via earpiece. They can only recommend decisions — the final call always belongs to the referee."),
-    ("VAR", "📺", "Video Assistant Referee — a technology system used in top competitions to review four key match-changing decisions: goals (and the build-up to them), penalty decisions, direct red cards, and cases of mistaken identity. A VAR team watches multiple camera angles in a review centre. They can recommend the referee to review footage on a pitchside monitor. VAR only intervenes for a 'clear and obvious error' — not for every debatable decision."),
-    ("Assisted Offside (OGSO)", "📏", "In competitions using VAR, offside decisions are confirmed using a 'semi-automated offside technology' (SAOT) system that tracks players' body positions using camera data and draws precise lines to determine if any part of the attacking player's body was ahead of the last defender. This removes the need for a subjective judgment call by the assistant referee and has made offside decisions much more accurate — though sometimes controversial for millimetre-thin calls."),
-    ("Kick-Off", "🔔", "Used to start each half of the match, to restart after a goal is scored, and to begin extra time periods. The ball is placed on the centre spot. Both teams must be in their own half. The team kicking off can kick the ball in any direction. The opposing team must be outside the centre circle (radius 9.15 m) until the ball is in play. A goal can be scored directly from a kick-off."),
-    ("The Back Pass", "↩️", "When a player deliberately passes the ball back to their own goalkeeper using their feet. The goalkeeper is NOT allowed to pick up the ball with their hands in this situation — they must play it with their feet. This rule was introduced in 1992 to prevent time-wasting. However, if the ball is headed or controlled with another body part (not the feet) and played back, the goalkeeper CAN pick it up."),
-    ("The Wall", "🧱", "When a free kick is awarded near the penalty area, the defending team can form a 'wall' of players to block the direct shot on goal. The wall must stand at least 9.15 metres from the ball. Only the attacking team's players are allowed inside this 9.15-metre zone — a recent rule change prevents defending players from standing in the wall on the same line as attackers before the kick is taken."),
-    ("Simulation (Diving)", "🎭", "When a player intentionally falls to the ground or exaggerates contact to deceive the referee into awarding a free kick or penalty. This is considered unsporting behaviour and is punishable by a yellow card. VAR has made it easier to identify simulation after the fact. Despite this, diving remains a controversial topic in football, as the line between embellishment and genuine reaction to contact can be very thin."),
-    ("Added Time", "➕", "Also known as stoppage time or injury time. At the end of each half, the referee adds extra minutes to compensate for time lost during the half — due to injuries, substitutions, goal celebrations, VAR checks, time-wasting, and other stoppages. The 4th official displays the minimum added time on a board. Since 2023, FIFA encouraged referees to add more accurate amounts of time, sometimes exceeding 10 minutes per half in high-stoppage games."),
+    ("The Objective", "", "Score more goals than the opponent before time runs out. A goal is scored when the ball fully crosses the opponent's goal line between the posts and under the crossbar. The team with the most goals wins. If both teams score the same number, the match ends in a draw — unless a winner must be decided (knockout round), in which case extra time or a penalty shootout follows."),
+    ("The Duration", "", "A match lasts 90 minutes, split into two halves of 45 minutes each, with a 15-minute break at half-time. The referee adds extra minutes at the end of each half (called added time or stoppage time) to compensate for injuries, substitutions, or time-wasting. These extra minutes are shown on a board by the 4th official."),
+    ("The Teams", "", "Each team fields 11 players on the pitch at any one time, including one goalkeeper. A team needs at least 7 players to continue — if a team drops below 7 (due to red cards or injuries with no substitutes left), the game is abandoned. Both teams must wear different coloured kits."),
+    ("The Goalkeeper", "", "The goalkeeper is the only player allowed to handle the ball with their hands — but only inside their own penalty area. Outside the area, they must play like any other outfield player. They wear a different colour shirt. The keeper cannot pick up the ball if a teammate deliberately passes it back with their feet (back-pass rule)."),
+    ("Offside", "", "A player is offside if, at the moment the ball is played to them, any part of their body that can score (head, torso, legs) is closer to the opponent's goal line than both the ball and the second-to-last defender. Being offside is only an infringement if the player actively participates in play. You cannot be offside from a throw-in, corner, or goal kick."),
+    ("The Foul", "", "A foul is an unfair act against an opponent, judged by the referee. Common fouls: kicking, tripping, pushing, holding, or charging an opponent carelessly or excessively. Fouls result in a free kick — or a penalty if committed inside the penalty area. The severity of the foul determines whether a yellow or red card follows."),
+    ("The Free Kick", "", "Awarded after a foul or infringement. There are two types: a direct free kick (can be shot straight into goal) and an indirect free kick (must touch another player first). Opposing players must stand at least 9.15 metres from the ball. The kick is taken from where the foul occurred."),
+    ("The Penalty", "", "Awarded when a defending player commits a foul inside their own penalty area. The ball is placed on the penalty spot, 12 yards from goal. Only the penalty taker and the goalkeeper are allowed in the area at the moment of the kick. The goalkeeper must stay on their goal line until the ball is kicked."),
+    ("The Yellow Card", "", "A formal warning. A player receives a yellow card for: persistent fouling, unsporting behaviour (diving, time-wasting), dissent towards the referee, or deliberately handling the ball. Two yellow cards in the same match means an immediate red card and dismissal."),
+    ("The Red Card", "", "Shown for serious offences resulting in immediate dismissal. A player receives a direct red card for: violent conduct, serious foul play, spitting, abusive language, or denying an obvious goal-scoring opportunity by handball or foul. The team plays with 10 players and cannot bring on a replacement."),
+    ("The Corner", "", "Awarded to the attacking team when the ball goes out of play over the goal line and was last touched by a defender. The ball is placed in the corner arc and kicked back into play. A goal can be scored directly from a corner. Defenders must stand at least 9.15 metres away until the ball is in play."),
+    ("The Throw-In", "", "Awarded when the ball goes out of play over the touchline (the long sides of the pitch). The throw-in belongs to the team that did not touch the ball last. The player must throw with both hands from behind and over their head, with both feet on or behind the line. A goal cannot be scored directly from a throw-in."),
+    ("The Substitute", "", "Teams can make up to 5 substitutions per match, with a sixth allowed in extra time. Substitutions can only happen during a stoppage in play. Once a player is off, they cannot return. A player sent off cannot be replaced — the team plays with fewer players."),
+    ("Extra Time", "", "If a knockout match is level after 90 minutes, the game goes into extra time: two additional periods of 15 minutes each. If still level, it goes to a penalty shootout. Both periods must be played — a goal in extra time does not end the match immediately."),
+    ("Penalty Shootout", "", "Used to decide a knockout match still level after extra time. Each team takes turns shooting 5 penalties alternately. If still tied after 5 each, it becomes sudden death — the first team to score while the other misses wins. Only players on the pitch at the end of extra time are eligible."),
+    ("VAR", "", "Video Assistant Referee. Used in top competitions to review four types of decisions: goals, penalties, direct red cards, and cases of mistaken identity. A VAR team watches multiple camera angles from a remote centre. They can recommend the referee review footage on a pitchside monitor. VAR only intervenes for a clear and obvious error."),
+    ("Handball", "", "Called when the ball touches a player's hand or arm in an unnatural position — meaning the arm is making the body bigger than expected. Accidental handballs are not always penalised. If a player scores directly after an accidental handball by a teammate, the goal is disallowed. Goalkeepers can handle the ball freely inside their area."),
+    ("The Penalty Area", "", "The large rectangle in front of each goal (18-yard box). Inside this area, the goalkeeper can handle the ball. Any foul by a defender inside the box results in a penalty for the attacking team. The smaller box inside it (6-yard box) is where goal kicks are taken from."),
+    ("Expulsion", "", "When a player receives a red card — directly or after two yellows — they must leave the pitch immediately and cannot return. Their team plays with one fewer player for the rest of the match. The player is also automatically suspended for at least one subsequent match."),
+    ("The Goal", "", "A goal is scored when the entire ball crosses the goal line between the posts and under the crossbar, with no infringement in the build-up. The goal counts the moment the ball fully crosses the line — even if it bounces back out. Goal-line technology or VAR may confirm it."),
+    ("The Referee", "", "The authority on the pitch. They enforce the rules, start and stop play, award free kicks and penalties, show cards, and add stoppage time. The referee's decision is final on the pitch, though they can correct a mistake before play resumes. Assisted by two assistant referees and, in top competitions, a VAR team."),
+    ("The Assistant Referee", "", "Two assistant referees patrol the touchlines. Their main jobs: signal when the ball goes out of play, flag for offside, and assist with decisions near their side of the pitch. They communicate with the referee via earpiece. The final call always belongs to the referee."),
+    ("Kick-Off", "", "Used to start each half, restart after a goal, and begin extra time. The ball is placed on the centre spot. Both teams must be in their own half. The opposing team must stay outside the centre circle until the ball is in play. A goal can be scored directly from a kick-off."),
+    ("The Back Pass", "", "When a player deliberately passes the ball back to their goalkeeper using their feet. The keeper cannot pick it up with their hands — they must play it with their feet. Introduced in 1992 to stop time-wasting. If the ball is headed back or played with another body part, the keeper can pick it up."),
+    ("The Wall", "", "When a free kick is awarded near the penalty area, defenders can form a wall of players to block the shot. The wall must stand at least 9.15 metres from the ball. Only attacking players are allowed in that zone — defenders cannot stand inside it before the kick is taken."),
+    ("Simulation (Diving)", "", "When a player deliberately falls or exaggerates contact to trick the referee into awarding a free kick or penalty. Punishable by a yellow card. VAR has made it easier to spot after the fact, though the line between simulation and a genuine reaction to contact can be hard to judge."),
+    ("Added Time", "", "Also known as stoppage time. At the end of each half, the referee adds minutes to make up for time lost to injuries, substitutions, goal celebrations, VAR checks, and time-wasting. Since 2023, referees have been encouraged to add more accurate amounts — sometimes over 10 minutes per half in busy games."),
 ]
 
 
@@ -3934,7 +3887,7 @@ FOOTBALL_RULES = [
 # Renders the Rules page — iterates FOOTBALL_RULES and displays each as an expandable
 # card with emoji, title, and plain-English description.
 def page_regles():
-    st.markdown('<div class="sec-label">Football Basics</div><div class="sec-title">Rules of the Game</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec-title">Rules of the Game</div>', unsafe_allow_html=True)
     st.markdown("""<style>
 .rule-card{background:var(--white);border-radius:16px;padding:0;margin-bottom:.7rem;box-shadow:0 2px 10px rgba(26,26,46,.06);overflow:hidden;}
 .rule-card summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:.75rem;padding:.85rem 1.1rem;user-select:none;}
@@ -3948,11 +3901,11 @@ details.rule-card summary::after{content:none;}
 
 </style>""", unsafe_allow_html=True)
 
-    for title, icon, description in FOOTBALL_RULES:
+    for title, _, description in FOOTBALL_RULES:
         st.markdown(
             f'<details class="rule-card">'
             f'<summary>'
-            f'<span class="rule-icon">{icon}</span>'
+            f'<span class="rule-icon" style="display:flex;align-items:center;justify-content:center"><span style="width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;flex-shrink:0"></span></span>'
             f'<span class="rule-title">{title}</span>'
             f'<span class="rule-arrow">›</span>'
             f'</summary>'
