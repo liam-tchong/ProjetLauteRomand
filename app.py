@@ -1642,7 +1642,7 @@ def render_tactical_pitch_html(team_name):
             f'</span>'
         )
         if term_key:
-            return f'<a href="?term={term_key}&from=main" style="text-decoration:none;">{inner}</a>'
+            return f'<a href="?term={term_key}&from=main" target="_parent" style="text-decoration:none;">{inner}</a>'
         return inner
 
     pills = "".join(_make_pill(s) for s in t.get("style_tags", []))
@@ -1747,7 +1747,7 @@ def render_tactical_pitch_html(team_name):
         f'<div style="font-size:.64rem;font-weight:800;letter-spacing:.18em;text-transform:uppercase;'
         f'<div style="font-size:.95rem;font-weight:900;color:rgba(255,255,255,.92);letter-spacing:-.02em;">{team_name}</div>'
         f'</div>'
-        f'<a href="?nav=glossaire&formation={formation_val}" style="text-decoration:none;">'
+        f'<a href="?nav=glossaire&formation={formation_val}" target="_parent" style="text-decoration:none;">'
         f'<span style="background:{color};color:white;font-size:.72rem;font-weight:900;'
         f'padding:.3rem .9rem;border-radius:100px;letter-spacing:.06em;cursor:pointer;'
         f'box-shadow:0 2px 10px {color}66;transition:opacity .15s;" '
@@ -2557,7 +2557,7 @@ def linkify_terms(text, source_page="main", ta=None, tb=None):
     for term in TACTICAL_TERMS:
         text = text.replace(
             f'<b>{term}</b>',
-            f'<a href="?term={term}&from={source_page}{extra}" class="term-link">{term}</a>'
+            f'<a href="?term={term}&from={source_page}{extra}" target="_parent" class="term-link">{term}</a>'
         )
     return text
 
@@ -2802,6 +2802,15 @@ if "term" in qp and qp["term"] in TACTICAL_TERMS:
     st.query_params.clear()
     st.rerun()
 
+# ── Back navigation from definition page ─────────────────────────────────────
+VALID_PAGES = {"main", "glossaire", "classement", "schedule", "regles"}
+if "back" in qp:
+    back_to = qp["back"]
+    st.session_state.page = back_to if back_to in VALID_PAGES else "main"
+    st.session_state.active_term = None
+    st.query_params.clear()
+    st.rerun()
+
 # ── Navigate to glossary position / formation anchor from pitch page ──────────
 if "nav" in qp and qp["nav"] == "glossaire":
     st.session_state.page = "glossaire"
@@ -2981,10 +2990,17 @@ def page_definition():
     simple          = term_data.get("simple_explanation", "") if isinstance(term_data, dict) else ""
     example         = term_data.get("example",            "") if isinstance(term_data, dict) else ""
 
-    if st.button("← Back", type="primary", key="back"):
-        st.session_state.page = st.session_state.get("prev_page", "main")
-        st.session_state.active_term = None
-        st.rerun()
+    prev = st.session_state.get("prev_page", "main")
+    st.markdown(
+        f'<a href="?back={prev}" target="_parent" style="'
+        f'display:inline-flex;align-items:center;gap:.4rem;'
+        f'background:var(--dark);color:var(--white);font-family:Nunito,sans-serif;'
+        f'font-size:.95rem;font-weight:800;padding:.55rem 1.4rem;border-radius:100px;'
+        f'text-decoration:none;margin-bottom:1.2rem;border:2px solid rgba(255,255,255,.15);'
+        f'transition:opacity .15s;" onmouseover="this.style.opacity=\'0.75\'" onmouseout="this.style.opacity=\'1\'">'
+        f'&#8592; Back</a>',
+        unsafe_allow_html=True,
+    )
 
     st.markdown(f"""<div class="def-hero"><div class="def-title">{term.capitalize()}</div></div>""", unsafe_allow_html=True)
     st.markdown(f'<div class="def-text">{definition}</div>', unsafe_allow_html=True)
@@ -3032,7 +3048,7 @@ def page_glossaire():
             icon = GLOS_ICONS[i % len(GLOS_ICONS)]
             bg   = GLOS_COLORS[i % len(GLOS_COLORS)]
             st.markdown(
-                f'<a href="?term={term}&from=glossaire" style="text-decoration:none;color:inherit">'
+                f'<a href="?term={term}&from=glossaire" target="_parent" style="text-decoration:none;color:inherit">'
                 f'<div class="glos-card">'
                 f'<div class="glos-card-header">'
                 f'<div class="glos-card-icon" style="background:{bg};display:flex;align-items:center;justify-content:center"><span style="width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block"></span></div>'
@@ -3352,7 +3368,7 @@ def page_main():
                 url = f"?term={term}&from=main&ta={team_a}&tb={team_b}"
                 body = body.replace(
                     f"<b>{term}</b>",
-                    f'<a href="{url}" style="color:#8B5CF6;font-weight:800;text-decoration:underline dotted 2px">{term}</a>'
+                    f'<a href="{url}" target="_parent" style="color:#8B5CF6;font-weight:800;text-decoration:underline dotted 2px">{term}</a>'
                 )
             prev_id = f"p-{slug}-{(i-1)%4}"
             next_id = f"p-{slug}-{(i+1)%4}"
