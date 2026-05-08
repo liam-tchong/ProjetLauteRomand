@@ -3760,7 +3760,9 @@ def page_schedule():
 .sched-matchday{font-size:.62rem;font-weight:700;color:var(--mid);white-space:nowrap;}
 .sched-pred{margin-top:.3rem;}
 .sched-pred-bar{display:flex;height:4px;border-radius:4px;overflow:hidden;margin-bottom:.15rem;}
-.sched-pred-labels{display:flex;justify-content:space-between;font-size:.58rem;font-weight:700;}
+.sched-pred-labels{display:flex;justify-content:space-between;align-items:flex-start;font-size:.58rem;font-weight:700;gap:.3rem;}
+.sched-pred-labels span{flex:1;word-break:break-word;}
+.sched-pred-labels span:last-child{text-align:right;}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
 </style>""", unsafe_allow_html=True)
 
@@ -3838,9 +3840,9 @@ def page_schedule():
                     f'<div style="width:{aw}%;background:#F44336;border-radius:0 4px 4px 0"></div>'
                     f'</div>'
                     f'<div class="sched-pred-labels">'
-                    f'<span style="color:#4CAF50">{m["home"].split()[-1]}</span>'
-                    f'<span style="color:#FFC107">Draw</span>'
-                    f'<span style="color:#F44336">{m["away"].split()[-1]}</span>'
+                    f'<span style="color:#4CAF50">{m["home"]}</span>'
+                    f'<span style="color:#FFC107;flex:0;white-space:nowrap">Draw</span>'
+                    f'<span style="color:#F44336">{m["away"]}</span>'
                     f'</div>'
                     f'{score_line}'
                     f'</div>'
