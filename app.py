@@ -6,6 +6,7 @@ import time
 import os
 import pickle
 import math
+from concurrent.futures import ThreadPoolExecutor
 from tactical_data import TEAM_TACTICS
 
 _model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "MachineLearning", "model.pkl")
@@ -173,6 +174,10 @@ HEADERS = {"X-Auth-Token": API_KEY}
 ANTHROPIC_API_KEY  = st.secrets.get("ANTHROPIC_API_KEY", "")
 API_FOOTBALL_KEY   = st.secrets.get("API_FOOTBALL_KEY", "")
 SQUAD_API_KEY      = st.secrets.get("SQUAD_API_KEY", "")
+
+@st.cache_resource
+def _get_anthropic_client():
+    return anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
 LEAGUES = {
     "Ligue 1":        {"code": "FL1",  "flag": "🇫🇷", "country": "France",  "color": "#1A56C4", "color_lt": "#E8F0FB"},
@@ -439,7 +444,7 @@ def generate_standings_summary(league_name, standings_tuple):
         + context
     )
     try:
-        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+        client = _get_anthropic_client()
         msg = client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=260,
@@ -819,7 +824,7 @@ No em-dashes. No "what makes them special". No "essentially". Short sentences on
 Reply with exactly 4 sections separated by "|||"."""
 
     try:
-        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+        client = _get_anthropic_client()
         msg = client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=700,
@@ -853,7 +858,7 @@ Just two lines, nothing else.
 {team_a}: {pts_a} pts, scored {gf_a}, conceded {ga_a}
 {team_b}: {pts_b} pts, scored {gf_b}, conceded {ga_b}"""
     try:
-        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+        client = _get_anthropic_client()
         msg = client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=180,
@@ -3309,18 +3314,27 @@ def page_main():
 
     st.markdown('<div class="div"></div>', unsafe_allow_html=True)
 
-    # Fetch enriched data for both teams
-    form_a, ext_a = fetch_team_extended(da.get("id"))
-    form_b, ext_b = fetch_team_extended(db.get("id"))
-    form_a, form_b = tuple(form_a), tuple(form_b)
-    extra_a       = fetch_api_football_stats(team_a, _league_code)
-    extra_b       = fetch_api_football_stats(team_b, _league_code)
-    all_scorers   = fetch_competition_scorers(_league_code)
-    scorers_a     = tuple(all_scorers.get(team_a, [])[:3])
-    scorers_b     = tuple(all_scorers.get(team_b, [])[:3])
-    prev_standings = fetch_previous_standings(_league_code)
-    prev_pos_a    = prev_standings.get(team_a)
-    prev_pos_b    = prev_standings.get(team_b)
+    # Fetch enriched data for both teams — all 6 calls run in parallel
+    _id_a, _id_b = da.get("id"), db.get("id")
+    with ThreadPoolExecutor(max_workers=6) as _pool:
+        _f_ext_a   = _pool.submit(fetch_team_extended,        _id_a)
+        _f_ext_b   = _pool.submit(fetch_team_extended,        _id_b)
+        _f_extra_a = _pool.submit(fetch_api_football_stats,   team_a, _league_code)
+        _f_extra_b = _pool.submit(fetch_api_football_stats,   team_b, _league_code)
+        _f_scorers = _pool.submit(fetch_competition_scorers,  _league_code)
+        _f_prev    = _pool.submit(fetch_previous_standings,   _league_code)
+        (form_a_raw, ext_a) = _f_ext_a.result()
+        (form_b_raw, ext_b) = _f_ext_b.result()
+        extra_a             = _f_extra_a.result()
+        extra_b             = _f_extra_b.result()
+        all_scorers         = _f_scorers.result()
+        prev_standings      = _f_prev.result()
+    form_a     = tuple(form_a_raw)
+    form_b     = tuple(form_b_raw)
+    scorers_a  = tuple(all_scorers.get(team_a, [])[:3])
+    scorers_b  = tuple(all_scorers.get(team_b, [])[:3])
+    prev_pos_a = prev_standings.get(team_a)
+    prev_pos_b = prev_standings.get(team_b)
 
     # ── Home/away assignment (toggle button in VS column) ──
     home_is_a = st.session_state.get("home_is_a", True)
@@ -3437,34 +3451,48 @@ def page_main():
     st.markdown('<div class="sec-title">Playing Style</div>', unsafe_allow_html=True)
 
     with st.spinner("Loading…"):
-        style_a_raw = generate_team_style(
-            team_a,
-            da.get("points",0), da.get("played",1), da.get("won",0), da.get("draw",0), da.get("lost",0),
-            da.get("goals_for",0), da.get("goals_against",0), da.get("goal_diff",0), da.get("position",0),
-            prev_pos_a,
-            form_a, scorers_a,
-            extra_a.get("formation"), extra_a.get("gf_avg"), extra_a.get("ga_avg"),
-            extra_a.get("wins_home"), extra_a.get("wins_away"), extra_a.get("top_scoring_slot"),
-            extra_a.get("passes_pct"), extra_a.get("shots_pg"), extra_a.get("shots_on_pg"),
-            extra_a.get("clean_sheets"), extra_a.get("failed_to_score"),
-            home_record=ext_a.get("home_record"), away_record=ext_a.get("away_record"),
-            clean_sheets_recent=ext_a.get("clean_sheets"), gf_avg_recent=ext_a.get("gf_avg_recent"),
-            ga_avg_recent=ext_a.get("ga_avg_recent"), win_pct=ext_a.get("win_pct"),
-        )
-        style_b_raw = generate_team_style(
-            team_b,
-            db.get("points",0), db.get("played",1), db.get("won",0), db.get("draw",0), db.get("lost",0),
-            db.get("goals_for",0), db.get("goals_against",0), db.get("goal_diff",0), db.get("position",0),
-            prev_pos_b,
-            form_b, scorers_b,
-            extra_b.get("formation"), extra_b.get("gf_avg"), extra_b.get("ga_avg"),
-            extra_b.get("wins_home"), extra_b.get("wins_away"), extra_b.get("top_scoring_slot"),
-            extra_b.get("passes_pct"), extra_b.get("shots_pg"), extra_b.get("shots_on_pg"),
-            extra_b.get("clean_sheets"), extra_b.get("failed_to_score"),
-            home_record=ext_b.get("home_record"), away_record=ext_b.get("away_record"),
-            clean_sheets_recent=ext_b.get("clean_sheets"), gf_avg_recent=ext_b.get("gf_avg_recent"),
-            ga_avg_recent=ext_b.get("ga_avg_recent"), win_pct=ext_b.get("win_pct"),
-        )
+        # Run both style analyses + key challenges in parallel (3 Claude calls at once)
+        with ThreadPoolExecutor(max_workers=3) as _claude_pool:
+            _fs_a = _claude_pool.submit(
+                generate_team_style,
+                team_a,
+                da.get("points",0), da.get("played",1), da.get("won",0), da.get("draw",0), da.get("lost",0),
+                da.get("goals_for",0), da.get("goals_against",0), da.get("goal_diff",0), da.get("position",0),
+                prev_pos_a,
+                form_a, scorers_a,
+                extra_a.get("formation"), extra_a.get("gf_avg"), extra_a.get("ga_avg"),
+                extra_a.get("wins_home"), extra_a.get("wins_away"), extra_a.get("top_scoring_slot"),
+                extra_a.get("passes_pct"), extra_a.get("shots_pg"), extra_a.get("shots_on_pg"),
+                extra_a.get("clean_sheets"), extra_a.get("failed_to_score"),
+                home_record=ext_a.get("home_record"), away_record=ext_a.get("away_record"),
+                clean_sheets_recent=ext_a.get("clean_sheets"), gf_avg_recent=ext_a.get("gf_avg_recent"),
+                ga_avg_recent=ext_a.get("ga_avg_recent"), win_pct=ext_a.get("win_pct"),
+            )
+            _fs_b = _claude_pool.submit(
+                generate_team_style,
+                team_b,
+                db.get("points",0), db.get("played",1), db.get("won",0), db.get("draw",0), db.get("lost",0),
+                db.get("goals_for",0), db.get("goals_against",0), db.get("goal_diff",0), db.get("position",0),
+                prev_pos_b,
+                form_b, scorers_b,
+                extra_b.get("formation"), extra_b.get("gf_avg"), extra_b.get("ga_avg"),
+                extra_b.get("wins_home"), extra_b.get("wins_away"), extra_b.get("top_scoring_slot"),
+                extra_b.get("passes_pct"), extra_b.get("shots_pg"), extra_b.get("shots_on_pg"),
+                extra_b.get("clean_sheets"), extra_b.get("failed_to_score"),
+                home_record=ext_b.get("home_record"), away_record=ext_b.get("away_record"),
+                clean_sheets_recent=ext_b.get("clean_sheets"), gf_avg_recent=ext_b.get("gf_avg_recent"),
+                ga_avg_recent=ext_b.get("ga_avg_recent"), win_pct=ext_b.get("win_pct"),
+            )
+            _fc = _claude_pool.submit(
+                generate_key_challenges,
+                team_a, team_b,
+                da.get("points",0), db.get("points",0),
+                da.get("goals_for",0), db.get("goals_for",0),
+                da.get("goals_against",0), db.get("goals_against",0),
+            )
+            style_a_raw      = _fs_a.result()
+            style_b_raw      = _fs_b.result()
+            _challenges_pair = _fc.result()
 
     # Handle legacy cache returning a plain string
     if isinstance(style_a_raw, str):
@@ -3646,12 +3674,7 @@ def page_main():
 
     # ── Watch card ──
     points = watch_points(team_a, team_b)
-    challenge_a, challenge_b = generate_key_challenges(
-        team_a, team_b,
-        da.get("points",0), db.get("points",0),
-        da.get("goals_for",0), db.get("goals_for",0),
-        da.get("goals_against",0), db.get("goals_against",0),
-    )
+    challenge_a, challenge_b = _challenges_pair
     st.markdown(
         f'<div class="watch-card">'
         f'<div class="watch-header"><div class="watch-icon">👁</div><div><div class="watch-title">What to look for</div><div class="watch-subtitle">{team_a} vs {team_b}</div></div></div>'
@@ -3707,8 +3730,12 @@ def page_schedule():
     with st.spinner("Loading schedule…"):
         for lname in selected:
             linfo = LEAGUES[lname]
-            all_standings[lname] = fetch_standings(linfo["code"])
-            matches = fetch_schedule(linfo["code"], date_from, date_to)
+            # Fetch standings and schedule for this league in parallel
+            with ThreadPoolExecutor(max_workers=2) as _sched_pool:
+                _f_st = _sched_pool.submit(fetch_standings, linfo["code"])
+                _f_sc = _sched_pool.submit(fetch_schedule, linfo["code"], date_from, date_to)
+                all_standings[lname] = _f_st.result()
+                matches              = _f_sc.result()
             for m in matches:
                 all_matches.append({
                     "league":   lname,
