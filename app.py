@@ -3432,11 +3432,13 @@ def page_main():
         arr_style = (
             "display:inline-flex;align-items:center;justify-content:center;"
             "width:28px;height:28px;border-radius:50%;border:2px solid #FFE8C8;"
-            "font-size:.9rem;color:#1A1A2E;text-decoration:none;cursor:pointer;"
-            "background:none;transition:background .15s;flex-shrink:0"
+            "font-size:.9rem;color:#1A1A2E;cursor:pointer;"
+            "background:none;transition:background .15s;flex-shrink:0;"
+            "padding:0;line-height:1;"
         )
-        dot_base = "display:inline-block;width:7px;height:7px;border-radius:50%;background:#FFE8C8;margin:0 3px;transition:all .2s;text-decoration:none"
-        dot_active = "display:inline-block;width:18px;height:7px;border-radius:4px;background:#1A1A2E;margin:0 3px;transition:all .2s;text-decoration:none"
+        dot_base = "display:inline-block;width:7px;height:7px;border-radius:50%;background:#FFE8C8;margin:0 3px;transition:all .2s;cursor:pointer;border:none;padding:0;vertical-align:middle"
+        dot_active = "display:inline-block;width:18px;height:7px;border-radius:4px;background:#1A1A2E;margin:0 3px;transition:all .2s;cursor:pointer;border:none;padding:0;vertical-align:middle"
+        n = len(card_defs)
         panels_html = ""
         for i, (label, text) in enumerate(card_defs):
             body = text or "—"
@@ -3447,21 +3449,32 @@ def page_main():
                     f"<b>{term}</b>",
                     f'<a href="{url}" target="_parent" style="color:#8B5CF6;font-weight:800;text-decoration:underline dotted 2px">{term}</a>'
                 )
-            prev_id = f"p-{slug}-{(i-1)%4}"
-            next_id = f"p-{slug}-{(i+1)%4}"
+            prev_i = (i - 1 + n) % n
+            next_i = (i + 1) % n
+            def _js(s, idx):
+                return (
+                    f"(function(){{"
+                    f"var w=document.getElementById('tc-{s}');"
+                    f"if(!w)return;"
+                    f"w.querySelectorAll('.tc-p').forEach(function(p){{p.style.display='none';}});"
+                    f"var t=w.querySelector('#p-{s}-{idx}');"
+                    f"if(t)t.style.display='block';"
+                    f"}})()"
+                )
             dots = "".join(
-                f'<a href="#p-{slug}-{j}" style="{dot_active if j==i else dot_base}"></a>'
-                for j in range(4)
+                f'<button onclick="{_js(slug, j)}" style="{dot_active if j==i else dot_base}"></button>'
+                for j in range(n)
             )
             nav = (
                 f'<div style="display:flex;align-items:center;justify-content:center;gap:.5rem;padding:.45rem 0 .2rem">'
-                f'<a href="#{prev_id}" style="{arr_style}">&#8592;</a>'
+                f'<button onclick="{_js(slug, prev_i)}" style="{arr_style}">&#8592;</button>'
                 f'<span style="display:flex;align-items:center">{dots}</span>'
-                f'<a href="#{next_id}" style="{arr_style}">&#8594;</a>'
+                f'<button onclick="{_js(slug, next_i)}" style="{arr_style}">&#8594;</button>'
                 f'</div>'
             )
+            display = "block" if i == 0 else "none"
             panels_html += (
-                f'<div id="p-{slug}-{i}" class="tc-panel-{slug}">'
+                f'<div id="p-{slug}-{i}" class="tc-p" style="display:{display}">'
                 f'<div style="height:210px;overflow-y:auto;padding:.3rem .1rem">'
                 f'<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem">'
                 f'<span style="font-size:.62rem;font-weight:900;text-transform:uppercase;letter-spacing:.13em;'
@@ -3485,17 +3498,8 @@ def page_main():
             f'<img src="{crest_url}" style="width:20px;height:20px;object-fit:contain;margin-right:.45rem;vertical-align:middle" onerror="this.style.display=\'none\'">'
             if crest_url else ""
         )
-        # :target shows the navigated panel; :has() shows panel 0 when none is targeted (modern browsers)
-        css = (
-            f'<style>'
-            f'.tc-panel-{slug}{{display:none}}'
-            f'.tc-panel-{slug}:target{{display:block}}'
-            f'.tc-wrap-{slug}:not(:has(.tc-panel-{slug}:target)) #p-{slug}-0{{display:block}}'
-            f'</style>'
-        )
         return (
-            f'{css}'
-            f'<div class="tc-wrap-{slug}" style="background:#fff;border-radius:16px;border:2px solid #FFE8C8;'
+            f'<div id="tc-{slug}" class="tc-wrap-{slug}" style="background:#fff;border-radius:16px;border:2px solid #FFE8C8;'
             f'overflow:hidden;box-shadow:0 4px 20px rgba(42,32,24,.08);margin-bottom:.5rem">'
             f'<div style="background:{hdr_bg};padding:.7rem 1rem;font-size:.8rem;font-weight:900;'
             f'letter-spacing:.05em;text-transform:uppercase;color:#1A1A2E;display:flex;align-items:center">'
