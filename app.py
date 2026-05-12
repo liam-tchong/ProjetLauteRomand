@@ -3452,15 +3452,10 @@ def page_main():
             prev_i = (i - 1 + n) % n
             next_i = (i + 1) % n
             def _js(s, idx):
-                return (
-                    f"(function(){{"
-                    f"var w=document.getElementById('tc-{s}');"
-                    f"if(!w)return;"
-                    f"w.querySelectorAll('.tc-p').forEach(function(p){{p.style.display='none';}});"
-                    f"var t=w.querySelector('#p-{s}-{idx}');"
-                    f"if(t)t.style.display='block';"
-                    f"}})()"
-                )
+                ids = [f"p-{s}-{k}" for k in range(n)]
+                hide = "".join(f"var e{k}=document.getElementById('p-{s}-{k}');if(e{k})e{k}.style.display='none';" for k in range(n))
+                show = f"var t=document.getElementById('p-{s}-{idx}');if(t)t.style.display='block';"
+                return f"{hide}{show}"
             dots = "".join(
                 f'<button onclick="{_js(slug, j)}" style="{dot_active if j==i else dot_base}"></button>'
                 for j in range(n)
