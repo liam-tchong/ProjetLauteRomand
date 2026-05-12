@@ -1649,7 +1649,10 @@ def render_tactical_pitch_html(team_name):
             f'</span>'
         )
         if term_key:
-            return f'<a href="?term={term_key}&from=main" target="_parent" style="text-decoration:none;">{inner}</a>'
+            _ta = st.session_state.get("team_a", "")
+            _tb = st.session_state.get("team_b", "")
+            _lg = st.session_state.get("league", "Ligue 1")
+            return f'<a href="?term={term_key}&from=main&ta={_ta}&tb={_tb}&lg={_lg}" target="_parent" style="text-decoration:none;">{inner}</a>'
         return inner
 
     pills = "".join(_make_pill(s) for s in t.get("style_tags", []))
@@ -2800,10 +2803,12 @@ ALL_TEAMS = sorted(standings.keys(), key=lambda n: standings[n]["position"]) if 
 qp = st.query_params
 if "term" in qp and qp["term"] in TACTICAL_TERMS:
     st.session_state.prev_page = qp.get("from", "main")
-    if "ta" in qp and qp["ta"] in (ALL_TEAMS or []):
+    if "ta" in qp and qp["ta"]:
         st.session_state.team_a = qp["ta"]
-    if "tb" in qp and qp["tb"] in (ALL_TEAMS or []):
+    if "tb" in qp and qp["tb"]:
         st.session_state.team_b = qp["tb"]
+    if "lg" in qp and qp["lg"] in LEAGUES:
+        st.session_state.league = qp["lg"]
     st.session_state.active_term = qp["term"]
     st.session_state.page = "definition"
     st.query_params.clear()
@@ -2815,6 +2820,12 @@ if "back" in qp:
     back_to = qp["back"]
     st.session_state.page = back_to if back_to in VALID_PAGES else "main"
     st.session_state.active_term = None
+    if "ta" in qp and qp["ta"]:
+        st.session_state.team_a = qp["ta"]
+    if "tb" in qp and qp["tb"]:
+        st.session_state.team_b = qp["tb"]
+    if "lg" in qp and qp["lg"] in LEAGUES:
+        st.session_state.league = qp["lg"]
     st.query_params.clear()
     st.rerun()
 
@@ -2997,8 +3008,11 @@ def page_definition():
     example         = term_data.get("example",            "") if isinstance(term_data, dict) else ""
 
     prev = st.session_state.get("prev_page", "main")
+    ta = st.session_state.get("team_a", "")
+    tb = st.session_state.get("team_b", "")
+    lg = st.session_state.get("league", "Ligue 1")
     st.markdown(
-        f'<a href="?back={prev}" target="_parent" style="'
+        f'<a href="?back={prev}&ta={ta}&tb={tb}&lg={lg}" target="_parent" style="'
         f'display:inline-flex;align-items:center;gap:.4rem;'
         f'background:var(--dark);color:var(--white);font-family:Nunito,sans-serif;'
         f'font-size:.95rem;font-weight:800;padding:.55rem 1.4rem;border-radius:100px;'
@@ -3053,8 +3067,11 @@ def page_glossaire():
             definition = term_data.get("definition", "") if isinstance(term_data, dict) else term_data
             icon = GLOS_ICONS[i % len(GLOS_ICONS)]
             bg   = GLOS_COLORS[i % len(GLOS_COLORS)]
+            _ta = st.session_state.get("team_a", "")
+            _tb = st.session_state.get("team_b", "")
+            _lg = st.session_state.get("league", "Ligue 1")
             st.markdown(
-                f'<a href="?term={term}&from=glossaire" target="_parent" style="text-decoration:none;color:inherit">'
+                f'<a href="?term={term}&from=glossaire&ta={_ta}&tb={_tb}&lg={_lg}" target="_parent" style="text-decoration:none;color:inherit">'
                 f'<div class="glos-card">'
                 f'<div class="glos-card-header">'
                 f'<div class="glos-card-icon" style="background:{bg};display:flex;align-items:center;justify-content:center"><span style="width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block"></span></div>'
@@ -3396,7 +3413,8 @@ def page_main():
         for i, (label, text) in enumerate(card_defs):
             body = text or "—"
             for term in TACTICAL_TERMS:
-                url = f"?term={term}&from=main&ta={team_a}&tb={team_b}"
+                _lg = st.session_state.get("league", "Ligue 1")
+                url = f"?term={term}&from=main&ta={team_a}&tb={team_b}&lg={_lg}"
                 body = body.replace(
                     f"<b>{term}</b>",
                     f'<a href="{url}" target="_parent" style="color:#8B5CF6;font-weight:800;text-decoration:underline dotted 2px">{term}</a>'
