@@ -1580,7 +1580,10 @@ def render_tactical_pitch_html(team_name):
             f'fill="none" stroke="#F5C842" stroke-width="1.4" opacity="0.5" stroke-dasharray="4 3"/>'
         ) if is_gk else ""
 
-        pos_anchor = f"?nav=glossaire&pos={abbr.lower()}"
+        _ta = st.session_state.get("team_a", "")
+        _tb = st.session_state.get("team_b", "")
+        _lg = st.session_state.get("league", "Ligue 1")
+        pos_anchor = f"?nav=glossaire&pos={abbr.lower()}&ta={_ta}&tb={_tb}&lg={_lg}"
         players_svg += (
             f'<a href="{pos_anchor}" class="pitch-player-link">'
             f'<g class="{cls}" {filt}>'
@@ -1757,7 +1760,7 @@ def render_tactical_pitch_html(team_name):
         f'<div style="font-size:.64rem;font-weight:800;letter-spacing:.18em;text-transform:uppercase;'
         f'<div style="font-size:.95rem;font-weight:900;color:rgba(255,255,255,.92);letter-spacing:-.02em;">{team_name}</div>'
         f'</div>'
-        f'<a href="?nav=glossaire&formation={formation_val}" target="_parent" style="text-decoration:none;">'
+        f'<a href="?nav=glossaire&formation={formation_val}&ta={st.session_state.get("team_a","")}&tb={st.session_state.get("team_b","")}&lg={st.session_state.get("league","Ligue 1")}" target="_parent" style="text-decoration:none;">'
         f'<span style="background:{color};color:white;font-size:.72rem;font-weight:900;'
         f'padding:.3rem .9rem;border-radius:100px;letter-spacing:.06em;cursor:pointer;'
         f'box-shadow:0 2px 10px {color}66;transition:opacity .15s;" '
@@ -2832,12 +2835,19 @@ if "back" in qp:
 # ── Navigate to glossary position / formation anchor from pitch page ──────────
 if "nav" in qp and qp["nav"] == "glossaire":
     st.session_state.page = "glossaire"
+    st.session_state.prev_page = "main"
+    if "ta" in qp and qp["ta"]:
+        st.session_state.team_a = qp["ta"]
+    if "tb" in qp and qp["tb"]:
+        st.session_state.team_b = qp["tb"]
+    if "lg" in qp and qp["lg"] in LEAGUES:
+        st.session_state.league = qp["lg"]
     if qp.get("pos"):
         st.session_state.glossaire_anchor = qp["pos"]
-        st.session_state.glossaire_tab = 1   # open Positions tab directly
+        st.session_state.glossaire_tab = 1
     elif qp.get("formation"):
         st.session_state.glossaire_anchor = qp["formation"]
-        st.session_state.glossaire_tab = 2   # open Composition tab directly
+        st.session_state.glossaire_tab = 2
     st.query_params.clear()
     st.rerun()
 
@@ -3043,6 +3053,20 @@ def page_glossaire():
     # ── Consume anchor set when navigating from pitch page ────────────────────
     anchor = st.session_state.get("glossaire_anchor") or None
     st.session_state.glossaire_anchor = None
+
+    if st.session_state.get("prev_page") == "main":
+        ta = st.session_state.get("team_a", "")
+        tb = st.session_state.get("team_b", "")
+        lg = st.session_state.get("league", "Ligue 1")
+        st.markdown(
+            f'<a href="?back=main&ta={ta}&tb={tb}&lg={lg}" target="_parent" style="'
+            f'display:inline-flex;align-items:center;gap:.4rem;'
+            f'background:var(--dark);color:var(--white);font-family:Nunito,sans-serif;'
+            f'font-size:.95rem;font-weight:800;padding:.55rem 1.4rem;border-radius:100px;'
+            f'text-decoration:none;margin-bottom:1.2rem;border:2px solid rgba(255,255,255,.15);">'
+            f'&#8592; Back</a>',
+            unsafe_allow_html=True,
+        )
 
     st.markdown('<div class="sec-title">Tactical Glossary</div>', unsafe_allow_html=True)
 
