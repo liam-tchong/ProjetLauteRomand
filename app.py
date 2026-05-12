@@ -276,9 +276,8 @@ def predict_expected_score(standings, home_team, away_team,
         # Geometric mean of factors (square-root) dampens extremes while keeping variance.
         # Pure multiplication (atk×def) compounds two outliers → unrealistic 5-0, 6-0.
         # Sqrt keeps PSG vs relegation at ~3-4 xG instead of 6+.
-        import math as _math
-        xg_home = LEAGUE_AVG_HOME * _math.sqrt(atk_h * def_a)
-        xg_away = LEAGUE_AVG_AWAY * _math.sqrt(atk_a * def_h)
+        xg_home = LEAGUE_AVG_HOME * math.sqrt(atk_h * def_a)
+        xg_away = LEAGUE_AVG_AWAY * math.sqrt(atk_a * def_h)
 
         # ── Form factor: last 5 weighted results → ±20% swing ──
         fh = _form_score(form_home) if form_home else dh.get("won", 0) / played_h
@@ -1351,7 +1350,6 @@ def _hex_to_rgb(hx):
 # player positions, movement arrows, and heat zones for the selected team.
 def render_tactical_pitch_html(team_name):
     """Generate a premium animated SVG tactical pitch for a given team."""
-    import math
     PAD, PW, PH = 14, 252, 360
     SW, SH = PW + 2 * PAD, PH + 2 * PAD
 

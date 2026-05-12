@@ -1,5 +1,4 @@
 streamlit
 requests
 anthropic
-xgboost
 scikit-learn

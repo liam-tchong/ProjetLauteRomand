@@ -4,3 +4,6 @@ auto_push.sh
 auto_pull.sh
 auto_push.log
 auto_pull.log
+
+__pycache__/
+*.pyc
