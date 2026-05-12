@@ -2869,15 +2869,14 @@ def watch_points(a, b):
     gap      = abs(pts_a - pts_b)
     pts_line = (
         f"{leader} are {gap} point{'s' if gap != 1 else ''} ahead in the table. This match matters more for {trailer}."
-        if gap <= 15 else ""
+        if gap <= 15 else
+        f"{leader} are dominant this season with a {gap}-point gap — {trailer} need a statement result."
     )
-    result = [
+    return [
         f"{attacker} have been more dangerous going forward — {gf_a} goals for {a} vs {gf_b} for {b} this season.",
         f"{defender} have the tighter defence. {abs(ga_a-ga_b)} goals separate them on the season ({ga_a} vs {ga_b} conceded).",
+        pts_line,
     ]
-    if pts_line:
-        result.append(pts_line)
-    return result
 
 GLOS_ICONS = ["", "", "", "", ""]
 GLOS_COLORS = ["var(--yellow-lt)","var(--green-lt)","var(--red-lt)","var(--beige)","var(--green-lt)"]
@@ -3346,9 +3345,7 @@ def page_main():
     ext_away   = ext_b  if home_is_a else ext_a
 
     def _build_team_card_html(team_name, badge_label, hdr_bg, cards_tuple, form_tuple, stats_dict, crest_url):
-        """Carousel via radio:checked ~ direct-sibling panel.
-        Panels are direct siblings of inputs inside the card — no intermediate wrapper.
-        This guarantees the CSS ~ selector works: no scroll, no hash, no JS needed."""
+        """CSS :target carousel — each panel owns its nav so prev/next arrows always point to the right card."""
         import re as _re
         slug = _re.sub(r'[^a-z0-9]', '_', team_name.lower())
         pill_style = {"W": "background:#CCFFE9;color:#007A47", "D": "background:#FFF3CC;color:#7A5500", "L": "background:#FFE0E0;color:#CC1F1F"}
@@ -3364,42 +3361,19 @@ def page_main():
                 f'Recent form &nbsp;{pills}</div>'
             )
         card_defs = [
-            ("Club",          cards_tuple[0] if len(cards_tuple) > 0 else ""),
-            ("Their game",    cards_tuple[1] if len(cards_tuple) > 1 else ""),
-            ("In depth",      cards_tuple[2] if len(cards_tuple) > 2 else ""),
-            ("Worth knowing", cards_tuple[3] if len(cards_tuple) > 3 else ""),
+            ("Club",         cards_tuple[0] if len(cards_tuple) > 0 else ""),
+            ("Their game",   cards_tuple[1] if len(cards_tuple) > 1 else ""),
+            ("In depth",     cards_tuple[2] if len(cards_tuple) > 2 else ""),
+            ("Worth knowing",cards_tuple[3] if len(cards_tuple) > 3 else ""),
         ]
         arr_style = (
             "display:inline-flex;align-items:center;justify-content:center;"
             "width:28px;height:28px;border-radius:50%;border:2px solid #FFE8C8;"
-            "font-size:.9rem;color:#1A1A2E;cursor:pointer;"
-            "background:none;transition:background .15s;flex-shrink:0;user-select:none"
+            "font-size:.9rem;color:#1A1A2E;text-decoration:none;cursor:pointer;"
+            "background:none;transition:background .15s;flex-shrink:0"
         )
-        # Panels are direct siblings of <input> elements.
-        # CSS ~ finds each panel by ID without any intermediate container.
-        panel_rules = "".join(
-            f'#tc-{slug}-{i}:checked~#panel-{slug}-{i}{{display:block}}'
-            for i in range(4)
-        )
-        dot_rules = "".join(
-            f'#tc-{slug}-{i}:checked~#panel-{slug}-{i} label.tc-dot-{slug}[for="tc-{slug}-{i}"]'
-            f'{{width:18px;border-radius:4px;background:#1A1A2E}}'
-            for i in range(4)
-        )
-        css = (
-            f'<style>'
-            f'.tc-panel-{slug}{{display:none}}'
-            f'{panel_rules}'
-            f'.tc-dot-{slug}{{display:inline-block;width:7px;height:7px;border-radius:50%;'
-            f'background:#FFE8C8;margin:0 3px;cursor:pointer;transition:all .2s}}'
-            f'{dot_rules}'
-            f'</style>'
-        )
-        radios = "".join(
-            f'<input type="radio" name="tc-{slug}" id="tc-{slug}-{i}" '
-            f'{"checked " if i == 0 else ""}style="display:none">'
-            for i in range(4)
-        )
+        dot_base = "display:inline-block;width:7px;height:7px;border-radius:50%;background:#FFE8C8;margin:0 3px;transition:all .2s;text-decoration:none"
+        dot_active = "display:inline-block;width:18px;height:7px;border-radius:4px;background:#1A1A2E;margin:0 3px;transition:all .2s;text-decoration:none"
         panels_html = ""
         for i, (label, text) in enumerate(card_defs):
             body = text or "—"
@@ -3407,23 +3381,23 @@ def page_main():
                 url = f"?term={term}&from=main&ta={team_a}&tb={team_b}"
                 body = body.replace(
                     f"<b>{term}</b>",
-                    f'<a href="{url}" style="color:#8B5CF6;font-weight:800;text-decoration:underline dotted 2px">{term}</a>'
+                    f'<a href="{url}" target="_parent" style="color:#8B5CF6;font-weight:800;text-decoration:underline dotted 2px">{term}</a>'
                 )
-            prev_i = (i - 1) % 4
-            next_i = (i + 1) % 4
+            prev_id = f"p-{slug}-{(i-1)%4}"
+            next_id = f"p-{slug}-{(i+1)%4}"
             dots = "".join(
-                f'<label for="tc-{slug}-{j}" class="tc-dot-{slug}"></label>'
+                f'<a href="#p-{slug}-{j}" style="{dot_active if j==i else dot_base}"></a>'
                 for j in range(4)
             )
             nav = (
                 f'<div style="display:flex;align-items:center;justify-content:center;gap:.5rem;padding:.45rem 0 .2rem">'
-                f'<label for="tc-{slug}-{prev_i}" style="{arr_style}">&#8592;</label>'
+                f'<a href="#{prev_id}" style="{arr_style}">&#8592;</a>'
                 f'<span style="display:flex;align-items:center">{dots}</span>'
-                f'<label for="tc-{slug}-{next_i}" style="{arr_style}">&#8594;</label>'
+                f'<a href="#{next_id}" style="{arr_style}">&#8594;</a>'
                 f'</div>'
             )
             panels_html += (
-                f'<div id="panel-{slug}-{i}" class="tc-panel-{slug}" style="padding:0 .9rem .2rem">'
+                f'<div id="p-{slug}-{i}" class="tc-panel-{slug}">'
                 f'<div style="height:210px;overflow-y:auto;padding:.3rem .1rem">'
                 f'<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem">'
                 f'<span style="font-size:.62rem;font-weight:900;text-transform:uppercase;letter-spacing:.13em;'
@@ -3447,19 +3421,28 @@ def page_main():
             f'<img src="{crest_url}" style="width:20px;height:20px;object-fit:contain;margin-right:.45rem;vertical-align:middle" onerror="this.style.display=\'none\'">'
             if crest_url else ""
         )
+        # :target shows the navigated panel; :has() shows panel 0 when none is targeted (modern browsers)
+        css = (
+            f'<style>'
+            f'.tc-panel-{slug}{{display:none}}'
+            f'.tc-panel-{slug}:target{{display:block}}'
+            f'.tc-wrap-{slug}:not(:has(.tc-panel-{slug}:target)) #p-{slug}-0{{display:block}}'
+            f'</style>'
+        )
         return (
             f'{css}'
-            f'<div style="background:#fff;border-radius:16px;border:2px solid #FFE8C8;'
+            f'<div class="tc-wrap-{slug}" style="background:#fff;border-radius:16px;border:2px solid #FFE8C8;'
             f'overflow:hidden;box-shadow:0 4px 20px rgba(42,32,24,.08);margin-bottom:.5rem">'
-            f'{radios}'
             f'<div style="background:{hdr_bg};padding:.7rem 1rem;font-size:.8rem;font-weight:900;'
             f'letter-spacing:.05em;text-transform:uppercase;color:#1A1A2E;display:flex;align-items:center">'
             f'{crest_tag}{team_name}'
             f'<span style="margin-left:auto;font-size:.6rem;font-weight:800;letter-spacing:.1em;'
             f'padding:.18rem .6rem;border-radius:100px;background:rgba(0,0,0,.08)">{badge_label}</span>'
             f'</div>'
-            f'<div style="padding:.75rem .9rem 0">{form_html}</div>'
+            f'<div style="padding:.75rem .9rem .2rem">'
+            f'{form_html}'
             f'{panels_html}'
+            f'</div>'
             f'<div style="display:flex;border-top:1px solid #FFE8C8;padding:.55rem .4rem .45rem">{stats_html}</div>'
             f'</div>'
         )
@@ -3993,4 +3976,3 @@ else:
         page_glossaire()
     else:
         page_main()
-
