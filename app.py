@@ -3422,11 +3422,14 @@ def page_main():
             f'<img src="{crest_url}" style="width:20px;height:20px;object-fit:contain;margin-right:.45rem;vertical-align:middle" onerror="this.style.display=\'none\'">'
             if crest_url else ""
         )
-        # :target shows the navigated panel; :has() shows panel 0 when none is targeted (modern browsers)
+        # Panels are position:absolute inside a fixed-height container so switching panels
+        # causes no layout shift — the target element stays in the viewport and the browser
+        # has nothing to scroll to, eliminating the page-scroll-on-arrow-click bug.
         css = (
             f'<style>'
-            f'.tc-panel-{slug}{{display:none}}'
+            f'.tc-panel-{slug}{{display:none;position:absolute;top:0;left:0;right:0}}'
             f'.tc-panel-{slug}:target{{display:block}}'
+            f'.tc-panels-wrap-{slug}{{position:relative;height:252px}}'
             f'.tc-wrap-{slug}:not(:has(.tc-panel-{slug}:target)) #p-{slug}-0{{display:block}}'
             f'</style>'
         )
@@ -3442,7 +3445,7 @@ def page_main():
             f'</div>'
             f'<div style="padding:.75rem .9rem .2rem">'
             f'{form_html}'
-            f'{panels_html}'
+            f'<div class="tc-panels-wrap-{slug}">{panels_html}</div>'
             f'</div>'
             f'<div style="display:flex;border-top:1px solid #FFE8C8;padding:.55rem .4rem .45rem">{stats_html}</div>'
             f'</div>'
