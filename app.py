@@ -50,8 +50,12 @@ def _most_likely_score(xg_home, xg_away, max_goals=7):
 
 def _start_background_refresh():
     """Fetch latest 2025/26 matches since last CSV entry and retrain model in background.
-    Runs at most once per hour (file mtime gate) so it never hammers the API."""
+    Runs at most once per session (session_state gate) and once per hour (file mtime gate)."""
     import threading
+
+    if st.session_state.get("_bg_refresh_started"):
+        return
+    st.session_state["_bg_refresh_started"] = True
 
     if not os.path.exists(_csv_path):
         return
@@ -3158,12 +3162,34 @@ def page_classement():
 
     st.markdown('<div class="sec-title">Standings 2025/26</div>', unsafe_allow_html=True)
 
+    # Pre-fetch all standings + summaries in parallel before rendering tabs
+    with st.spinner("Loading standings…"):
+        with ThreadPoolExecutor(max_workers=len(LEAGUES)) as _pool:
+            _st_futures = {
+                lname: _pool.submit(fetch_standings, linfo["code"])
+                for lname, linfo in LEAGUES.items()
+            }
+            _all_standings = {lname: f.result() for lname, f in _st_futures.items()}
+
+        def _make_tuple(standings):
+            return tuple(
+                (name, d["position"], d["points"], d["played"], d["won"], d["goal_diff"])
+                for name, d in standings.items()
+            )
+
+        with ThreadPoolExecutor(max_workers=len(LEAGUES)) as _pool:
+            _sum_futures = {
+                lname: _pool.submit(generate_standings_summary, lname, _make_tuple(stds))
+                for lname, stds in _all_standings.items() if stds
+            }
+            _all_summaries = {lname: f.result() for lname, f in _sum_futures.items()}
+
     tab_labels = [f"{LEAGUES[l]['flag']} {l}" for l in LEAGUES]
     tabs = st.tabs(tab_labels)
 
     for (league_name, league_info), tab in zip(LEAGUES.items(), tabs):
         with tab:
-            league_standings = fetch_standings(league_info["code"])
+            league_standings = _all_standings.get(league_name, {})
             league_teams = sorted(league_standings.keys(), key=lambda n: league_standings[n]["position"]) if league_standings else []
             if not league_standings:
                 st.markdown("<p>Data not available.</p>", unsafe_allow_html=True)
@@ -3198,13 +3224,7 @@ def page_classement():
                 unsafe_allow_html=True
             )
 
-            # ── AI standings summary ──
-            standings_tuple = tuple(
-                (name, d["position"], d["points"], d["played"], d["won"], d["goal_diff"])
-                for name, d in league_standings.items()
-            )
-            with st.spinner("Loading…"):
-                summary = generate_standings_summary(league_name, standings_tuple)
+            summary = _all_summaries.get(league_name, "")
             if summary:
                 st.markdown(
                     f'<div class="standings-summary">'
@@ -3313,19 +3333,20 @@ def page_main():
 
     # Fetch enriched data for both teams — all 6 calls run in parallel
     _id_a, _id_b = da.get("id"), db.get("id")
-    with ThreadPoolExecutor(max_workers=6) as _pool:
-        _f_ext_a   = _pool.submit(fetch_team_extended,        _id_a)
-        _f_ext_b   = _pool.submit(fetch_team_extended,        _id_b)
-        _f_extra_a = _pool.submit(fetch_api_football_stats,   team_a, _league_code)
-        _f_extra_b = _pool.submit(fetch_api_football_stats,   team_b, _league_code)
-        _f_scorers = _pool.submit(fetch_competition_scorers,  _league_code)
-        _f_prev    = _pool.submit(fetch_previous_standings,   _league_code)
-        (form_a_raw, ext_a) = _f_ext_a.result()
-        (form_b_raw, ext_b) = _f_ext_b.result()
-        extra_a             = _f_extra_a.result()
-        extra_b             = _f_extra_b.result()
-        all_scorers         = _f_scorers.result()
-        prev_standings      = _f_prev.result()
+    with st.spinner("Loading match data…"):
+        with ThreadPoolExecutor(max_workers=6) as _pool:
+            _f_ext_a   = _pool.submit(fetch_team_extended,        _id_a)
+            _f_ext_b   = _pool.submit(fetch_team_extended,        _id_b)
+            _f_extra_a = _pool.submit(fetch_api_football_stats,   team_a, _league_code)
+            _f_extra_b = _pool.submit(fetch_api_football_stats,   team_b, _league_code)
+            _f_scorers = _pool.submit(fetch_competition_scorers,  _league_code)
+            _f_prev    = _pool.submit(fetch_previous_standings,   _league_code)
+            (form_a_raw, ext_a) = _f_ext_a.result()
+            (form_b_raw, ext_b) = _f_ext_b.result()
+            extra_a             = _f_extra_a.result()
+            extra_b             = _f_extra_b.result()
+            all_scorers         = _f_scorers.result()
+            prev_standings      = _f_prev.result()
     form_a     = tuple(form_a_raw)
     form_b     = tuple(form_b_raw)
     scorers_a  = tuple(all_scorers.get(team_a, [])[:3])
