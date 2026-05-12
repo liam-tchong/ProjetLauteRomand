@@ -3346,7 +3346,9 @@ def page_main():
     ext_away   = ext_b  if home_is_a else ext_a
 
     def _build_team_card_html(team_name, badge_label, hdr_bg, cards_tuple, form_tuple, stats_dict, crest_url):
-        """Radio-button carousel: labels act as arrows/dots, no hash links, no JS, no page scroll."""
+        """Carousel via radio:checked ~ direct-sibling panel.
+        Panels are direct siblings of inputs inside the card — no intermediate wrapper.
+        This guarantees the CSS ~ selector works: no scroll, no hash, no JS needed."""
         import re as _re
         slug = _re.sub(r'[^a-z0-9]', '_', team_name.lower())
         pill_style = {"W": "background:#CCFFE9;color:#007A47", "D": "background:#FFF3CC;color:#7A5500", "L": "background:#FFE0E0;color:#CC1F1F"}
@@ -3373,26 +3375,26 @@ def page_main():
             "font-size:.9rem;color:#1A1A2E;cursor:pointer;"
             "background:none;transition:background .15s;flex-shrink:0;user-select:none"
         )
-        # CSS: radio :checked + ~ sibling selects the panels container, then descendant panel
+        # Panels are direct siblings of <input> elements.
+        # CSS ~ finds each panel by ID without any intermediate container.
         panel_rules = "".join(
-            f'#tc-{slug}-{i}:checked ~ .tc-panels-{slug} #panel-{slug}-{i}{{display:block}}'
+            f'#tc-{slug}-{i}:checked~#panel-{slug}-{i}{{display:block}}'
             for i in range(4)
         )
         dot_rules = "".join(
-            f'#tc-{slug}-{i}:checked ~ .tc-panels-{slug} label[for="tc-{slug}-{i}"].tc-dot-{slug}'
+            f'#tc-{slug}-{i}:checked~#panel-{slug}-{i} label.tc-dot-{slug}[for="tc-{slug}-{i}"]'
             f'{{width:18px;border-radius:4px;background:#1A1A2E}}'
             for i in range(4)
         )
         css = (
             f'<style>'
-            f'.tc-panels-{slug} .tc-panel-item{{display:none}}'
+            f'.tc-panel-{slug}{{display:none}}'
             f'{panel_rules}'
             f'.tc-dot-{slug}{{display:inline-block;width:7px;height:7px;border-radius:50%;'
             f'background:#FFE8C8;margin:0 3px;cursor:pointer;transition:all .2s}}'
             f'{dot_rules}'
             f'</style>'
         )
-        # Hidden radio inputs — must be siblings of .tc-panels-{slug} for ~ to work
         radios = "".join(
             f'<input type="radio" name="tc-{slug}" id="tc-{slug}-{i}" '
             f'{"checked " if i == 0 else ""}style="display:none">'
@@ -3421,7 +3423,7 @@ def page_main():
                 f'</div>'
             )
             panels_html += (
-                f'<div id="panel-{slug}-{i}" class="tc-panel-item">'
+                f'<div id="panel-{slug}-{i}" class="tc-panel-{slug}" style="padding:0 .9rem .2rem">'
                 f'<div style="height:210px;overflow-y:auto;padding:.3rem .1rem">'
                 f'<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem">'
                 f'<span style="font-size:.62rem;font-weight:900;text-transform:uppercase;letter-spacing:.13em;'
@@ -3445,8 +3447,6 @@ def page_main():
             f'<img src="{crest_url}" style="width:20px;height:20px;object-fit:contain;margin-right:.45rem;vertical-align:middle" onerror="this.style.display=\'none\'">'
             if crest_url else ""
         )
-        # Structure: inputs are direct siblings of .tc-panels-{slug} so the ~ selector works.
-        # Clicking a label checks its radio → CSS shows the matching panel. No hash, no scroll.
         return (
             f'{css}'
             f'<div style="background:#fff;border-radius:16px;border:2px solid #FFE8C8;'
@@ -3459,7 +3459,7 @@ def page_main():
             f'padding:.18rem .6rem;border-radius:100px;background:rgba(0,0,0,.08)">{badge_label}</span>'
             f'</div>'
             f'<div style="padding:.75rem .9rem 0">{form_html}</div>'
-            f'<div class="tc-panels-{slug}" style="padding:0 .9rem .2rem">{panels_html}</div>'
+            f'{panels_html}'
             f'<div style="display:flex;border-top:1px solid #FFE8C8;padding:.55rem .4rem .45rem">{stats_html}</div>'
             f'</div>'
         )
@@ -3993,3 +3993,4 @@ else:
         page_glossaire()
     else:
         page_main()
+
