@@ -24,6 +24,9 @@ try:
 except Exception:
     GOALS_MODEL = None
 
+API_KEY = "911605e549af4b759c5d7d2ffa977742"
+HEADERS = {"X-Auth-Token": API_KEY}
+
 
 def _poisson_pmf(k, lam):
     """P(X=k) for Poisson distribution with mean lam."""
@@ -71,7 +74,7 @@ def _start_background_refresh():
                 try:
                     r = requests.get(
                         f"https://api.football-data.org/v4/competitions/{code}/matches",
-                        headers={"X-Auth-Token": "911605e549af4b759c5d7d2ffa977742"},
+                        headers=HEADERS,
                         params={"season": 2025, "status": "FINISHED"},
                         timeout=10,
                     )
@@ -168,9 +171,6 @@ _start_background_refresh()
 st.set_page_config(page_title="The Football Classroom", layout="wide")
 
 # ── API ───────────────────────────────────────────────────────────────────────
-API_KEY = "911605e549af4b759c5d7d2ffa977742"
-HEADERS = {"X-Auth-Token": API_KEY}
-
 ANTHROPIC_API_KEY  = st.secrets.get("ANTHROPIC_API_KEY", "")
 API_FOOTBALL_KEY   = st.secrets.get("API_FOOTBALL_KEY", "")
 SQUAD_API_KEY      = st.secrets.get("SQUAD_API_KEY", "")
