@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FORMA Studio — Architecture</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #FAF6EE;
+      --beige:    #EDE4D0;
+      --green:    #7CC99A;
+      --green-lt: #D4F0E0;
+      --red:      #F2827F;
+      --red-lt:   #FCE0DF;
+      --yellow:   #F5D06E;
+      --yellow-lt:#FEF3CF;
+      --dark:     #2A2018;
+      --mid:      #6B5A45;
+      --white:    #FFFFFF;
+      --radius:   24px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: var(--bg);
+      color: var(--dark);
+      overflow-x: hidden;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 1rem; left: 1rem; right: 1rem;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 2rem;
+      background: var(--white);
+      border-radius: var(--radius);
+      border: 2px solid var(--beige);
+      box-shadow: 0 4px 24px rgba(42,32,24,0.06);
+    }
+
+    .logo {
+      font-size: 1.2rem;
+      font-weight: 900;
+      color: var(--dark);
+      text-decoration: none;
+      letter-spacing: -0.02em;
+    }
+    .logo span {
+      display: inline-block;
+      background: var(--red);
+      color: var(--white);
+      border-radius: 8px;
+      padding: 0 6px;
+      margin-right: 2px;
+    }
+
+    nav ul { list-style: none; display: flex; gap: 0.5rem; }
+
+    nav ul a {
+      color: var(--mid);
+      text-decoration: none;
+      font-size: 0.88rem;
+      font-weight: 700;
+      padding: 0.45rem 1rem;
+      border-radius: 100px;
+      transition: background 0.2s, color 0.2s;
+    }
+    nav ul a:hover { background: var(--beige); color: var(--dark); }
+
+    .nav-cta {
+      background: var(--dark) !important;
+      color: var(--white) !important;
+    }
+    .nav-cta:hover { background: #4A3A28 !important; }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 100vh;
+      padding-top: 6rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding-left: 3rem;
+      padding-right: 3rem;
+      padding-bottom: 3rem;
+    }
+
+    .hero-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--green-lt);
+      color: #2E7D52;
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 0.4rem 1rem;
+      border-radius: 100px;
+      margin-bottom: 2rem;
+      width: fit-content;
+    }
+
+    .hero h1 {
+      font-size: clamp(3.5rem, 7vw, 7rem);
+      font-weight: 900;
+      line-height: 1.0;
+      letter-spacing: -0.04em;
+      color: var(--dark);
+      margin-bottom: 1.5rem;
+    }
+
+    .hero h1 .highlight {
+      background: var(--yellow);
+      border-radius: 16px;
+      padding: 0 16px;
+      display: inline-block;
+    }
+
+    .hero h1 .outline {
+      color: transparent;
+      -webkit-text-stroke: 3px var(--dark);
+    }
+
+    .hero p {
+      font-size: 1.1rem;
+      font-weight: 600;
+      line-height: 1.7;
+      color: var(--mid);
+      max-width: 500px;
+      margin-bottom: 2.5rem;
+    }
+
+    .hero-actions { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+
+    .btn-primary {
+      background: var(--dark);
+      color: var(--white);
+      padding: 0.9rem 2rem;
+      border-radius: 100px;
+      font-weight: 800;
+      font-size: 0.95rem;
+      text-decoration: none;
+      transition: transform 0.2s, background 0.2s;
+    }
+    .btn-primary:hover { transform: translateY(-2px); background: #4A3A28; }
+
+    .btn-secondary {
+      background: var(--white);
+      color: var(--dark);
+      padding: 0.9rem 2rem;
+      border-radius: 100px;
+      font-weight: 800;
+      font-size: 0.95rem;
+      text-decoration: none;
+      border: 2px solid var(--beige);
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .btn-secondary:hover { border-color: var(--dark); transform: translateY(-2px); }
+
+    /* Stats inline */
+    .hero-stats {
+      display: flex;
+      gap: 2rem;
+      margin-top: 3rem;
+      flex-wrap: wrap;
+    }
+
+    .hero-stat {
+      background: var(--white);
+      border: 2px solid var(--beige);
+      border-radius: 18px;
+      padding: 1rem 1.5rem;
+      text-align: center;
+    }
+
+    .hero-stat strong {
+      display: block;
+      font-size: 2rem;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      line-height: 1;
+      margin-bottom: 0.2rem;
+    }
+
+    .hero-stat span {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--mid);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    /* ── MARQUEE ── */
+    .marquee-wrap {
+      overflow: hidden;
+      background: var(--dark);
+      padding: 1rem 0;
+      border-radius: var(--radius);
+      margin: 0 1rem 3rem;
+    }
+    .marquee-track {
+      display: flex;
+      gap: 2rem;
+      animation: marquee 22s linear infinite;
+      white-space: nowrap;
+    }
+    @keyframes marquee {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+    .marquee-item {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      font-size: 0.8rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.5);
+    }
+    .marquee-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* ── PORTFOLIO ── */
+    #projets { padding: 0 3rem 5rem; }
+
+    .section-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+
+    .section-tag {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      padding: 0.3rem 0.9rem;
+      border-radius: 100px;
+      margin-bottom: 0.6rem;
+    }
+    .tag-green  { background: var(--green-lt);  color: #2E7D52; }
+    .tag-red    { background: var(--red-lt);    color: #C0302E; }
+    .tag-yellow { background: var(--yellow-lt); color: #8A6800; }
+
+    .section-title {
+      font-size: clamp(2rem, 3vw, 2.8rem);
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      color: var(--dark);
+    }
+
+    .section-count {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--mid);
+    }
+
+    /* Filtres */
+    .filters {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      padding: 0.5rem 1.2rem;
+      border-radius: 100px;
+      font-size: 0.82rem;
+      font-weight: 800;
+      border: 2px solid var(--beige);
+      background: var(--white);
+      color: var(--mid);
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: 'Nunito', sans-serif;
+    }
+    .filter-btn:hover   { border-color: var(--dark); color: var(--dark); }
+    .filter-btn.active  { background: var(--dark); border-color: var(--dark); color: var(--white); }
+
+    /* Grille */
+    .projects-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.2rem;
+    }
+
+    .project-card {
+      border-radius: var(--radius);
+      overflow: hidden;
+      aspect-ratio: 4/3;
+      cursor: pointer;
+      transition: transform 0.3s, box-shadow 0.3s;
+      position: relative;
+      border: 2px solid transparent;
+    }
+
+    .project-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 16px 40px rgba(42,32,24,0.12);
+    }
+
+    .project-card.featured { grid-column: span 2; aspect-ratio: 16/9; }
+
+    .card-placeholder {
+      width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 4rem;
+      transition: transform 0.4s;
+    }
+    .project-card:hover .card-placeholder { transform: scale(1.04); }
+
+    .card-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(42,32,24,0.80) 0%, transparent 60%);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 1.5rem;
+    }
+
+    .card-chip {
+      display: inline-block;
+      font-size: 0.68rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      padding: 0.25rem 0.7rem;
+      border-radius: 100px;
+      margin-bottom: 0.5rem;
+      width: fit-content;
+    }
+
+    .card-title {
+      font-size: 1.05rem;
+      font-weight: 900;
+      color: var(--white);
+      line-height: 1.2;
+      margin-bottom: 0.2rem;
+    }
+
+    .card-meta {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: rgba(255,255,255,0.65);
+    }
+
+    /* ── STATS ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin: 0 3rem 4rem;
+    }
+
+    .stat-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      border: 2px solid var(--beige);
+      padding: 1.5rem;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 6px;
+    }
+    .stat-card:nth-child(1)::before { background: var(--red); }
+    .stat-card:nth-child(2)::before { background: var(--green); }
+    .stat-card:nth-child(3)::before { background: var(--yellow); }
+    .stat-card:nth-child(4)::before { background: var(--dark); }
+
+    .stat-number {
+      font-size: 2.8rem;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      line-height: 1;
+      margin-bottom: 0.3rem;
+      color: var(--dark);
+    }
+    .stat-label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--mid);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--dark);
+      margin: 0 1rem 1rem;
+      border-radius: var(--radius);
+      padding: 2.5rem 3rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+    }
+
+    .footer-logo {
+      font-size: 1.2rem;
+      font-weight: 900;
+      color: var(--white);
+      text-decoration: none;
+    }
+    .footer-logo span {
+      background: var(--red);
+      border-radius: 8px;
+      padding: 0 6px;
+      margin-right: 2px;
+    }
+
+    .footer-copy { font-size: 0.82rem; font-weight: 600; color: rgba(255,255,255,0.35); }
+
+    .footer-links { display: flex; gap: 1.5rem; }
+    .footer-links a {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: rgba(255,255,255,0.45);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .footer-links a:hover { color: var(--white); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      nav { padding: 0.9rem 1.2rem; }
+      nav ul { display: none; }
+      .hero { padding: 6rem 1.5rem 2rem; }
+      #projets { padding: 0 1.5rem 3rem; }
+      .projects-grid { grid-template-columns: 1fr 1fr; }
+      .project-card.featured { grid-column: span 2; }
+      .stats-row { grid-template-columns: 1fr 1fr; margin: 0 1.5rem 3rem; }
+      footer { margin: 0 0.5rem 0.5rem; padding: 2rem 1.5rem; }
+      .marquee-wrap { margin: 0 0.5rem 2rem; }
+    }
+
+    @media (max-width: 550px) {
+      .projects-grid { grid-template-columns: 1fr; }
+      .project-card.featured { grid-column: span 1; aspect-ratio: 4/3; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <a href="#" class="logo"><span>F</span>ORMA Studio</a>
+    <ul>
+      <li><a href="#projets">Projets</a></li>
+      <li><a href="#projets">Studio</a></li>
+      <li><a href="#projets">Services</a></li>
+      <li><a href="#contact" class="nav-cta">Contact</a></li>
+    </ul>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-tag">Cabinet d'Architecture · Paris</div>
+    <h1>
+      Créer des<br />
+      espaces <span class="highlight">qui osent</span><br />
+      le <span class="outline">futur.</span>
+    </h1>
+    <p>FORMA Studio conçoit des espaces résidentiels, commerciaux et urbains qui redéfinissent le rapport entre architecture, lumière et usage.</p>
+    <div class="hero-actions">
+      <a href="#projets" class="btn-primary">Voir nos projets</a>
+      <a href="#contact" class="btn-secondary">Nous contacter</a>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <strong style="color: var(--red)">12+</strong>
+        <span>Années</span>
+      </div>
+      <div class="hero-stat">
+        <strong style="color: var(--green)">84</strong>
+        <span>Projets</span>
+      </div>
+      <div class="hero-stat">
+        <strong style="color: var(--yellow)">7</strong>
+        <span>Prix</span>
+      </div>
+      <div class="hero-stat">
+        <strong>16</strong>
+        <span>Pays</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- MARQUEE -->
+  <div class="marquee-wrap">
+    <div class="marquee-track" id="marqueeTrack"></div>
+  </div>
+
+  <!-- PORTFOLIO -->
+  <section id="projets">
+    <div class="section-header">
+      <div>
+        <div class="section-tag tag-green">Portfolio</div>
+        <h2 class="section-title">Nos réalisations</h2>
+      </div>
+      <span class="section-count">01 — 09</span>
+    </div>
+
+    <div class="filters">
+      <button class="filter-btn active" data-filter="tous">Tous</button>
+      <button class="filter-btn" data-filter="résidentiel">Résidentiel</button>
+      <button class="filter-btn" data-filter="commercial">Commercial</button>
+      <button class="filter-btn" data-filter="urbain">Urbanisme</button>
+      <button class="filter-btn" data-filter="rénovation">Rénovation</button>
+    </div>
+
+    <div class="projects-grid" id="projectsGrid"></div>
+  </section>
+
+  <!-- STATS -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-number">84</div>
+      <div class="stat-label">Projets livrés</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">16</div>
+      <div class="stat-label">Pays</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">7</div>
+      <div class="stat-label">Prix d'architecture</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">98%</div>
+      <div class="stat-label">Clients satisfaits</div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer id="contact">
+    <a href="#" class="footer-logo"><span>F</span>ORMA Studio</a>
+    <div class="footer-copy">© 2026 FORMA Studio. Tous droits réservés.</div>
+    <div class="footer-links">
+      <a href="#">Instagram</a>
+      <a href="#">LinkedIn</a>
+      <a href="#">contact@forma-studio.fr</a>
+    </div>
+  </footer>
+
+  <script>
+    const projects = [
+      { title:"Résidence Lumière",   meta:"Paris 11e · 2024",   tag:"Résidentiel", chipBg:"#FCE0DF", chipColor:"#C0302E", bg:"linear-gradient(135deg,#f8d7d7,#F2827F)", icon:"🏢", featured:true,  filter:"résidentiel" },
+      { title:"Hôtel du Port",        meta:"Marseille · 2023",   tag:"Commercial",  chipBg:"#D4F0E0", chipColor:"#2E7D52", bg:"linear-gradient(135deg,#c8eed8,#7CC99A)", icon:"🏨", featured:false, filter:"commercial" },
+      { title:"Quartier Vert",        meta:"Lyon · 2023",        tag:"Urbanisme",   chipBg:"#FEF3CF", chipColor:"#8A6800", bg:"linear-gradient(135deg,#fdf0b8,#F5D06E)", icon:"🌿", featured:false, filter:"urbain" },
+      { title:"Loft Saint-Germain",   meta:"Paris 6e · 2022",    tag:"Rénovation",  chipBg:"#FCE0DF", chipColor:"#C0302E", bg:"linear-gradient(135deg,#f8d7d7,#e8a0a0)", icon:"🛋️", featured:false, filter:"rénovation" },
+      { title:"Tour Mirador",         meta:"Bordeaux · 2022",    tag:"Commercial",  chipBg:"#D4F0E0", chipColor:"#2E7D52", bg:"linear-gradient(135deg,#c8eed8,#a0d8b8)", icon:"🏗️", featured:false, filter:"commercial" },
+      { title:"Villa Côte d'Azur",    meta:"Nice · 2021",        tag:"Résidentiel", chipBg:"#FCE0DF", chipColor:"#C0302E", bg:"linear-gradient(135deg,#fde8d0,#f5b07a)", icon:"🏖️", featured:false, filter:"résidentiel" },
+      { title:"Passerelle Urbaine",   meta:"Nantes · 2021",      tag:"Urbanisme",   chipBg:"#FEF3CF", chipColor:"#8A6800", bg:"linear-gradient(135deg,#f0f0e8,#c8c8b8)", icon:"🌉", featured:false, filter:"urbain" },
+      { title:"Médiathèque Arc-en-ciel", meta:"Toulouse · 2020", tag:"Commercial",  chipBg:"#D4F0E0", chipColor:"#2E7D52", bg:"linear-gradient(135deg,#e0d4f0,#b8a0d8)", icon:"📚", featured:false, filter:"commercial" },
+      { title:"Maison Suspendue",     meta:"Grenoble · 2020",    tag:"Résidentiel", chipBg:"#FCE0DF", chipColor:"#C0302E", bg:"linear-gradient(135deg,#d4e8f8,#88b8e0)", icon:"🏡", featured:false, filter:"résidentiel" },
+    ];
+
+    function renderProjects(filter = "tous") {
+      const grid = document.getElementById("projectsGrid");
+      const filtered = filter === "tous" ? projects : projects.filter(p => p.filter === filter);
+      grid.innerHTML = filtered.map((p, i) => `
+        <div class="project-card ${i === 0 && filter === 'tous' ? 'featured' : ''}">
+          <div class="card-placeholder" style="background:${p.bg}">
+            <span style="font-size:${i===0&&filter==='tous'?'5rem':'3.5rem'}">${p.icon}</span>
+          </div>
+          <div class="card-overlay">
+            <span class="card-chip" style="background:${p.chipBg};color:${p.chipColor}">${p.tag}</span>
+            <div class="card-title">${p.title}</div>
+            <div class="card-meta">${p.meta}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    renderProjects();
+
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderProjects(btn.dataset.filter);
+      });
+    });
+
+    const items = ['Architecture Résidentielle','Design Intérieur','Urbanisme','Rénovation','Architecture Commerciale','Espaces Publics','Architecture Durable','Maîtrise d\'œuvre'];
+    const colors = ['#7CC99A','#F2827F','#F5D06E','#7CC99A','#F2827F','#F5D06E','#7CC99A','#F2827F'];
+    const doubled = [...items,...items];
+    document.getElementById('marqueeTrack').innerHTML = doubled.map((t,i) => `
+      <div class="marquee-item">
+        <span class="marquee-dot" style="background:${colors[i%colors.length]}"></span>
+        ${t}
+      </div>
+    `).join('');
+  </script>
+</body>
+</html>
