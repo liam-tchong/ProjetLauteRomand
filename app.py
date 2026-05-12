@@ -2944,7 +2944,7 @@ def render_header():
 <div class="app-header">
 <div><div class="app-title">The Football <span>Classroom</span></div><div class="app-sub">Tactical analysis · 5 Leagues</div></div>
 <div class="app-header-right">
-<div class="live-badge"><span class="live-dot"></span>Live</div>
+
 <div class="app-badges"><span class="app-badge">{flag} {league}</span><span class="app-badge">2025/26</span><span class="app-badge">{n_teams} teams</span></div>
 </div>
 </div>""", unsafe_allow_html=True)
