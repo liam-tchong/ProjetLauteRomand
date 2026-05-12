@@ -3839,9 +3839,6 @@ def page_schedule():
                                              extra_home=sched_ext_h, extra_away=sched_ext_a)
             xg = predict_expected_score(cur_standings, h_norm, a_norm,
                                         extra_home=sched_ext_h, extra_away=sched_ext_a)
-            analyst_note = _sched_analyst_note(
-                h_td, a_td, xg, probs, h_norm, a_norm, len(cur_standings) or 20
-            )
             pred_html = ""
             if probs is not None and status_raw in ("TIMED", "SCHEDULED"):
                 hw = int(probs[0] * 100)
@@ -3859,16 +3856,6 @@ def page_schedule():
                         f'</div>'
                     )
 
-                analyst_html = ""
-                if analyst_note:
-                    analyst_html = (
-                        f'<div style="margin-top:.4rem;padding:.4rem .55rem;'
-                        f'background:var(--beige);border-radius:7px;'
-                        f'font-size:.62rem;color:var(--mid);line-height:1.55;font-style:italic;">'
-                        f'{analyst_note}'
-                        f'</div>'
-                    )
-
                 pred_html = (
                     f'<div class="sched-pred">'
                     f'<div class="sched-pred-bar">'
@@ -3882,7 +3869,6 @@ def page_schedule():
                     f'<span style="color:#F44336">{a_norm}</span>'
                     f'</div>'
                     f'{score_line}'
-                    f'{analyst_html}'
                     f'</div>'
                 )
 
