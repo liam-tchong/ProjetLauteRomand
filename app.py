@@ -3344,8 +3344,7 @@ def page_main():
 
     def _build_team_card_html(team_name, badge_label, hdr_bg, cards_tuple, form_tuple, stats_dict, crest_url):
         """CSS :target carousel — each panel owns its nav so prev/next arrows always point to the right card."""
-        import re as _re
-        slug = _re.sub(r'[^a-z0-9]', '_', team_name.lower())
+        slug = re.sub(r'[^a-z0-9]', '_', team_name.lower())
         pill_style = {"W": "background:#CCFFE9;color:#007A47", "D": "background:#FFF3CC;color:#7A5500", "L": "background:#FFE0E0;color:#CC1F1F"}
         form_html = ""
         if form_tuple:
@@ -3790,6 +3789,20 @@ def page_schedule():
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
 </style>""", unsafe_allow_html=True)
 
+    def _sched_extra(td, is_home_team):
+        p = td.get("played", 1) or 1
+        gf = td.get("goals_for", 0) / p
+        ga = td.get("goals_against", 0) / p
+        return {
+            "gf_avg_recent":  round(gf, 2),
+            "ga_avg_recent":  round(ga, 2),
+            "home_gf_avg":    round(gf * 1.18, 2),
+            "home_ga_avg":    round(ga * 0.82, 2),
+            "away_gf_avg":    round(gf * 0.82, 2),
+            "away_ga_avg":    round(ga * 1.18, 2),
+            "fatigued":       False,
+        }
+
     html = ""
     for date_label, matches in by_date.items():
         html += f'<div class="sched-date-group"><div class="sched-date-label">{date_label}</div>'
@@ -3817,19 +3830,6 @@ def page_schedule():
             a_norm = TEAM_NAME_MAP.get(m["away"], m["away"])
             # Build venue-split stats from standings — same formula as Analysis page.
             # Home teams score ~18% more at home and concede ~18% less (5-league average).
-            def _sched_extra(td, is_home_team):
-                p = td.get("played", 1) or 1
-                gf = td.get("goals_for", 0) / p
-                ga = td.get("goals_against", 0) / p
-                return {
-                    "gf_avg_recent":  round(gf, 2),
-                    "ga_avg_recent":  round(ga, 2),
-                    "home_gf_avg":    round(gf * 1.18, 2),
-                    "home_ga_avg":    round(ga * 0.82, 2),
-                    "away_gf_avg":    round(gf * 0.82, 2),
-                    "away_ga_avg":    round(ga * 1.18, 2),
-                    "fatigued":       False,
-                }
             h_td = cur_standings.get(h_norm, {})
             a_td = cur_standings.get(a_norm, {})
             sched_ext_h = _sched_extra(h_td, True)  if h_td else None
@@ -3864,9 +3864,9 @@ def page_schedule():
                     f'<div style="width:{aw}%;background:#F44336;border-radius:0 4px 4px 0"></div>'
                     f'</div>'
                     f'<div class="sched-pred-labels">'
-                    f'<span style="color:#4CAF50">{m["home"]}</span>'
+                    f'<span style="color:#4CAF50">{h_norm}</span>'
                     f'<span style="color:#FFC107;flex:0;white-space:nowrap">Draw</span>'
-                    f'<span style="color:#F44336">{m["away"]}</span>'
+                    f'<span style="color:#F44336">{a_norm}</span>'
                     f'</div>'
                     f'{score_line}'
                     f'</div>'
