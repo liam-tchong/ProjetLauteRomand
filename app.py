@@ -3451,20 +3451,21 @@ def page_main():
                 )
             prev_i = (i - 1 + n) % n
             next_i = (i + 1) % n
-            def _js(s, idx):
-                ids = [f"p-{s}-{k}" for k in range(n)]
-                hide = "".join(f"var e{k}=document.getElementById('p-{s}-{k}');if(e{k})e{k}.style.display='none';" for k in range(n))
-                show = f"var t=document.getElementById('p-{s}-{idx}');if(t)t.style.display='block';"
-                return f"{hide}{show}"
             dots = "".join(
-                f'<button onclick="{_js(slug, j)}" style="{dot_active if j==i else dot_base}"></button>'
+                f'<a href="#p-{slug}-{j}" onclick="event.preventDefault();'
+                + "".join(f'document.getElementById(&quot;p-{slug}-{k}&quot;).style.display=&quot;none&quot;;' for k in range(n))
+                + f'document.getElementById(&quot;p-{slug}-{j}&quot;).style.display=&quot;block&quot;" style="{dot_active if j==i else dot_base}"></a>'
                 for j in range(n)
             )
             nav = (
                 f'<div style="display:flex;align-items:center;justify-content:center;gap:.5rem;padding:.45rem 0 .2rem">'
-                f'<button onclick="{_js(slug, prev_i)}" style="{arr_style}">&#8592;</button>'
+                f'<a href="#p-{slug}-{prev_i}" onclick="event.preventDefault();'
+                + "".join(f'document.getElementById(&quot;p-{slug}-{k}&quot;).style.display=&quot;none&quot;;' for k in range(n))
+                + f'document.getElementById(&quot;p-{slug}-{prev_i}&quot;).style.display=&quot;block&quot;" style="{arr_style}">&#8592;</a>'
                 f'<span style="display:flex;align-items:center">{dots}</span>'
-                f'<button onclick="{_js(slug, next_i)}" style="{arr_style}">&#8594;</button>'
+                f'<a href="#p-{slug}-{next_i}" onclick="event.preventDefault();'
+                + "".join(f'document.getElementById(&quot;p-{slug}-{k}&quot;).style.display=&quot;none&quot;;' for k in range(n))
+                + f'document.getElementById(&quot;p-{slug}-{next_i}&quot;).style.display=&quot;block&quot;" style="{arr_style}">&#8594;</a>'
                 f'</div>'
             )
             display = "block" if i == 0 else "none"
