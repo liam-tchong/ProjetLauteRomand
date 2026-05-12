@@ -3432,11 +3432,12 @@ def page_main():
         arr_style = (
             "display:inline-flex;align-items:center;justify-content:center;"
             "width:28px;height:28px;border-radius:50%;border:2px solid #FFE8C8;"
-            "font-size:.9rem;color:#1A1A2E;text-decoration:none;cursor:pointer;"
-            "background:none;transition:background .15s;flex-shrink:0"
+            "font-size:.9rem;color:#1A1A2E;cursor:pointer;"
+            "background:none;transition:background .15s;flex-shrink:0;border-style:solid;"
         )
-        dot_base = "display:inline-block;width:7px;height:7px;border-radius:50%;background:#FFE8C8;margin:0 3px;transition:all .2s;text-decoration:none"
-        dot_active = "display:inline-block;width:18px;height:7px;border-radius:4px;background:#1A1A2E;margin:0 3px;transition:all .2s;text-decoration:none"
+        dot_base = "display:inline-block;width:7px;height:7px;border-radius:50%;background:#FFE8C8;margin:0 3px;transition:all .2s;cursor:pointer;border:none;padding:0;vertical-align:middle"
+        dot_active = "display:inline-block;width:18px;height:7px;border-radius:4px;background:#1A1A2E;margin:0 3px;transition:all .2s;cursor:pointer;border:none;padding:0;vertical-align:middle"
+        n = len(card_defs)
         panels_html = ""
         for i, (label, text) in enumerate(card_defs):
             body = text or "—"
@@ -3447,21 +3448,22 @@ def page_main():
                     f"<b>{term}</b>",
                     f'<a href="{url}" target="_parent" style="color:#8B5CF6;font-weight:800;text-decoration:underline dotted 2px">{term}</a>'
                 )
-            prev_id = f"p-{slug}-{(i-1)%4}"
-            next_id = f"p-{slug}-{(i+1)%4}"
+            display = "block" if i == 0 else "none"
+            prev_i = (i - 1 + n) % n
+            next_i = (i + 1) % n
             dots = "".join(
-                f'<a href="#p-{slug}-{j}" style="{dot_active if j==i else dot_base}"></a>'
-                for j in range(4)
+                f'<button onclick="showPanel(\'{slug}\',{j})" style="{dot_active if j==i else dot_base}"></button>'
+                for j in range(n)
             )
             nav = (
                 f'<div style="display:flex;align-items:center;justify-content:center;gap:.5rem;padding:.45rem 0 .2rem">'
-                f'<a href="#{prev_id}" style="{arr_style}">&#8592;</a>'
+                f'<button onclick="showPanel(\'{slug}\',{prev_i})" style="{arr_style}">&#8592;</button>'
                 f'<span style="display:flex;align-items:center">{dots}</span>'
-                f'<a href="#{next_id}" style="{arr_style}">&#8594;</a>'
+                f'<button onclick="showPanel(\'{slug}\',{next_i})" style="{arr_style}">&#8594;</button>'
                 f'</div>'
             )
             panels_html += (
-                f'<div id="p-{slug}-{i}" class="tc-panel-{slug}">'
+                f'<div id="p-{slug}-{i}" style="display:{display}">'
                 f'<div style="height:210px;overflow-y:auto;padding:.3rem .1rem">'
                 f'<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem">'
                 f'<span style="font-size:.62rem;font-weight:900;text-transform:uppercase;letter-spacing:.13em;'
@@ -3485,16 +3487,8 @@ def page_main():
             f'<img src="{crest_url}" style="width:20px;height:20px;object-fit:contain;margin-right:.45rem;vertical-align:middle" onerror="this.style.display=\'none\'">'
             if crest_url else ""
         )
-        css = (
-            f'<style>'
-            f'.tc-panel-{slug}{{display:none}}'
-            f'.tc-panel-{slug}:target{{display:block}}'
-            f'.tc-wrap-{slug}:not(:has(.tc-panel-{slug}:target)) #p-{slug}-0{{display:block}}'
-            f'</style>'
-        )
         return (
-            f'{css}'
-            f'<div class="tc-wrap-{slug}" style="background:#fff;border-radius:16px;border:2px solid #FFE8C8;'
+            f'<div style="background:#fff;border-radius:16px;border:2px solid #FFE8C8;'
             f'overflow:hidden;box-shadow:0 4px 20px rgba(42,32,24,.08);margin-bottom:.5rem">'
             f'<div style="background:{hdr_bg};padding:.7rem 1rem;font-size:.8rem;font-weight:900;'
             f'letter-spacing:.05em;text-transform:uppercase;color:#1A1A2E;display:flex;align-items:center">'
@@ -3562,17 +3556,29 @@ def page_main():
     if isinstance(style_b_raw, str):
         style_b_raw = (style_b_raw, "", "", "")
 
+    js_show = """
+<script>
+function showPanel(slug, idx) {
+    var i = 0;
+    while (true) {
+        var el = document.getElementById('p-' + slug + '-' + i);
+        if (!el) break;
+        el.style.display = 'none';
+        i++;
+    }
+    var target = document.getElementById('p-' + slug + '-' + idx);
+    if (target) target.style.display = 'block';
+}
+</script>
+"""
+    html_a = js_show + _build_team_card_html(team_a, f"#{da.get('position','—')} · {da.get('points','—')} pts", "#CCFFE9", style_a_raw, form_a, da, da.get("crest",""))
+    html_b = js_show + _build_team_card_html(team_b, f"#{db.get('position','—')} · {db.get('points','—')} pts", "#FFE0E0", style_b_raw, form_b, db, db.get("crest",""))
+    import streamlit.components.v1 as components
     c1, c2 = st.columns(2)
     with c1:
-        st.markdown(
-            _build_team_card_html(team_a, f"#{da.get('position','—')} · {da.get('points','—')} pts", "#CCFFE9", style_a_raw, form_a, da, da.get("crest","")),
-            unsafe_allow_html=True
-        )
+        components.html(html_a, height=420, scrolling=False)
     with c2:
-        st.markdown(
-            _build_team_card_html(team_b, f"#{db.get('position','—')} · {db.get('points','—')} pts", "#FFE0E0", style_b_raw, form_b, db, db.get("crest","")),
-            unsafe_allow_html=True
-        )
+        components.html(html_b, height=420, scrolling=False)
 
     st.markdown('<div class="div"></div>', unsafe_allow_html=True)
 
