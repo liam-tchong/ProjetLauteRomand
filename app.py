@@ -221,6 +221,11 @@ TEAM_NAME_MAP = {
     "AS Monaco FC": "AS Monaco",
     "RC Strasbourg Alsace": "RC Strasbourg",
     "Stade Brestois 29": "Stade Brestois",
+    # Bundesliga
+    "1. FC Köln": "FC Köln",
+    "1. FSV Mainz 05": "Mainz 05",
+    "1. FC Union Berlin": "Union Berlin",
+    "1. FC Heidenheim 1846": "Heidenheim",
 }
 
 def _form_score(form_list):
