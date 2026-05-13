@@ -2574,19 +2574,6 @@ def page_glossaire():
     anchor = st.session_state.get("glossaire_anchor") or None
     st.session_state.glossaire_anchor = None
 
-    if st.session_state.get("prev_page") == "main":
-        ta = st.session_state.get("team_a", "")
-        tb = st.session_state.get("team_b", "")
-        lg = st.session_state.get("league", "Ligue 1")
-        st.markdown(
-            f'<a href="?back=main&ta={ta}&tb={tb}&lg={lg}" target="_parent" style="'
-            f'display:inline-flex;align-items:center;gap:.4rem;'
-            f'background:var(--dark);color:var(--white);font-family:Nunito,sans-serif;'
-            f'font-size:.95rem;font-weight:800;padding:.55rem 1.4rem;border-radius:100px;'
-            f'text-decoration:none;margin-bottom:1.2rem;border:2px solid rgba(255,255,255,.15);">'
-            f'&#8592; Back</a>',
-            unsafe_allow_html=True,
-        )
 
     st.markdown('<div class="sec-title">Tactical Glossary</div>', unsafe_allow_html=True)
 
