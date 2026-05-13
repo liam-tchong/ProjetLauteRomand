@@ -8,6 +8,7 @@ import pickle
 import math
 from concurrent.futures import ThreadPoolExecutor
 from tactical_data import TEAM_TACTICS
+from football_data import FOOTBALL_RULES, FORMATIONS_DATA, POSITIONS_DATA, STYLE_TAG_GUIDE, STYLE_TAG_TO_TERM, TACTICAL_TERMS
 
 _model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "MachineLearning", "model.pkl")
 _goals_model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "MachineLearning", "goals_model.pkl")
@@ -891,195 +892,6 @@ Just two lines, nothing else.
         )
 
 
-# ── Data ─────────────────────────────────────────────────────────────────────
-TACTICAL_TERMS = {
-    "pressing": {
-        "definition":        "A collective tactic where players immediately pressure the ball carrier upon losing possession, aiming to quickly win the ball back.",
-        "simple_explanation":"Instead of waiting, players run at the opponent to force mistakes and recover the ball fast.",
-        "example":           "Liverpool press so high that opposition goalkeepers regularly make errors under pressure.",
-        "animation_idea":    "Multiple players converging rapidly toward the ball carrier.",
-    },
-    "pivot": {
-        "definition":        "A central striker who acts as a target man in the attacking phase, able to receive with their back to goal, hold the ball, and redistribute.",
-        "simple_explanation":"A strong player who receives the ball with their back to goal and lays it off to teammates.",
-        "example":           "Ibrahimovic was a perfect pivot: he controlled, shielded, and relaunched play effortlessly.",
-        "animation_idea":    "Player receiving the ball with back to goal, then laying it off to arriving teammates.",
-    },
-    "false nine": {
-        "definition":        "A centre-forward who drops into midfield rather than staying as a traditional striker, creating confusion in the opposition's defence.",
-        "simple_explanation":"An attacker who drifts away from goal to confuse defenders who don't know whether to follow.",
-        "example":           "Messi played as a false nine under Guardiola at Barcelona, leaving centre-backs disoriented.",
-        "animation_idea":    "Watch F9 drop back — the CBs don't know whether to follow or stay. That gap they leave behind? That's exactly where the midfielders sprint into.",
-    },
-    "build-up play": {
-        "definition":        "The phase of play when a team in possession tries to move the ball forward from defence into attack against an organized opposition.",
-        "simple_explanation":"The team passes the ball from the back to the front in an organized, controlled way.",
-        "example":           "A goalkeeper passes to a centre-back, who plays to the midfielder, who finds the striker.",
-        "animation_idea":    "The ball travels step by step: GK → CB → CM → ST. No rush, no long ball — just controlled progression until the striker is in a dangerous spot.",
-    },
-    "through ball": {
-        "definition":        "A pass played straight through or behind the opposition's defence to reach a teammate making a run.",
-        "simple_explanation":"A pass that goes through the gaps in the defence to a teammate running behind the defenders.",
-        "example":           "A midfielder slides a pass between two defenders for the striker to run onto and score.",
-        "animation_idea":    "Ball piercing a defensive line toward a forward making a diagonal run behind.",
-    },
-    "switch of play": {
-        "definition":        "Moving the ball quickly from one side of the pitch to the opposite flank to exploit space.",
-        "simple_explanation":"Passing the ball all the way across the field to find a free teammate on the other side.",
-        "example":           "A right back receives on the right and plays a long diagonal to the left winger who is unmarked.",
-        "animation_idea":    "Ball traveling in a wide diagonal arc from one touchline to the other.",
-    },
-    "overlap": {
-        "definition":        "A run made by an attacking player around the outside of a teammate who has the ball, forcing a defender to make a choice.",
-        "simple_explanation":"A player runs around the outside of their own teammate to create a 2v1 situation on the wing.",
-        "example":           "The right back sprints down the touchline past the right winger to receive the pass and cross.",
-        "animation_idea":    "Player running in a curved arc around the outside of a teammate and a defender.",
-    },
-    "underlap": {
-        "definition":        "A run made inside the ball carrier, cutting through the half-space rather than going around the outside.",
-        "simple_explanation":"Instead of running outside, a player cuts inside their teammate to find space in the danger zone.",
-        "example":           "As the winger stays wide, the fullback makes an underlapping run inside to arrive in the box.",
-        "animation_idea":    "Player running diagonally inward through the space behind a wide player.",
-    },
-    "cross": {
-        "definition":        "A delivery of the ball into the penalty area from a wide position, usually between the penalty box and the touchline.",
-        "simple_explanation":"A player near the touchline kicks the ball into the box for a teammate to head or shoot.",
-        "example":           "The left winger dribbles to the byline and whips a cross for the striker to head home.",
-        "animation_idea":    "Ball curving from the wing into the penalty area toward the six-yard box.",
-    },
-    "final third": {
-        "definition":        "The attacking portion of the pitch — the last 35 metres before the opponent's goal — where the most dangerous chances are created.",
-        "simple_explanation":"The area of the pitch closest to the opponent's goal where teams try to create and score chances.",
-        "example":           "A team struggles to create chances because they cannot enter the final third with the ball.",
-        "animation_idea":    "Pitch divided into three horizontal zones, with the attacking third highlighted in green.",
-    },
-    "counter-attack": {
-        "definition":        "An attacking manoeuvre in which a team suddenly transitions from defence to attack, overwhelming the opposition before they can reorganize.",
-        "simple_explanation":"As soon as your team wins the ball, attack quickly before opponents get back in position.",
-        "example":           "PSG wins the ball in midfield and three players sprint forward to score within seconds.",
-        "animation_idea":    "Arrows showing rapid movement of players from their own half toward the opponent's goal.",
-    },
-    "high press": {
-        "definition":        "A pressing tactic applied very high up the pitch, near the opponent's own goal, to win the ball back in a dangerous area.",
-        "simple_explanation":"Attacking players press the opponents right in their own half, far from your goal.",
-        "example":           "Dortmund presses Barcelona's centre-backs to prevent any clean build-up play from the back.",
-        "animation_idea":    "Attacking players surrounding opposition defenders near the opponent's penalty area.",
-    },
-    "low block": {
-        "definition":        "A defensive tactic in which a team retreats very deep in their own half with all players behind the ball to restrict space.",
-        "simple_explanation":"The whole team drops back near their own goal to leave absolutely no space for the opponents.",
-        "example":           "Atletico Madrid defends with 8–9 players behind the ball in a disciplined low block.",
-        "animation_idea":    "All outfield players packed tightly inside their own half forming a compact defensive wall.",
-    },
-    "man marking": {
-        "definition":        "A defensive system in which each player is responsible for tracking one specific opposing player across the pitch.",
-        "simple_explanation":"Your job is to follow one specific opponent wherever they go on the pitch.",
-        "example":           "A midfielder is assigned to shadow the opponent's playmaker throughout the entire match.",
-        "animation_idea":    "Colored lines linking each defender directly to their assigned opponent.",
-    },
-    "zonal marking": {
-        "definition":        "A defensive system in which each player is responsible for an area of the pitch rather than a specific opposing player.",
-        "simple_explanation":"You guard a zone — whoever enters your zone is your responsibility, not a specific person.",
-        "example":           "At set pieces, defenders stand in zones rather than following individual attackers.",
-        "animation_idea":    "The pitch divided into colored zones, each with one defender positioned inside.",
-    },
-    "tackle": {
-        "definition":        "A method of winning the ball from an opponent by using a leg to wrest possession, or a sliding challenge to knock the ball away.",
-        "simple_explanation":"A defender reaches in with their foot or slides to take the ball from an attacker.",
-        "example":           "A centre-back makes a perfectly timed sliding tackle to stop a striker through on goal.",
-        "animation_idea":    "Player sliding toward a ball carrier with foot extending to reach the ball.",
-    },
-    "interception": {
-        "definition":        "The act of cutting off a pass before it reaches its intended recipient, stealing possession mid-flight.",
-        "simple_explanation":"Reading the game well enough to step into the path of a pass and steal the ball.",
-        "example":           "A midfielder reads the pass and steps in to intercept before the striker can receive it.",
-        "animation_idea":    "Player stepping into the path of a dotted passing line between two opponents.",
-    },
-    "counter-pressing": {
-        "definition":        "Pressing applied immediately after losing the ball to quickly regain possession, before the opponent can settle.",
-        "simple_explanation":"The moment you lose the ball, instantly surround the opponent before they can look up.",
-        "example":           "After losing the ball, Dortmund's players immediately swarm the opponent to win it back within seconds.",
-        "animation_idea":    "The moment the ball is lost — don't retreat, attack it. 3 players swarm the opponent before they can look up. You have roughly 6 seconds before they're organized.",
-    },
-    "transition": {
-        "definition":        "The moment a team switches from attack to defence (negative transition) or from defence to attack (positive transition).",
-        "simple_explanation":"The moment your team changes from defending to attacking — or the other way around.",
-        "example":           "A team is caught in a bad transition when they lose the ball with players pushed too far forward.",
-        "animation_idea":    "The most chaotic moment in football — the split second the ball changes hands. Attackers become defenders, defenders become attackers. Teams that win transitions win games.",
-    },
-    "formation": {
-        "definition":        "The organized arrangement of players on the pitch, usually described numerically from defence to attack (e.g. 4-3-3).",
-        "simple_explanation":"The shape your team uses — 4-3-3 means 4 defenders, 3 midfielders, 3 forwards.",
-        "example":           "A 4-3-3 focuses on wing play; a 3-5-2 focuses on midfield control — different strengths.",
-        "animation_idea":    "Player dots rearranging on the pitch to show different formation shapes.",
-    },
-    "shape": {
-        "definition":        "The organized defensive or attacking structure of a team — how compact, wide, or deep their collective positioning is.",
-        "simple_explanation":"How the team looks as a unit — compact and narrow, or stretched out wide.",
-        "example":           "A team with good shape stays close together, making it very hard to find gaps to play through.",
-        "animation_idea":    "Compact block of player dots shifting together as a unit across the pitch.",
-    },
-    "width": {
-        "definition":        "The tactical use of the full side-to-side space of the pitch to stretch the opposition's defensive shape.",
-        "simple_explanation":"Spreading players out to the touchlines to stretch defenders and open space in the center.",
-        "example":           "Wingers stay wide to pull defenders apart and create gaps for midfielders running through.",
-        "animation_idea":    "Players positioned near both touchlines stretching a compressed defensive block.",
-    },
-    "depth": {
-        "definition":        "The tactical use of forward-backward space, with players staggered at different distances from goal to provide passing options.",
-        "simple_explanation":"Having players at different heights on the pitch so there are short and long passing options.",
-        "example":           "A striker stays high while a midfielder drops deep to offer both short and long pass options.",
-        "animation_idea":    "Players staggered at different vertical distances creating multiple passing lanes.",
-    },
-    "half-space": {
-        "definition":        "The channel between the central area and the wide zone, just inside the full-back — one of the most dangerous areas to receive the ball.",
-        "simple_explanation":"The danger zone between the center and the wing — hard for defenders to cover.",
-        "example":           "An attacking midfielder receives in the half-space, turns quickly, and shoots at goal.",
-        "animation_idea":    "The yellow zones are a defender's nightmare — too central for the full-back, too wide for the centre-back. Nobody clearly owns that space. Receive there, turn, and you're in a dangerous position immediately.",
-    },
-    "lines": {
-        "definition":        "The horizontal rows of players a team organizes in defence or midfield — breaking these lines is a key attacking objective.",
-        "simple_explanation":"Defenders form a flat 'line' across the pitch; attackers try to play passes through or over it.",
-        "example":           "A through ball breaks the defensive line and puts a striker one-on-one with the goalkeeper.",
-        "animation_idea":    "Horizontal rows of defenders with arrows showing passes that break through each line.",
-    },
-    "tiki-taka": {
-        "definition":        "A style of play characterised by short, quick passing, constant movement and maintaining possession to control the match.",
-        "simple_explanation":"Keep the ball moving fast with short passes — never hold it long, always move after passing.",
-        "example":           "Barcelona under Pep Guardiola used tiki-taka to dominate possession and exhaust opponents.",
-        "animation_idea":    "Watch the ball hop between all 5 players — nobody holds it more than a second. The opponent has to chase it around the whole pitch until they're too tired to defend properly. It's not showboating, it's exhaustion as a strategy.",
-    },
-    "total football": {
-        "definition":        "A tactical theory in which any outfield player can take over the role of any other player, requiring universal positional flexibility.",
-        "simple_explanation":"Every player is comfortable in any position — if someone moves, a teammate fills the gap.",
-        "example":           "The Netherlands team of the 1970s rotated positions fluidly under coach Rinus Michels.",
-        "animation_idea":    "Watch the CB and ST swap positions entirely. If every player can be anyone, the opponent can't mark anyone specifically. There are no fixed roles — just players filling space intelligently.",
-    },
-    "positional play": {
-        "definition":        "A tactical system focused on controlling the game through intelligent positioning, occupying key spaces to dominate the pitch.",
-        "simple_explanation":"Players take up smart positions to control space and make the team impossible to press.",
-        "example":           "Manchester City under Guardiola use positional play to maintain passing structures at all times.",
-        "animation_idea":    "It's not just about having the ball — it's about where you are when you have it. Players occupy specific zones so there's always a passing option. The opponent can't press because there's always someone open.",
-    },
-    "overload": {
-        "definition":        "Creating a numerical superiority of attackers over defenders in a specific zone of the pitch.",
-        "simple_explanation":"Getting 3 players against 2 defenders in one area to create a free man.",
-        "example":           "A team overloads the left flank with 3 attackers, pulling the defence over to leave the right side open.",
-        "animation_idea":    "Three attacker dots surrounding two defender dots in one side of the pitch.",
-    },
-    "third man run": {
-        "definition":        "When a team is attacking, a third player makes a run to become an alternative receiver beyond the initial passer and receiver.",
-        "simple_explanation":"Two players exchange the ball while a third runs beyond them to receive it in space.",
-        "example":           "A midfielder passes to a striker, the striker lays it off, and the midfielder continues their run to receive.",
-        "animation_idea":    "P1 passes to P2, P2 lays it off — but watch P3 who never stopped running. Defenders track the ball, not the run. P3 is always free because nobody remembered to follow them.",
-    },
-    "line-breaking pass": {
-        "definition":        "A pass that bypasses one or more lines of opposing players in a single movement, skipping midfield or the defensive line.",
-        "simple_explanation":"A pass that jumps over a whole line of opponents in one go, instantly unlocking the defence.",
-        "example":           "A centre-back plays a line-breaking pass into the feet of a forward between the midfield and defensive lines.",
-        "animation_idea":    "One pass, entire defence beaten. Watch the ball travel straight through both lines of defenders — it skips midfield entirely and lands at P2's feet with the whole defence behind them.",
-    },
-}
 
 TEAM_STYLES = {
     "Paris Saint-Germain": "PSG applies an intense <b>high press</b> to win the ball back in the opposition's half, backed by immediate <b>counter-pressing</b> on every loss. In <b>build-up play</b>, the team relies on <b>positional play</b> with midfielders infiltrating the <b>half-space</b> to create openings. A <b>false nine</b> drops between the <b>lines</b> to trigger <b>line-breaking pass</b>es toward runners in behind. Wingers provide <b>width</b> to stretch the defence, and in <b>transition</b> the collective speed is the main weapon.",
@@ -1121,223 +933,7 @@ TEAM_STYLES = {
 DEFAULT_STYLE = "Playing style to be documented."
 WATCH_COLORS = ["#7CC99A", "#F5D06E", "#F2827F"]
 
-# ── Style tag → TACTICAL_TERMS key (for clickable pills) ─────────────────────
-STYLE_TAG_TO_TERM = {
-    "high press":       "high press",
-    "false 9":          "false nine",
-    "false nine":       "false nine",
-    "possession":       "positional play",
-    "counter":          "counter-attack",
-    "counter-attack":   "counter-attack",
-    "low block":        "low block",
-    "tiki-taka":        "tiki-taka",
-    "positional":       "positional play",
-    "positional play":  "positional play",
-    "total football":   "total football",
-    "overlaps":         "overlap",
-    "overlap":          "overlap",
-    "pressing":         "pressing",
-    "collective press": "pressing",
-    "counter-pressing": "counter-pressing",
-    "gegenpressing":    "counter-pressing",
-    "build-up":         "build-up play",
-    "patient build-up": "build-up play",
-    "width":            "width",
-    "flanks":           "width",
-    "cross-heavy":      "cross",
-    "cross-based":      "cross",
-    "wing-backs":       "overlap",
-    "compact":          "shape",
-    "shape":            "shape",
-    "formation":        "formation",
-    "half-space":       "half-space",
-    "transition":       "transition",
-    "man marking":      "man marking",
-    "zonal marking":    "zonal marking",
-    "lines":            "lines",
-    "depth":            "depth",
-    "overload":         "overload",
-    "press":            "pressing",
-}
 
-# ── First style tag → one-sentence pitch description ─────────────────────────
-STYLE_TAG_GUIDE = {
-    "high press": [
-        ("⬆️", "Forwards push up high", "They sprint toward the opponent's defenders and GK to block every pass."),
-        ("🔄", "Midfielders follow up", "They cut off all passing lanes — nowhere safe to play."),
-        ("⚡", "Force a mistake", "Defenders panic, misplace passes — ball stolen near their goal."),
-        ("🎯", "Why it works", "You win the ball 25m from goal — one pass and you're shooting."),
-    ],
-    "low block": [
-        ("🛡️", "Everyone drops deep", "All 10 outfield players form two tight lines in front of their own goal."),
-        ("🧱", "Close every gap", "Shoulder to shoulder — no space to pass through."),
-        ("⏳", "Let them have the ball", "The opponent passes sideways in frustration — nothing dangerous."),
-        ("🎯", "Why it works", "One fast counter into all the space they left behind can win it."),
-    ],
-    "counter-attack": [
-        ("🛡️", "Defend deep first", "Stay compact, let the opponent commit players forward."),
-        ("🏃", "Win the ball, GO!", "2-3 fast players sprint forward while opponents are out of position."),
-        ("📐", "Exploit the space", "Defenders outnumbered — attackers run into open space."),
-        ("🎯", "Why it works", "The more they attack, the more space they leave behind."),
-    ],
-    "counter": [
-        ("🛡️", "Stay patient", "Absorb pressure, wait for the right moment."),
-        ("🏃", "Explode forward", "Fast wingers burst forward before defenders recover."),
-        ("⚡", "Strike in seconds", "Ball won to shot on goal in under 10 seconds."),
-        ("🎯", "Why it works", "Opponents leave huge gaps when they commit forward."),
-    ],
-    "possession": [
-        ("🔵", "Keep ball moving", "Short, safe passes — always within the team."),
-        ("🔄", "Move after passing", "Every player repositions to create new options."),
-        ("😫", "Tire the opponent", "They chase endlessly, exhausting themselves."),
-        ("🎯", "Why it works", "Tired defenders lose concentration — gaps appear."),
-    ],
-    "tiki-taka": [
-        ("⚡", "Ultra-fast passes", "Ball moves every 1-2 seconds — always in motion."),
-        ("🏃", "Constant movement", "Triangles of passing options appear everywhere."),
-        ("😵", "Opponent can't follow", "Defenders chase shadows — ball is always gone."),
-        ("🎯", "Why it works", "Exhaustion as strategy — they collapse by the 60th minute."),
-    ],
-    "positional play": [
-        ("📍", "Occupy key zones", "Each player takes a precise position on the pitch."),
-        ("🔺", "Create triangles", "Always 2+ short passes available from any position."),
-        ("🧠", "Brain over legs", "Control through positioning, not sprinting."),
-        ("🎯", "Why it works", "Always someone open — impossible to press effectively."),
-    ],
-    "positional": [
-        ("📍", "Smart positioning", "Players take up precise spots across the field."),
-        ("🔺", "Triangle passing", "Guarantees 2 safe options at all times."),
-        ("🧠", "Outsmart, don't outrun", "Perfect positioning beats raw speed."),
-        ("🎯", "Why it works", "The team becomes a machine that controls games."),
-    ],
-    "total football": [
-        ("🔄", "Anyone plays anywhere", "Defender becomes attacker, midfielder plays CB — fluid."),
-        ("🔀", "Constant rotation", "Positions swap — teammates cover each other."),
-        ("🤯", "Confuse opponents", "Can't mark players who keep changing position."),
-        ("🎯", "Why it works", "Unpredictable — impossible to plan against."),
-    ],
-    "overlaps": [
-        ("🏃", "Full-back sprints forward", "Past the winger, toward the corner flag area."),
-        ("2️⃣", "Create a 2v1", "Defender can't cover both players at once."),
-        ("⚽", "Cross into the box", "Overlapping player delivers into the penalty area."),
-        ("🎯", "Why it works", "Defender must choose — whoever is free gets the ball."),
-    ],
-    "wing-backs": [
-        ("⬆️", "Wing-backs push high", "They act like wingers, sprinting up and down."),
-        ("📐", "Stretch the pitch", "Force the opponent to spread out, opening the centre."),
-        ("✈️", "Deliver from wide", "Cross the ball into the box for the strikers."),
-        ("🎯", "Why it works", "3 CBs cover defence, wing-backs attack freely."),
-    ],
-    "false 9": [
-        ("⬇️", "Striker drops deep", "Centre-forward drops into midfield to receive."),
-        ("❓", "Defenders confused", "Follow? Stay? No good answer for the CBs."),
-        ("🏃", "Midfielders burst in", "Sprint into the gap left behind the defence."),
-        ("🎯", "Why it works", "Creates a dilemma defenders can never solve."),
-    ],
-    "collective press": [
-        ("📢", "Trigger moment", "Bad touch or sideways pass signals everyone to press."),
-        ("🏃", "Everyone presses at once", "All players rush toward the ball carrier."),
-        ("🔒", "Trap the opponent", "Surrounded with no escape — turnover."),
-        ("🎯", "Why it works", "No player can handle 4-5 closing in at once."),
-    ],
-    "pressing": [
-        ("🏃", "Close down the carrier", "Sprint toward the ball to reduce thinking time."),
-        ("🚧", "Block passing lanes", "Teammates cut off obvious options."),
-        ("💥", "Win the ball back", "Forced mistake — stolen possession."),
-        ("🎯", "Why it works", "Turns defence into attack instantly."),
-    ],
-    "gegenpressing": [
-        ("❌", "Ball is lost", "But instead of retreating, react immediately."),
-        ("🌀", "Swarm in 6 seconds", "3-4 players surround the ball carrier."),
-        ("🔄", "Win it back instantly", "Opponent barely touched it — stolen."),
-        ("🎯", "Why it works", "No time for them to organize a counter."),
-    ],
-    "build-up": [
-        ("🧤", "Start from the GK", "Short pass to a centre-back, not a long kick."),
-        ("📈", "Progress through midfield", "Each pass moves the ball forward one station."),
-        ("🎯", "Reach the final third", "Controlled passing — not rushed, not risky."),
-        ("✅", "Why it works", "Draws opponents out, opens space to exploit."),
-    ],
-    "patient build-up": [
-        ("🧤", "Start from the back", "GK and CBs pass calmly, waiting for the opening."),
-        ("⏳", "Wait for the gap", "Keep passing until a defender steps out of position."),
-        ("⚡", "Strike when ready", "Vertical pass cuts through to the attackers."),
-        ("🎯", "Why it works", "Patience creates openings — the opponent tires."),
-    ],
-    "direct": [
-        ("⬆️", "Ball goes forward fast", "No sideways passes — forward as quickly as possible."),
-        ("🏃", "Runners in behind", "Fast forwards make runs behind the defence."),
-        ("💨", "Skip the midfield", "Defence to attack in one or two passes."),
-        ("🎯", "Why it works", "No time for the opponent to set up a block."),
-    ],
-    "cross-heavy": [
-        ("↔️", "Wingers stay wide", "Hug the touchline, create 1v1 situations."),
-        ("🏃", "Reach the byline", "Dribble past the defender to the goal line."),
-        ("✈️", "Deliver into the box", "Cross whipped in for headers and volleys."),
-        ("🎯", "Why it works", "A perfect cross only needs one good header to score."),
-    ],
-    "cross-based": [
-        ("↔️", "Wide players get ball", "Full-backs and wingers advance toward the byline."),
-        ("🏃", "Full-back overlaps", "Extra option — 2v1 on the wing."),
-        ("✈️", "Cross to target man", "Ball delivered to the tall striker in the box."),
-        ("🎯", "Why it works", "Simple but effective — quality crosses = chances."),
-    ],
-    "physical": [
-        ("💪", "Win the duels", "Strength and athleticism dominate 50/50s."),
-        ("🏃", "Outwork the opponent", "Run harder, run longer — 90 minutes."),
-        ("🎯", "Why it works", "Win more tackles and headers = control the game."),
-    ],
-    "organized": [
-        ("📐", "Disciplined shape", "Every player knows exactly where to be."),
-        ("🛡️", "Hard to break down", "Gaps kept small — very difficult to play through."),
-        ("🎯", "Why it works", "Organisation beats individual quality."),
-    ],
-    "technical": [
-        ("🎯", "Precise passing", "Excellent touch — keeps possession under pressure."),
-        ("🧠", "Smart decisions", "Creative solutions through tight spaces."),
-        ("✨", "Why it works", "When everyone controls perfectly, any style works."),
-    ],
-    "vertical": [
-        ("⬆️", "Play forward first", "Instinct: move the ball toward goal ASAP."),
-        ("🏃", "Runners in behind", "Constant forward runs offering vertical options."),
-        ("🎯", "Why it works", "Every forward pass puts immediate pressure on defence."),
-    ],
-    "compact": [
-        ("🧱", "Stay close together", "Only ~30 metres between deepest and highest player."),
-        ("🔒", "No space to exploit", "Denies room between the lines."),
-        ("🎯", "Why it works", "Like a wall — opponents pass around, never through."),
-    ],
-    "attacking": [
-        ("⬆️", "Commit players forward", "Numerical advantage in the final third."),
-        ("🎯", "Create chances", "Calculated risks to break defences."),
-        ("✨", "Why it works", "More in the box = more chances to score."),
-    ],
-    "structured": [
-        ("📐", "Clear game plan", "Specific roles and instructions for each player."),
-        ("🔗", "Connected play", "Rehearsed patterns — nothing improvised."),
-        ("🎯", "Why it works", "Predictable for teammates, unpredictable for opponents."),
-    ],
-    "fluid": [
-        ("🔄", "Constant movement", "Players swap positions throughout the match."),
-        ("🌊", "Unpredictable patterns", "Shape constantly changes."),
-        ("🎯", "Why it works", "Defenders can't mark players who keep moving."),
-    ],
-    "set pieces": [
-        ("📐", "Rehearsed routines", "Corners and free kicks with specific movements."),
-        ("🎯", "Dangerous deliveries", "Set pieces = genuine goal-scoring opportunities."),
-        ("✨", "Why it works", "One well-executed corner can win the game."),
-    ],
-    "defensive": [
-        ("🛡️", "Defence first", "Every player contributes defensively."),
-        ("🔒", "Protect the goal", "Compact, deep — minimal risk."),
-        ("🎯", "Why it works", "If you don't concede, you can't lose."),
-    ],
-    "dominant": [
-        ("👑", "Control every phase", "Dominate possession, territory, and chances."),
-        ("💪", "Relentless intensity", "High press + constant attacking + suffocating."),
-        ("🎯", "Why it works", "The opponent never gets comfortable."),
-    ],
-}
 
 _TACTICS_NAME_MAP = {
     "FC Internazionale Milano": "Inter Milan",
@@ -2823,18 +2419,6 @@ if "term" in qp and qp["term"] in TACTICAL_TERMS:
 
 # ── Back navigation from definition page ─────────────────────────────────────
 VALID_PAGES = {"main", "glossaire", "classement", "schedule", "regles"}
-if "back" in qp:
-    back_to = qp["back"]
-    st.session_state.page = back_to if back_to in VALID_PAGES else "main"
-    st.session_state.active_term = None
-    if "ta" in qp and qp["ta"]:
-        st.session_state.team_a = qp["ta"]
-    if "tb" in qp and qp["tb"]:
-        st.session_state.team_b = qp["tb"]
-    if "lg" in qp and qp["lg"] in LEAGUES:
-        st.session_state.league = qp["lg"]
-    st.query_params.clear()
-    st.rerun()
 
 # ── Navigate to glossary position / formation anchor from pitch page ──────────
 if "nav" in qp and qp["nav"] == "glossaire":
@@ -2908,53 +2492,7 @@ def watch_points(a, b):
 GLOS_ICONS = ["", "", "", "", ""]
 GLOS_COLORS = ["var(--yellow-lt)","var(--green-lt)","var(--red-lt)","var(--beige)","var(--green-lt)"]
 
-# ── Position cards data ────────────────────────────────────────────────────────
-POSITIONS_DATA = {
-    "GK":  {"name":"Goalkeeper",              "emoji":"🧤", "color":"var(--yellow-lt)", "border":"var(--yellow)",
-            "desc":"The last line of defence, responsible for protecting the goal. The goalkeeper commands their box, organises the defence, and initiates build-up with short passes or long distribution. Modern keepers are increasingly involved as an extra outfield player during possession phases."},
-    "CB":  {"name":"Centre-Back",             "emoji":"🛡️", "color":"var(--beige)",     "border":"#bbb",
-            "desc":"Central defenders form the backbone of the defensive unit. They win aerial duels, read the game to intercept passes, and engage in one-on-one duels. Ball-playing centre-backs also carry the ball forward and contribute to build-up play from deep positions."},
-    "LB":  {"name":"Left-Back",               "emoji":"↙️", "color":"var(--green-lt)",  "border":"var(--green)",
-            "desc":"The left full-back defends against right-sided attacks and provides width in possession. In attacking systems, left-backs push high to create overloads on the flank, delivering crosses or cutting inside to combine with central midfielders in the half-space."},
-    "RB":  {"name":"Right-Back",              "emoji":"↘️", "color":"var(--green-lt)",  "border":"var(--green)",
-            "desc":"The right full-back mirrors the left-back on the opposite flank. Many modern right-backs invert to play as an extra midfielder when in possession, adding numerical superiority in central areas and contributing to the team's attacking combinations."},
-    "CM":  {"name":"Central Midfielder",      "emoji":"⚙️", "color":"var(--yellow-lt)", "border":"var(--yellow)",
-            "desc":"The engine of the team, linking defence and attack. Central midfielders must win the ball back, distribute it forward, and arrive into goal-scoring positions. Box-to-box midfielders cover every inch of the pitch in both defensive and offensive phases."},
-    "LCM": {"name":"Left Central Midfielder", "emoji":"⬅️", "color":"var(--yellow-lt)", "border":"var(--yellow)",
-            "desc":"In a 4-3-3, the left-sided central midfielder operates left of the pivot. They support the left flank, make late runs into the box, and offer width in midfield. Usually a more progressive, dynamic profile compared to the more defensive pivot."},
-    "RCM": {"name":"Right Central Midfielder","emoji":"➡️", "color":"var(--yellow-lt)", "border":"var(--yellow)",
-            "desc":"The right counterpart to the left central midfielder, operating right of the pivot. They provide a passing option across the pitch, press triggers on the right side when defending, and maintain midfield shape by balancing defensive and attacking duties."},
-    "DM":  {"name":"Defensive Midfielder",    "emoji":"🔒", "color":"var(--red-lt)",    "border":"var(--red)",
-            "desc":"Sitting in front of the defence, the DM screens the backline, intercepts passes, and breaks up attacks. In possession they act as the first distributor, calmly recycling the ball. Their positioning and reading of the game prevent opponents from playing through the middle."},
-    "AM":  {"name":"Attacking Midfielder",    "emoji":"🎯", "color":"var(--green-lt)",  "border":"var(--green)",
-            "desc":"Operating between the opposition's midfield and defence, the AM is the team's creative hub. They orchestrate attacks, deliver key passes, and arrive in the box to score or assist. Often referred to as the 'number 10', they are typically the most technically gifted player."},
-    "LM":  {"name":"Left Midfielder",         "emoji":"⚡", "color":"var(--green-lt)",  "border":"var(--green)",
-            "desc":"In a flat 4-4-2, the left midfielder covers the entire left channel — tracking back to defend and pushing forward to create. They combine with the left-back on overlap runs and deliver crosses into the box, offering both width and defensive cover throughout the match."},
-    "RM":  {"name":"Right Midfielder",        "emoji":"⚡", "color":"var(--green-lt)",  "border":"var(--green)",
-            "desc":"The right counterpart in a four-midfielder system. The right midfielder patrols the right flank, providing defensive cover before transitioning into attack to support the forward line with crosses, cut-backs, and combinations from deep wide positions."},
-    "LW":  {"name":"Left Winger",             "emoji":"💨", "color":"var(--red-lt)",    "border":"var(--red)",
-            "desc":"Wingers use pace and skill to beat defenders on the flank. A natural left winger hugs the touchline to deliver crosses, while an inverted left winger cuts inside onto their stronger right foot to shoot or play combinations through the half-space in behind."},
-    "RW":  {"name":"Right Winger",            "emoji":"💨", "color":"var(--red-lt)",    "border":"var(--red)",
-            "desc":"The right winger operates symmetrically to the left. Traditional right wingers deliver crosses from the byline, while inverted right wingers cut inside onto their left foot to shoot or combine centrally. Width from wingers stretches defensive blocks and creates space."},
-    "ST":  {"name":"Striker",                 "emoji":"⚽", "color":"var(--red-lt)",    "border":"var(--red)",
-            "desc":"The primary goal-scorer, positioned at the top of the formation. Strikers combine movement to create space, hold-up play to bring teammates into attacks, and clinical finishing. In a two-striker system, they work as a pair — one holding, one running in behind."},
-    "CF":  {"name":"Centre Forward",          "emoji":"🔥", "color":"var(--red-lt)",    "border":"var(--red)",
-            "desc":"Similar to a striker but with greater freedom to drop deep and combine. The centre forward links midfield and attack, creates space for wingers, and acts as the focal point of the attack. In pressing systems, the CF leads the press aggressively from the front."},
-}
 
-# ── Formation cards data ───────────────────────────────────────────────────────
-FORMATIONS_DATA = {
-    "4-3-3":   {"emoji":"📐", "color":"var(--yellow-lt)", "border":"var(--yellow)",
-                "desc":"Four defenders, three midfielders, and three forwards. The midfield trio typically includes a defensive pivot and two dynamic central midfielders. The three forwards provide width and a central striker, making it ideal for high-pressing and possession-based styles."},
-    "4-4-2":   {"emoji":"🔲", "color":"var(--beige)",     "border":"#bbb",
-                "desc":"A classic formation with two banks of four topped by a strike partnership. The flat midfield four provides strong defensive coverage and wide presence, while the two strikers work together as a pair. Compact and hard to break down, it excels in counter-attacking football."},
-    "4-2-3-1": {"emoji":"🏗️", "color":"var(--green-lt)",  "border":"var(--green)",
-                "desc":"A double pivot of two defensive midfielders shields the defence, with an attacking trio behind a lone striker. The two DMs give security and allow the number 10 to roam freely. Very versatile — can defend deep or press high depending on the team's philosophy."},
-    "3-4-3":   {"emoji":"🔺", "color":"var(--red-lt)",    "border":"var(--red)",
-                "desc":"Three central defenders supported by two aggressive wing-backs who provide width in both phases. Three midfielders control the centre and three forwards create constant offensive pressure. Requires wing-backs with exceptional stamina to cover the full length of the flanks."},
-    "3-5-2":   {"emoji":"⬛", "color":"var(--beige)",     "border":"#bbb",
-                "desc":"Three central defenders and five midfielders — including two wing-backs — create a compact, controlled shape. The five-man midfield dominates the centre, while two strikers work in tandem. Excellent for controlling possession and pressing, with wing-backs providing all the width."},
-}
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -3022,19 +2560,10 @@ def page_definition():
     example         = term_data.get("example",            "") if isinstance(term_data, dict) else ""
 
     prev = st.session_state.get("prev_page", "main")
-    ta = st.session_state.get("team_a", "")
-    tb = st.session_state.get("team_b", "")
-    lg = st.session_state.get("league", "Ligue 1")
-    st.markdown(
-        f'<a href="?back={prev}&ta={ta}&tb={tb}&lg={lg}" target="_parent" style="'
-        f'display:inline-flex;align-items:center;gap:.4rem;'
-        f'background:var(--dark);color:var(--white);font-family:Nunito,sans-serif;'
-        f'font-size:.95rem;font-weight:800;padding:.55rem 1.4rem;border-radius:100px;'
-        f'text-decoration:none;margin-bottom:1.2rem;border:2px solid rgba(255,255,255,.15);'
-        f'transition:opacity .15s;" onmouseover="this.style.opacity=\'0.75\'" onmouseout="this.style.opacity=\'1\'">'
-        f'&#8592; Back</a>',
-        unsafe_allow_html=True,
-    )
+    if st.button("← Back", key="def_back"):
+        st.session_state.page = prev
+        st.session_state.active_term = None
+        st.rerun()
 
     st.markdown(f"""<div class="def-hero"><div class="def-title">{term.capitalize()}</div></div>""", unsafe_allow_html=True)
     st.markdown(f'<div class="def-text">{definition}</div>', unsafe_allow_html=True)
@@ -3297,14 +2826,15 @@ def page_main():
         "Championship",
         league_names,
         index=cur_league_idx,
-        key="sel_league",
         format_func=lambda l: f"{LEAGUES[l]['flag']}  {l}",
     )
     if selected_league != st.session_state.league:
         st.session_state.league = selected_league
-        for k in ["team_a", "team_b"]:
-            if k in st.session_state:
-                del st.session_state[k]
+        _new_code  = LEAGUES[selected_league]["code"]
+        _new_stds  = fetch_standings(_new_code)
+        _new_teams = sorted(_new_stds.keys(), key=lambda n: _new_stds[n]["position"]) if _new_stds else []
+        st.session_state.team_a = _new_teams[0] if _new_teams else ""
+        st.session_state.team_b = _new_teams[1] if len(_new_teams) > 1 else ""
         st.rerun()
 
     # ── Integrated VS team selector ──
@@ -3332,7 +2862,7 @@ def page_main():
             unsafe_allow_html=True
         )
         idx_a = ALL_TEAMS.index(team_a) if team_a in ALL_TEAMS else 0
-        new_a = st.selectbox("Team A", ALL_TEAMS, index=idx_a, key="sel_a", label_visibility="collapsed")
+        new_a = st.selectbox("Team A", ALL_TEAMS, index=idx_a, label_visibility="collapsed")
         if new_a != st.session_state.team_a:
             st.session_state.team_a = new_a
             st.rerun()
@@ -3365,7 +2895,7 @@ def page_main():
             unsafe_allow_html=True
         )
         idx_b = remaining.index(st.session_state.team_b) if st.session_state.team_b in remaining else 0
-        new_b = st.selectbox("Team B", remaining, index=idx_b, key="sel_b", label_visibility="collapsed")
+        new_b = st.selectbox("Team B", remaining, index=idx_b, label_visibility="collapsed")
         if new_b != st.session_state.team_b:
             st.session_state.team_b = new_b
             st.rerun()
@@ -3955,38 +3485,6 @@ def page_schedule():
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# FOOTBALL RULES DATA
-# ══════════════════════════════════════════════════════════════════════════════
-# 30 rule entries (title, emoji, description) rendered as expandable cards on the Rules page.
-FOOTBALL_RULES = [
-    ("The Objective", "", "Score more goals than the opponent before time runs out. A goal is scored when the ball fully crosses the opponent's goal line between the posts and under the crossbar. The team with the most goals wins. If both teams score the same number, the match ends in a draw — unless a winner must be decided (knockout round), in which case extra time or a penalty shootout follows."),
-    ("The Duration", "", "A match lasts 90 minutes, split into two halves of 45 minutes each, with a 15-minute break at half-time. The referee adds extra minutes at the end of each half (called added time or stoppage time) to compensate for injuries, substitutions, or time-wasting. These extra minutes are shown on a board by the 4th official."),
-    ("The Teams", "", "Each team fields 11 players on the pitch at any one time, including one goalkeeper. A team needs at least 7 players to continue — if a team drops below 7 (due to red cards or injuries with no substitutes left), the game is abandoned. Both teams must wear different coloured kits."),
-    ("The Goalkeeper", "", "The goalkeeper is the only player allowed to handle the ball with their hands — but only inside their own penalty area. Outside the area, they must play like any other outfield player. They wear a different colour shirt. The keeper cannot pick up the ball if a teammate deliberately passes it back with their feet (back-pass rule)."),
-    ("Offside", "", "A player is offside if, at the moment the ball is played to them, any part of their body that can score (head, torso, legs) is closer to the opponent's goal line than both the ball and the second-to-last defender. Being offside is only an infringement if the player actively participates in play. You cannot be offside from a throw-in, corner, or goal kick."),
-    ("The Foul", "", "A foul is an unfair act against an opponent, judged by the referee. Common fouls: kicking, tripping, pushing, holding, or charging an opponent carelessly or excessively. Fouls result in a free kick — or a penalty if committed inside the penalty area. The severity of the foul determines whether a yellow or red card follows."),
-    ("The Free Kick", "", "Awarded after a foul or infringement. There are two types: a direct free kick (can be shot straight into goal) and an indirect free kick (must touch another player first). Opposing players must stand at least 9.15 metres from the ball. The kick is taken from where the foul occurred."),
-    ("The Penalty", "", "Awarded when a defending player commits a foul inside their own penalty area. The ball is placed on the penalty spot, 12 yards from goal. Only the penalty taker and the goalkeeper are allowed in the area at the moment of the kick. The goalkeeper must stay on their goal line until the ball is kicked."),
-    ("The Yellow Card", "", "A formal warning. A player receives a yellow card for: persistent fouling, unsporting behaviour (diving, time-wasting), dissent towards the referee, or deliberately handling the ball. Two yellow cards in the same match means an immediate red card and dismissal."),
-    ("The Red Card", "", "Shown for serious offences resulting in immediate dismissal. A player receives a direct red card for: violent conduct, serious foul play, spitting, abusive language, or denying an obvious goal-scoring opportunity by handball or foul. The team plays with 10 players and cannot bring on a replacement."),
-    ("The Corner", "", "Awarded to the attacking team when the ball goes out of play over the goal line and was last touched by a defender. The ball is placed in the corner arc and kicked back into play. A goal can be scored directly from a corner. Defenders must stand at least 9.15 metres away until the ball is in play."),
-    ("The Throw-In", "", "Awarded when the ball goes out of play over the touchline (the long sides of the pitch). The throw-in belongs to the team that did not touch the ball last. The player must throw with both hands from behind and over their head, with both feet on or behind the line. A goal cannot be scored directly from a throw-in."),
-    ("The Substitute", "", "Teams can make up to 5 substitutions per match, with a sixth allowed in extra time. Substitutions can only happen during a stoppage in play. Once a player is off, they cannot return. A player sent off cannot be replaced — the team plays with fewer players."),
-    ("Extra Time", "", "If a knockout match is level after 90 minutes, the game goes into extra time: two additional periods of 15 minutes each. If still level, it goes to a penalty shootout. Both periods must be played — a goal in extra time does not end the match immediately."),
-    ("Penalty Shootout", "", "Used to decide a knockout match still level after extra time. Each team takes turns shooting 5 penalties alternately. If still tied after 5 each, it becomes sudden death — the first team to score while the other misses wins. Only players on the pitch at the end of extra time are eligible."),
-    ("VAR", "", "Video Assistant Referee. Used in top competitions to review four types of decisions: goals, penalties, direct red cards, and cases of mistaken identity. A VAR team watches multiple camera angles from a remote centre. They can recommend the referee review footage on a pitchside monitor. VAR only intervenes for a clear and obvious error."),
-    ("Handball", "", "Called when the ball touches a player's hand or arm in an unnatural position — meaning the arm is making the body bigger than expected. Accidental handballs are not always penalised. If a player scores directly after an accidental handball by a teammate, the goal is disallowed. Goalkeepers can handle the ball freely inside their area."),
-    ("The Penalty Area", "", "The large rectangle in front of each goal (18-yard box). Inside this area, the goalkeeper can handle the ball. Any foul by a defender inside the box results in a penalty for the attacking team. The smaller box inside it (6-yard box) is where goal kicks are taken from."),
-    ("Expulsion", "", "When a player receives a red card — directly or after two yellows — they must leave the pitch immediately and cannot return. Their team plays with one fewer player for the rest of the match. The player is also automatically suspended for at least one subsequent match."),
-    ("The Goal", "", "A goal is scored when the entire ball crosses the goal line between the posts and under the crossbar, with no infringement in the build-up. The goal counts the moment the ball fully crosses the line — even if it bounces back out. Goal-line technology or VAR may confirm it."),
-    ("The Referee", "", "The authority on the pitch. They enforce the rules, start and stop play, award free kicks and penalties, show cards, and add stoppage time. The referee's decision is final on the pitch, though they can correct a mistake before play resumes. Assisted by two assistant referees and, in top competitions, a VAR team."),
-    ("The Assistant Referee", "", "Two assistant referees patrol the touchlines. Their main jobs: signal when the ball goes out of play, flag for offside, and assist with decisions near their side of the pitch. They communicate with the referee via earpiece. The final call always belongs to the referee."),
-    ("Kick-Off", "", "Used to start each half, restart after a goal, and begin extra time. The ball is placed on the centre spot. Both teams must be in their own half. The opposing team must stay outside the centre circle until the ball is in play. A goal can be scored directly from a kick-off."),
-    ("The Back Pass", "", "When a player deliberately passes the ball back to their goalkeeper using their feet. The keeper cannot pick it up with their hands — they must play it with their feet. Introduced in 1992 to stop time-wasting. If the ball is headed back or played with another body part, the keeper can pick it up."),
-    ("The Wall", "", "When a free kick is awarded near the penalty area, defenders can form a wall of players to block the shot. The wall must stand at least 9.15 metres from the ball. Only attacking players are allowed in that zone — defenders cannot stand inside it before the kick is taken."),
-    ("Simulation (Diving)", "", "When a player deliberately falls or exaggerates contact to trick the referee into awarding a free kick or penalty. Punishable by a yellow card. VAR has made it easier to spot after the fact, though the line between simulation and a genuine reaction to contact can be hard to judge."),
-    ("Added Time", "", "Also known as stoppage time. At the end of each half, the referee adds minutes to make up for time lost to injuries, substitutions, goal celebrations, VAR checks, and time-wasting. Since 2023, referees have been encouraged to add more accurate amounts — sometimes over 10 minutes per half in busy games."),
-]
 
 
 # ══════════════════════════════════════════════════════════════════════════════
