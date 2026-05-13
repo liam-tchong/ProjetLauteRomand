@@ -25,6 +25,8 @@ try:
 except Exception:
     GOALS_MODEL = None
 
+API_KEY = "911605e549af4b759c5d7d2ffa977742"
+HEADERS = {"X-Auth-Token": API_KEY}
 
 
 def _poisson_pmf(k, lam):
@@ -177,7 +179,6 @@ st.set_page_config(page_title="The Football Classroom", layout="wide")
 ANTHROPIC_API_KEY  = st.secrets.get("ANTHROPIC_API_KEY", "")
 API_FOOTBALL_KEY   = st.secrets.get("API_FOOTBALL_KEY", "")
 SQUAD_API_KEY      = st.secrets.get("SQUAD_API_KEY", "")
-HEADERS = {"X-Auth-Token": API_FOOTBALL_KEY}
 
 @st.cache_resource
 def _get_anthropic_client():
