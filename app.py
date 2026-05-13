@@ -1127,12 +1127,6 @@ def render_tactical_pitch_html(team_name):
         f".hz_{slug}{{animation:hz_p_{slug} 4.5s ease-in-out infinite;}}",
     ] + arrow_css
 
-    # Add hover glow CSS for clickable player bubbles
-    css_lines.append(
-        ".pitch-player-link{cursor:pointer;text-decoration:none;}"
-        ".pitch-player-link:hover circle:first-of-type{filter:brightness(1.35);stroke:white;stroke-width:2.4;}"
-        ".pitch-player-link:hover{opacity:.92;}"
-    )
 
     players_svg = ""
     for i, (ppx, ppy, abbr) in enumerate(players):
@@ -1175,12 +1169,7 @@ def render_tactical_pitch_html(team_name):
             f'fill="none" stroke="#F5C842" stroke-width="1.4" opacity="0.5" stroke-dasharray="4 3"/>'
         ) if is_gk else ""
 
-        _ta = st.session_state.get("team_a", "")
-        _tb = st.session_state.get("team_b", "")
-        _lg = st.session_state.get("league", "Ligue 1")
-        pos_anchor = f"?nav=glossaire&pos={abbr.lower()}&ta={_ta}&tb={_tb}&lg={_lg}"
         players_svg += (
-            f'<a href="{pos_anchor}" class="pitch-player-link">'
             f'<g class="{cls}" {filt}>'
             f'{ring}'
             f'{gk_ring}'
@@ -1188,8 +1177,7 @@ def render_tactical_pitch_html(team_name):
             f'<circle cx="{x0:.1f}" cy="{y0:.1f}" r="{player_r}" fill="rgba(255,255,255,.08)"/>'
             f'<text x="{x0:.1f}" y="{y0:.1f}" text-anchor="middle" dominant-baseline="central" '
             f'font-size="{font_sz}" font-weight="900" fill="{text_fill}" font-family="Nunito,sans-serif" letter-spacing="-.3">{abbr}</text>'
-            f'</g>'
-            f'</a>\n'
+            f'</g>\n'
         )
 
     # ── Animated ball ──
