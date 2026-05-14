@@ -2383,6 +2383,19 @@ details.style-acc .style-details{animation:fadeIn .2s ease;}
 label[data-testid="stWidgetLabel"] p{font-family:'Nunito',sans-serif!important;font-weight:800!important;font-size:.72rem!important;text-transform:uppercase!important;letter-spacing:.1em!important;color:var(--mid)!important;}
 [data-testid="stSelectbox"]>div>div{background:var(--white)!important;border:2px solid var(--beige)!important;border-radius:14px!important;font-family:'Nunito',sans-serif!important;font-weight:700!important;}
 
+/* Force selectbox value text to black */
+[data-testid="stSelectbox"] div[data-baseweb="select"] > div {
+  color: #000 !important;
+}
+[data-testid="stSelectbox"] div[data-baseweb="select"] input {
+  -webkit-text-fill-color: #000 !important;
+  color: #000 !important;
+}
+/* Dropdown menu items */
+div[data-baseweb="popover"] ul li div {
+  color: #000 !important;
+}
+
 /* Back button */
 button[kind="primary"],[data-testid="stBaseButton-primary"]{background:var(--dark)!important;color:var(--white)!important;border:none!important;border-radius:100px!important;font-family:'Nunito',sans-serif!important;font-weight:800!important;}
 </style>

@@ -29,7 +29,7 @@
 ---
 
 ## Features
-
+    
 ### Live Standings
 - Full league table with team crests, points, goal difference, and form
 - Position change indicators vs previous season
