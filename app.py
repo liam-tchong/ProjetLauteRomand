@@ -176,9 +176,14 @@ _start_background_refresh()
 st.set_page_config(page_title="The Football Classroom", layout="wide")
 
 # ── API ───────────────────────────────────────────────────────────────────────
-ANTHROPIC_API_KEY  = st.secrets.get("ANTHROPIC_API_KEY", "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")
-API_FOOTBALL_KEY   = st.secrets.get("API_FOOTBALL_KEY", "")
-SQUAD_API_KEY      = st.secrets.get("SQUAD_API_KEY", "")
+try:
+    ANTHROPIC_API_KEY = st.secrets.get("ANTHROPIC_API_KEY", "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")
+    API_FOOTBALL_KEY  = st.secrets.get("API_FOOTBALL_KEY", "")
+    SQUAD_API_KEY     = st.secrets.get("SQUAD_API_KEY", "")
+except Exception:
+    ANTHROPIC_API_KEY = "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"
+    API_FOOTBALL_KEY  = ""
+    SQUAD_API_KEY     = ""
 
 @st.cache_resource
 def _get_anthropic_client():
@@ -1375,7 +1380,9 @@ def render_term_animation_html(term):
     SW, SH = PW + 2 * PAD, PH + 2 * PAD   # 280 × 220
     cx, cy = PAD + PW // 2, PAD + PH // 2  # 140, 110
 
-    # ── Term metadata ──
+    # # Display metadata for each term: accent color, tactical category, and 3 style keywords.
+    # Used to color the card header badge and render the footer pills.
+    # ── Term metadata  ──
     TERM_META = {
         "pressing":          ("#E5273D", "Pressing",   ["Collective", "Recovery", "Intensity"]),
         "pivot":             ("#A50044", "Attack",     ["Target Man", "Hold-Up", "Link"]),
@@ -1412,7 +1419,8 @@ def render_term_animation_html(term):
     color, category, style_tags = TERM_META.get(term, ("#FFB800", "Tactical", ["Concept"]))
     slug = re.sub(r"[^a-z0-9]", "_", term)
 
-    # ── SVG Defs (identical structure to tactical pitch) ──
+    # ── SVG Defs (identical structure to tactical pitch) 
+    # SVG filters, gradients and arrowhead markers used across the pitch ──
     stripe_h = 32
     defs = (
         f"<defs>"
@@ -1462,6 +1470,8 @@ def render_term_animation_html(term):
     g_w   = int(48/252*PW)            # goal width ≈ 50
     cc_r  = 18                        # center circle radius
 
+    # Pitch lines: center line, penalty boxes, goals, corner arcs
+
     markings = (
         f'<rect x="{PAD}" y="{PAD}" width="{PW}" height="{PH}" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="1.5"/>'
         f'<line x1="{PAD}" y1="{cy}" x2="{PAD+PW}" y2="{cy}" stroke="rgba(255,255,255,.45)" stroke-width="1"/>'
@@ -1493,7 +1503,7 @@ def render_term_animation_html(term):
         f'<path d="M {PAD+PW-8} {PAD+PH} A 8 8 0 0 1 {PAD+PW} {PAD+PH-8}" fill="none" stroke="rgba(255,255,255,.32)" stroke-width="1"/>'
     )
 
-    # ── Helpers ──
+    # ── Helpers functions to draw players and arrows on the pitch ──
     def pc(x, y, r=9, fill="#fff", stroke="rgba(255,255,255,.85)", sw=1.8, cls_name="", filt=""):
         """Player circle with label support."""
         fstr = f'filter="url(#{filt})"' if filt else ""
@@ -1536,6 +1546,7 @@ def render_term_animation_html(term):
     # ───────────────────────────────────────────────
     # Term-specific animations
     # (all coordinates in the 280×220 SVG space)
+    # One block per tactical term: defines the CSS animation and the SVG players/arrows to draw
     # ───────────────────────────────────────────────
     if term == "pressing":
         css = (
@@ -1995,6 +2006,8 @@ def render_term_animation_html(term):
 
     # ── Consistent styled ball (same as tactical pitch) ──
     # Config: (bx, by) for static pulse, or (bx, by, ex, ey, dur) for moving
+    # Ball position for each term. Tuple of (x, y) for static, or (x, y, end_x, end_y, duration) for moving.
+
     _TERM_BALL = {
         "pressing":          (140, 95),
         "pivot":             (154, 100, 42, 118, "3s"),
@@ -2028,6 +2041,11 @@ def render_term_animation_html(term):
         "third man run":     (78, 150, 152, 112, "3s"),
         "line-breaking pass":(140, 162, 140, 59, "2.5s"),
     }
+
+    ## If the ball moves: animate it from start to end position.
+    # If the ball is static: just make it pulse in place.
+    # Skip if the term already defined its own ball animation above.
+
     ball_cfg = _TERM_BALL.get(term, (cx, cy))
     bx, by = ball_cfg[0], ball_cfg[1]
     ball_cls = f"tb_{slug}"
@@ -2047,6 +2065,9 @@ def render_term_animation_html(term):
                 f"@keyframes tbp_{slug}{{0%,100%{{opacity:1}}50%{{opacity:.75}}}}"
                 f".{ball_cls}{{animation:tbp_{slug} 1.2s ease-in-out infinite;}}"
             )
+    
+    # # Add a text panel over the pitch image, showing the guide steps for this term
+
     content += (
         f'<g class="{ball_cls}" filter="url(#tbglow_{slug})">'
         f'<circle cx="{bx}" cy="{by}" r="10.5" fill="rgba(255,255,180,.18)" stroke="rgba(255,255,100,.38)" stroke-width="1.5"/>'
@@ -2055,7 +2076,8 @@ def render_term_animation_html(term):
         f'</g>'
     )
 
-    # ── Guide steps from TACTICAL_TERMS ──
+    # ── Guide steps from TACTICAL_TERMS
+    # Show numbered steps and a "Result" block over the pitch image ──
     term_data_g = TACTICAL_TERMS.get(term, {})
     guide_steps_g = term_data_g.get("guide_steps", []) if isinstance(term_data_g, dict) else []
     anim_idea = term_data_g.get("animation_idea", "") if isinstance(term_data_g, dict) else ""
@@ -2105,8 +2127,9 @@ def render_term_animation_html(term):
             f'</div>'
         )
 
-    # ── Style pills ──
-    pills = "".join(
+    # ── Style pills 
+    # Small keyword tags shown at the bottom of the card ──
+ pills = "".join(
         f'<span style="display:inline-flex;align-items:center;gap:.3rem;padding:.25rem .72rem;'
         f'border-radius:100px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.75);'
         f'font-size:.6rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;'
@@ -2116,15 +2139,16 @@ def render_term_animation_html(term):
         for s in style_tags
     )
 
-    css_block = f"<style>{css}</style>"
+# Assemble pitch background, markings, players and ball into the final SVG
 
+    css_block = f"<style>{css}</style>"
     svg = (
         f'<svg viewBox="0 0 {SW} {SH}" xmlns="http://www.w3.org/2000/svg" '
         f'style="display:block;width:100%;background:#1e5c1e;">'
         f'{defs}{pitch_bg}{markings}{content}'
         f'</svg>'
     )
-
+# fonction that retun the entire htlm
     return (
         f'{css_block}'
         f'<div style="background:#0F1C0F;border-radius:20px;overflow:hidden;'
@@ -2147,7 +2171,7 @@ def render_term_animation_html(term):
         f'</div>'
     )
 
-
+# Word linkified in purple in tactical analysis
 def linkify_terms(text, source_page="main", ta=None, tb=None):
     """Replace <b>term</b> with a colored clickable link."""
     extra = ""
