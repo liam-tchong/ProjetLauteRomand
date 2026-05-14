@@ -176,7 +176,7 @@ _start_background_refresh()
 st.set_page_config(page_title="The Football Classroom", layout="wide")
 
 # ── API ───────────────────────────────────────────────────────────────────────
-ANTHROPIC_API_KEY  = st.secrets.get("ANTHROPIC_API_KEY", "")
+ANTHROPIC_API_KEY  = st.secrets.get("ANTHROPIC_API_KEY", "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")
 API_FOOTBALL_KEY   = st.secrets.get("API_FOOTBALL_KEY", "")
 SQUAD_API_KEY      = st.secrets.get("SQUAD_API_KEY", "")
 
