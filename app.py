@@ -1,5 +1,4 @@
 import streamlit as st
-import os
 import requests
 import re
 import anthropic
@@ -178,9 +177,9 @@ st.set_page_config(page_title="The Football Classroom", layout="wide")
 
 # ── API ───────────────────────────────────────────────────────────────────────
 try:
-    ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY') # st.secrets.get("ANTHROPIC_API_KEY", "")
-    API_FOOTBALL_KEY  = os.environ.get('API_FOOTBALL_KEY') # st.secrets.get("API_FOOTBALL_KEY", "")
-    SQUAD_API_KEY     = os.environ.get('SQUAD_API_KEY')  # st.secrets.get("SQUAD_API_KEY", "")
+    ANTHROPIC_API_KEY = st.secrets.get("ANTHROPIC_API_KEY", "")
+    API_FOOTBALL_KEY  = st.secrets.get("API_FOOTBALL_KEY", "")
+    SQUAD_API_KEY     = st.secrets.get("SQUAD_API_KEY", "")
 except Exception:
     ANTHROPIC_API_KEY = ""
     API_FOOTBALL_KEY  = ""
@@ -760,6 +759,7 @@ def generate_team_style(team_name, pts, played, won, draw, lost,
                         ga_avg_recent=None, win_pct=None):
     """Generates a 3-paragraph tactical analysis via Claude."""
     if not ANTHROPIC_API_KEY:
+        print("No ANTHROPIC_API_KEY set — skipping team style generation.")
         return TEAM_STYLES.get(team_name, DEFAULT_STYLE)
 
     form_str = " → ".join(form_tuple) if form_tuple else "N/A"
@@ -845,7 +845,8 @@ Reply with exactly 4 sections separated by "|||"."""
         while len(parts) < 4:
             parts.append("")
         return tuple(parts[:4])
-    except Exception:
+    except Exception as e:
+        print(f"Error generating team style for {team_name}: {e}")
         fallback = TEAM_STYLES.get(team_name, DEFAULT_STYLE)
         return (fallback, "", "", "")
 
