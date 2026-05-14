@@ -1,4 +1,5 @@
 import streamlit as st
+import os
 import requests
 import re
 import anthropic
@@ -177,9 +178,9 @@ st.set_page_config(page_title="The Football Classroom", layout="wide")
 
 # ── API ───────────────────────────────────────────────────────────────────────
 try:
-    ANTHROPIC_API_KEY = st.secrets.get("ANTHROPIC_API_KEY", "")
-    API_FOOTBALL_KEY  = st.secrets.get("API_FOOTBALL_KEY", "")
-    SQUAD_API_KEY     = st.secrets.get("SQUAD_API_KEY", "")
+    ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY') # st.secrets.get("ANTHROPIC_API_KEY", "")
+    API_FOOTBALL_KEY  = os.environ.get('API_FOOTBALL_KEY') # st.secrets.get("API_FOOTBALL_KEY", "")
+    SQUAD_API_KEY     = os.environ.get('SQUAD_API_KEY')  # st.secrets.get("SQUAD_API_KEY", "")
 except Exception:
     ANTHROPIC_API_KEY = ""
     API_FOOTBALL_KEY  = ""
