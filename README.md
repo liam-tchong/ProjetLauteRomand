@@ -1,4 +1,4 @@
-# ⚽ The Football Classroom
+# The Football Classroom
 
 > A web application for tactical football analysis across Europe's top 5 leagues — powered by Machine Learning, real-time APIs, and AI-generated insights.
 
@@ -10,37 +10,37 @@
 
 ---
 
-## 📌 Overview
+## Overview
 
 **The Football Classroom** is an interactive Streamlit web app that lets users explore, compare, and predict football matches across 5 major European leagues. It combines live data from external APIs, machine learning models trained on thousands of historical matches, and AI-generated tactical analysis to deliver a rich educational football experience.
 
 ---
 
-## 🌍 Supported Leagues
+## Supported Leagues
 
 | League | Country | API Code |
 |---|---|---|
-| 🇫🇷 Ligue 1 | France | `FL1` |
-| 🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier League | England | `PL` |
-| 🇪🇸 La Liga | Spain | `PD` |
-| 🇮🇹 Serie A | Italy | `SA` |
-| 🇩🇪 Bundesliga | Germany | `BL1` |
+| Ligue 1 | France | `FL1` |
+| Premier League | England | `PL` |
+| La Liga | Spain | `PD` |
+| Serie A | Italy | `SA` |
+| Bundesliga | Germany | `BL1` |
 
 ---
 
-## ✨ Features
+## Features
 
-### 📊 Live Standings
+### Live Standings
 - Full league table with team crests, points, goal difference, and form
 - Position change indicators vs previous season
 - AI-generated league summary (Claude Haiku) highlighting the key storylines
 
-### 📅 Match Schedule
+### Match Schedule
 - 17-day window (3 days back, 14 days forward)
 - Live scores with status badges (LIVE / FIN / Scheduled)
 - Matches grouped by date with local timezone conversion
 
-### 🔬 Team vs Team Analysis
+### Team vs Team Analysis
 The core feature of the app. Select any two teams from any league and get:
 - **AI-generated style cards** (4-section tactical breakdown per team via Claude Haiku)
 - **Tactical pitch visualization** — animated SVG showing formation, player positions, movement arrows, and heat zones
@@ -49,16 +49,16 @@ The core feature of the app. Select any two teams from any league and get:
 - **Stats comparison** — offensive and defensive metrics side by side
 - **Key challenges** — AI-generated matchup-specific insight per team
 
-### 📚 Tactical Glossary
+### Tactical Glossary
 3-tab reference section:
 - **Tactics** — clickable cards for every tactical term (High Press, Tiki-Taka, Gegenpressing, etc.) with animated SVG definitions
 - **Positions** — real squad composition pulled from api-sports.io, organized by position
 - **Formations** — visual explanation of the most common formations
 
-### 📖 Rules of the Game
+### Rules of the Game
 Expandable cards covering the fundamental rules of football, designed for beginners.
 
-### 🔗 Tactical Term Definitions
+### Tactical Term Definitions
 Each tactical term links to a dedicated page with:
 - Full definition
 - SVG animation illustrating the concept
@@ -66,7 +66,7 @@ Each tactical term links to a dedicated page with:
 
 ---
 
-## 🧠 Machine Learning
+## Machine Learning
 
 The prediction engine is built on two models trained on **5000+ historical matches** from 2023–2026:
 
@@ -74,7 +74,7 @@ The prediction engine is built on two models trained on **5000+ historical match
 | Model | Task | Algorithm |
 |---|---|---|
 | Result classifier | Predict H / D / A | `GradientBoostingClassifier` |
-| Goals regressors | Predict home & away goals | `PoissonRegressor` (×2) |
+| Goals regressors | Predict home & away goals | `PoissonRegressor` (x2) |
 
 ### Features (per team, last 5 matches)
 - Win rate (form)
@@ -85,11 +85,11 @@ The prediction engine is built on two models trained on **5000+ historical match
 The expected goals model uses a Dixon-Coles inspired multiplicative formula:
 
 ```
-xG_home = league_avg_home × √(attack_strength_home × defensive_weakness_away)
+xG_home = league_avg_home x sqrt(attack_strength_home x defensive_weakness_away)
 ```
 
 Adjusted for:
-- **Recent form** (weighted last-5 results, ±20% swing)
+- **Recent form** (weighted last-5 results, +/-20% swing)
 - **Fatigue** (match within 4 days → -12% xG)
 - **Stakes** (title race / relegation battle → more cautious play)
 
@@ -100,7 +100,7 @@ The model silently re-fetches new match results and retrains in a background thr
 
 ---
 
-## 🛠️ Technical Stack
+## Technical Stack
 
 | Layer | Technology |
 |---|---|
@@ -117,7 +117,7 @@ The model silently re-fetches new match results and retrains in a background thr
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### 1. Clone the repository
 
@@ -164,7 +164,7 @@ The app will be available at `http://localhost:8501`.
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 .
@@ -185,7 +185,7 @@ The app will be available at `http://localhost:8501`.
 
 ---
 
-## 👥 Team Contributions
+## Team Contributions
 
 ### Contribution Matrix
 
@@ -212,16 +212,16 @@ The app will be available at `http://localhost:8501`.
 
 ---
 
-## 🔑 API Keys
+## API Keys
 
 | API | Purpose | Free tier |
 |---|---|---|
-| [football-data.org](https://www.football-data.org/) | Standings, matches, scorers | ✅ 10 req/min |
-| [api-sports.io](https://api-sports.io/) | Advanced Ligue 1 stats, squad composition | ✅ 100 req/day |
-| [Anthropic](https://www.anthropic.com/) | AI text generation (Claude Haiku) | ❌ Paid |
+| [football-data.org](https://www.football-data.org/) | Standings, matches, scorers | Yes - 10 req/min |
+| [api-sports.io](https://api-sports.io/) | Advanced Ligue 1 stats, squad composition | Yes - 100 req/day |
+| [Anthropic](https://www.anthropic.com/) | AI text generation (Claude Haiku) | No - Paid |
 
 ---
 
-## 📄 License
+## License
 
 This project was built as part of a school project. All football data belongs to their respective owners.
