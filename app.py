@@ -2127,9 +2127,8 @@ def render_term_animation_html(term):
             f'</div>'
         )
 
-    # ── Style pills 
-    # Small keyword tags shown at the bottom of the card ──
- pills = "".join(
+    # Small keyword tags shown at the bottom of the card
+    pills = "".join(
         f'<span style="display:inline-flex;align-items:center;gap:.3rem;padding:.25rem .72rem;'
         f'border-radius:100px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.75);'
         f'font-size:.6rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;'
