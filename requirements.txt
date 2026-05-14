@@ -2,3 +2,5 @@ streamlit
 requests
 anthropic
 scikit-learn
+pandas
+numpy
