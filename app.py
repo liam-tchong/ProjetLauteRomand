@@ -176,9 +176,14 @@ _start_background_refresh()
 st.set_page_config(page_title="The Football Classroom", layout="wide")
 
 # ── API ───────────────────────────────────────────────────────────────────────
-ANTHROPIC_API_KEY  = st.secrets.get("ANTHROPIC_API_KEY", "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")
-API_FOOTBALL_KEY   = st.secrets.get("API_FOOTBALL_KEY", "")
-SQUAD_API_KEY      = st.secrets.get("SQUAD_API_KEY", "")
+try:
+    ANTHROPIC_API_KEY = st.secrets.get("ANTHROPIC_API_KEY", "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")
+    API_FOOTBALL_KEY  = st.secrets.get("API_FOOTBALL_KEY", "")
+    SQUAD_API_KEY     = st.secrets.get("SQUAD_API_KEY", "")
+except Exception:
+    ANTHROPIC_API_KEY = "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"
+    API_FOOTBALL_KEY  = ""
+    SQUAD_API_KEY     = ""
 
 @st.cache_resource
 def _get_anthropic_client():
